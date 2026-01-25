@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Home{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="display-4"><i class="bi bi-speedometer2"></i> Bot Management Dashboard</h1>
+    <p class="lead">Manage your Dead by Daylight Discord Bot</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-people-fill dashboard-icon"></i>
+                <h3 class="mt-3">Profiles</h3>
+                <p>View all character profiles</p>
+                <a href="/profiles" class="btn btn-primary">View Profiles</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-globe dashboard-icon"></i>
+                <h3 class="mt-3">Realms</h3>
+                <p>Manage game realms</p>
+                <a href="/realms" class="btn btn-primary">Manage Realms</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-shop dashboard-icon"></i>
+                <h3 class="mt-3">Shop</h3>
+                <p>Manage shop items</p>
+                <a href="/shop" class="btn btn-primary">Manage Shop</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-trophy-fill dashboard-icon"></i>
+                <h3 class="mt-3">Trials</h3>
+                <p>Manage trial messages</p>
+                <a href="/trials" class="btn btn-primary">Manage Trials</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-crosshair dashboard-icon"></i>
+                <h3 class="mt-3">Hunting</h3>
+                <p>Manage hunting loot</p>
+                <a href="/hunting" class="btn btn-primary">Manage Hunting</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-water dashboard-icon"></i>
+                <h3 class="mt-3">Fishing</h3>
+                <p>Manage fishing loot</p>
+                <a href="/fishing" class="btn btn-primary">Manage Fishing</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-search dashboard-icon"></i>
+                <h3 class="mt-3">Scavenging</h3>
+                <p>Manage scavenging loot</p>
+                <a href="/scavenging" class="btn btn-primary">Manage Scavenging</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-5">
+    <div class="card-header">
+        <i class="bi bi-info-circle"></i> Quick Info
+    </div>
+    <div class="card-body">
+        <h5>Welcome to the DBD Bot Dashboard!</h5>
+        <p>Use this dashboard to manage all aspects of your Discord bot:</p>
+        <ul>
+            <li><strong>Profiles:</strong> View all created character profiles</li>
+            <li><strong>Realms:</strong> Add, edit, or remove game realms</li>
+            <li><strong>Shop Items:</strong> Manage items available for purchase</li>
+            <li><strong>Trial Messages:</strong> Customize messages for Killer and Survivor trials</li>
+            <li><strong>Minigames:</strong> Configure loot tables for hunting, fishing, and scavenging</li>
+        </ul>
+        <p class="mb-0">All changes are saved directly to the database and will be reflected in the Discord bot immediately.</p>
+    </div>
+</div>
+{% endblock %}
