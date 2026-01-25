@@ -1,4 +1,4 @@
-# entity[github_readme(1).md](https://github.com/user-attachments/files/24844950/github_readme.1.md)
+# The Entity
 # 🎮 Dead by Daylight Discord Bot
 
 A Discord bot with RPG elements based on Dead by Daylight, including a web dashboard for management.
