@@ -33,7 +33,7 @@ A Discord bot with RPG elements based on Dead by Daylight, including a web dashb
 
 ```bash
 # Clone repository
-git clone https://github.com/YOUR-USERNAME/cosmos.git
+git clone https://github.com/YOUR-USERNAME/entity.git
 cd cosmos
 
 # Create virtual environment
