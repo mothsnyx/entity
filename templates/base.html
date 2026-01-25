@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Discord Bot Dashboard{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg-dark: #1a1a1a;
+            --bg-darker: #0d0d0d;
+            --accent: #e74c3c;
+            --accent-hover: #c0392b;
+            --text-light: #ecf0f1;
+            --border: #2c2c2c;
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--bg-darker) !important;
+            border-bottom: 2px solid var(--accent);
+        }
+        
+        .navbar-brand {
+            color: var(--accent) !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .nav-link {
+            color: var(--text-light) !important;
+            transition: color 0.3s;
+        }
+        
+        .nav-link:hover {
+            color: var(--accent) !important;
+        }
+        
+        .card {
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            background-color: var(--accent);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+        
+        .table {
+            color: var(--text-light);
+        }
+        
+        .table-dark {
+            --bs-table-bg: var(--bg-darker);
+            --bs-table-border-color: var(--border);
+        }
+        
+        .form-control, .form-select {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            border-color: var(--border);
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 0.25rem rgba(231, 76, 60, 0.25);
+        }
+        
+        .alert {
+            border-radius: 8px;
+        }
+        
+        .modal-content {
+            background-color: var(--bg-darker);
+            color: var(--text-light);
+            border: 1px solid var(--border);
+        }
+        
+        .modal-header {
+            border-bottom-color: var(--border);
+        }
+        
+        .modal-footer {
+            border-top-color: var(--border);
+        }
+        
+        .btn-close {
+            filter: invert(1);
+        }
+        
+        .dashboard-icon {
+            font-size: 3rem;
+            color: var(--accent);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-discord"></i> DBD Bot Dashboard
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profiles">Profiles</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/realms">Realms</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/shop">Shop Items</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/trials">Trial Messages</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            Minigames
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/hunting">Hunting</a></li>
+                            <li><a class="dropdown-item" href="/fishing">Fishing</a></li>
+                            <li><a class="dropdown-item" href="/scavenging">Scavenging</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
