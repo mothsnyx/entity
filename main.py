@@ -4,6 +4,8 @@ from discord.ext import commands
 import random
 import re
 from database import Database
+import os
+from dotenv import load_dotenv
 
 # Bot Setup
 intents = discord.Intents.default()
@@ -501,6 +503,10 @@ async def on_ready():
         print(f"Failed to sync commands: {e}")
 
 # Run the bot
-if __name__ == "__main__":
-    TOKEN = "MTQ2NDkwMjU2MTE1MTU4MjIzOA.G-kpIU.JuJSfzMRVarBAG0-K82L0-hmHqGdwmO2wvk614"  # Replace with your bot token
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+
+if not TOKEN:
+    print("ERROR: Discord Token not found! Check .env file")
+else:
     bot.run(TOKEN)
