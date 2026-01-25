@@ -502,5 +502,5 @@ async def on_ready():
 
 # Run the bot
 if __name__ == "__main__":
-    TOKEN = "YOUR_BOT_TOKEN_HERE"  # Replace with your bot token
+    TOKEN = "MTQ2NDkwMjU2MTE1MTU4MjIzOA.G-kpIU.JuJSfzMRVarBAG0-K82L0-hmHqGdwmO2wvk614"  # Replace with your bot token
     bot.run(TOKEN)
