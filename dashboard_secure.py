@@ -5,6 +5,8 @@ from functools import wraps
 from database import Database
 import os
 import secrets
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 # WICHTIG: Ändere diesen Secret Key!
