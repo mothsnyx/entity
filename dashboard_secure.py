@@ -17,7 +17,7 @@ auth = HTTPBasicAuth()
 
 # Benutzer und Passwörter (Passwörter sind gehasht)
 users = {
-    "admin": generate_password_hash("dein-sicheres-passwort-hier"),  # ÄNDERE DIES!
+    "admin": generate_password_hash("sNbt1404."),  # ÄNDERE DIES!
     # Füge weitere Benutzer hinzu:
     # "user2": generate_password_hash("anderes-passwort"),
 }
