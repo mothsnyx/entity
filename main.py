@@ -175,11 +175,11 @@ class ProfileView(discord.ui.View):
                 for category, items in self.inventory_data.items():
                     if items:  # Only show categories with items
                         items_list = "\n".join([
-                            f"**{item['item_name']}** ― `{item['quantity']}`"
+                            f"• {item['item_name']} ― `{item['quantity']}`"
                             for item in items
                         ])
                         embed.add_field(
-                            name=f"{category}",  # No emoji prefix
+                            name=f".✦ {category}",  # No emoji prefix
                             value=items_list,
                             inline=False
                         )
