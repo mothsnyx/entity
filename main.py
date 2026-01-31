@@ -371,9 +371,8 @@ async def trial(interaction: discord.Interaction, name: str):
             title=f"<a:loading:1467153150015180800> ┃ {result['role']} Trial Complete",
             description=result['message'],
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
-            
-        embed.add_field(name="‎", value="", inline=False)
         )
+        embed.add_field(name="‎", value="", inline=False)
         embed.add_field(
             name="Result:",
             value=result['performance_text'],
