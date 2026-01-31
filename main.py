@@ -29,13 +29,13 @@ async def create_profile(interaction: discord.Interaction, name: str, role: app_
         embed = discord.Embed(
             title="✅ Profile Created",
             description=f"Successfully created profile for **{name}** as **{role.value}**!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E (Error color)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -50,13 +50,13 @@ async def edit_profile_name(interaction: discord.Interaction, name: str, new_nam
         embed = discord.Embed(
             title="✅ Name Updated",
             description=f"Successfully renamed **{name}** to **{new_name}**!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     await interaction.response.send_message(embed=embed)
 
@@ -75,13 +75,13 @@ async def edit_profile_role(interaction: discord.Interaction, name: str, new_rol
         embed = discord.Embed(
             title="✅ Role Updated",
             description=f"Successfully changed **{name}**'s role to **{new_role.value}**!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     await interaction.response.send_message(embed=embed)
 
@@ -93,13 +93,13 @@ async def delete_profile(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="✅ Profile Deleted",
             description=f"Successfully deleted profile for **{name}**!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     await interaction.response.send_message(embed=embed)
 
@@ -128,17 +128,18 @@ class ProfileView(discord.ui.View):
             # Main Info Page
             embed = discord.Embed(
                 title=f"🎮 {self.profile_data['name']}'s Profile",
-                color=discord.Color.blue()
+                color=discord.Color.from_rgb(0, 0, 0) 
             )
             embed.add_field(name="Role", value=self.profile_data['role'], inline=True)
-            embed.add_field(name="🩸 Bloodpoints", value=f"{self.profile_data['bloodpoints']:,}", inline=True)
-            embed.add_field(name="💎 Auric Cells", value=f"{self.profile_data['auric_cells']:,}", inline=True)
+            embed.add_field(name="‎", value="", inline=False)
+            embed.add_field(name="<:bp:1467159740797681716> Bloodpoints", value=f"{self.profile_data['bloodpoints']:,}", inline=True)
+            embed.add_field(name="<:ac:1467159725870154021> Auric Cells", value=f"{self.profile_data['auric_cells']:,}", inline=True)
             return embed
         else:
             # Inventory Page with categories
             embed = discord.Embed(
-                title=f"🎒 {self.profile_data['name']}'s Inventory",
-                color=discord.Color.purple()
+                title=f"<:Dbdsurvivorinteractivesummary:1467161545661485139> {self.profile_data['name']}'s Inventory",
+                color=discord.Color.from_rgb(116, 7, 14)  # #74070E
             )
             
             # Check if inventory has any items
@@ -215,7 +216,7 @@ async def add_currency(interaction: discord.Interaction, name: str, currency: ap
         embed = discord.Embed(
             title="❌ Error",
             description="Amount must be positive!",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -226,13 +227,13 @@ async def add_currency(interaction: discord.Interaction, name: str, currency: ap
         embed = discord.Embed(
             title="✅ Currency Added",
             description=f"Added **{amount:,}** {currency_name} to **{name}**!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(69, 70, 42)  # #45462A (Add color)
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     await interaction.response.send_message(embed=embed)
 
@@ -251,7 +252,7 @@ async def remove_currency(interaction: discord.Interaction, name: str, currency:
         embed = discord.Embed(
             title="❌ Error",
             description="Amount must be positive!",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -262,13 +263,13 @@ async def remove_currency(interaction: discord.Interaction, name: str, currency:
         embed = discord.Embed(
             title="✅ Currency Removed",
             description=f"Removed **{amount:,}** {currency_name} from **{name}**!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     await interaction.response.send_message(embed=embed)
 
@@ -284,13 +285,13 @@ async def add_item(interaction: discord.Interaction, name: str, item_name: str):
         embed = discord.Embed(
             title="✅ Item Added",
             description=f"Added **{item_name}** to **{name}**'s inventory!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(69, 70, 42)  # #45462A (Add color)
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     await interaction.response.send_message(embed=embed)
 
@@ -305,13 +306,13 @@ async def remove_item(interaction: discord.Interaction, name: str, item_name: st
         embed = discord.Embed(
             title="✅ Item Removed",
             description=f"Removed **{item_name}** from **{name}**'s inventory!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     await interaction.response.send_message(embed=embed)
 
@@ -327,13 +328,13 @@ async def buy_item(interaction: discord.Interaction, name: str, item_name: str):
         embed = discord.Embed(
             title="✅ Purchase Successful",
             description=f"**{name}** bought **{item_name}** for **{cost:,}** Bloodpoints!",
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(69, 70, 42)  # #45462A (Add color)
         )
     else:
         embed = discord.Embed(
             title="❌ Error",
             description=message,
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     await interaction.response.send_message(embed=embed)
 
@@ -410,7 +411,7 @@ async def roll_dice(interaction: discord.Interaction, dice: str):
         
         embed = discord.Embed(
             title=f"🎲 Rolling {dice}",
-            color=discord.Color.blue()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         embed.add_field(name="Rolls", value=", ".join(map(str, rolls)), inline=False)
         embed.add_field(name="Total", value=f"**{total}**", inline=False)
@@ -420,7 +421,7 @@ async def roll_dice(interaction: discord.Interaction, dice: str):
         embed = discord.Embed(
             title="❌ Error",
             description="Invalid dice format! Use format like: 1d20, 2d6, etc.",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
@@ -434,7 +435,7 @@ async def choose_option(interaction: discord.Interaction, options: str):
         embed = discord.Embed(
             title="❌ Error",
             description="Please provide at least 2 options separated by commas!",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -444,7 +445,7 @@ async def choose_option(interaction: discord.Interaction, options: str):
     embed = discord.Embed(
         title="🎯 Random Choice",
         description=f"I choose: **{choice}**",
-        color=discord.Color.purple()
+        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
     embed.add_field(name="Options", value=", ".join(option_list), inline=False)
     
@@ -459,7 +460,7 @@ async def travel(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="❌ Error",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -469,7 +470,7 @@ async def travel(interaction: discord.Interaction, name: str):
     embed = discord.Embed(
         title="🌍 Travel",
         description=f"**{name}** has traveled to **{realm}**!",
-        color=discord.Color.teal()
+        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
     
     await interaction.response.send_message(embed=embed)
@@ -483,7 +484,7 @@ async def hunting(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="🏹 Hunting",
             description=result['message'],
-            color=discord.Color.orange()
+            color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
             embed.add_field(name="Found", value=f"**{result['item']}**", inline=False)
@@ -492,7 +493,7 @@ async def hunting(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="❌ Error",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
@@ -505,7 +506,7 @@ async def fishing(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="🎣 Fishing",
             description=result['message'],
-            color=discord.Color.blue()
+            color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
             embed.add_field(name="Caught", value=f"**{result['item']}**", inline=False)
@@ -514,7 +515,7 @@ async def fishing(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="❌ Error",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
@@ -527,7 +528,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="🔍 Scavenging",
             description=result['message'],
-            color=discord.Color.green()
+            color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
             embed.add_field(name="Found", value=f"**{result['item']}**", inline=False)
@@ -536,7 +537,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="❌ Error",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
@@ -554,7 +555,7 @@ async def list_profiles(interaction: discord.Interaction):
         embed = discord.Embed(
             title="📋 All Character Profiles",
             description=f"Total characters: **{len(profiles)}**",
-            color=discord.Color.blue()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         
         # Group by role
@@ -580,7 +581,7 @@ async def list_profiles(interaction: discord.Interaction):
         embed = discord.Embed(
             title="📋 All Character Profiles",
             description="No profiles found. Create one with `/create`!",
-            color=discord.Color.orange()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
     
     await interaction.response.send_message(embed=embed)
@@ -591,7 +592,7 @@ async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
         title="📚 Bot Commands Help",
         description="Here are all available commands for the Dead by Daylight Bot:",
-        color=discord.Color.gold()
+        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
     
     # Profile Management
