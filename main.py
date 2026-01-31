@@ -129,13 +129,17 @@ class ProfileView(discord.ui.View):
             embed = discord.Embed(
                 color=discord.Color.from_rgb(0, 0, 0) 
             )
-                    # Profile Name
+            # Profile Name
             embed.add_field(
-                name=f"<:15824redneonstar:1467170916017639615> ┃ **{self.profile_data['name']}**'s Profile", value="", inline=False
+                name=f"<:15824redneonstar:1467170916017639615> ┃ **{self.profile_data['name']}**'s Profile", 
+                value="", 
+                inline=False
             )
             # Role
             embed.add_field(
-                name=".✦ Role:", value=self.profile_data['role'], inline=True
+                name=".✦ Role:", 
+                value=self.profile_data['role'], 
+                inline=True
             )
             
             # Currency
@@ -144,12 +148,14 @@ class ProfileView(discord.ui.View):
                 f"<:ac:1467159725870154021> {self.profile_data['auric_cells']:,} ac"
             )
             embed.add_field(
-                name=".✦ Currency:", value=currency_text, inline=True
+                name=".✦ Currency:", 
+                value=currency_text, 
+                inline=True
             )
             return embed
             
         else:
-            # Inventory Page with categories
+            # Inventory Page with categories (NO EMOJIS)
             embed = discord.Embed(
                 title=f"<:15824redneonstar:1467170916017639615> ┃ **{self.profile_data['name']}**'s Inventory",
                 color=discord.Color.from_rgb(0, 0, 0) 
@@ -157,40 +163,29 @@ class ProfileView(discord.ui.View):
             
             # Check if inventory has any items
             total_items = 0
-            unique_items = 0
             has_items = False
             
             for category, items in self.inventory_data.items():
                 if items:
                     has_items = True
-                    unique_items += len(items)
                     total_items += sum(item['quantity'] for item in items)
             
             if has_items:
-                # Category emojis
-                category_emojis = {
-                    'Consumables': '💊',
-                    'Tools': '🔧',
-                    'Collectibles': '💎',
-                    'Miscellaneous': '📦'
-                }
-                
-                # Add each category as a field
+                # Add each category as a field (NO EMOJIS)
                 for category, items in self.inventory_data.items():
                     if items:  # Only show categories with items
-                        emoji = category_emojis.get(category, '📦')
                         items_list = "\n".join([
                             f"**{item['item_name']}** × `{item['quantity']}`"
                             for item in items
                         ])
                         embed.add_field(
-                            name=f"{emoji} {category}",
+                            name=f"{category}",  # No emoji prefix
                             value=items_list,
                             inline=False
                         )
                 
-                # Add total count
-                embed.set_footer(text=f"Total: {unique_items} unique items • {total_items} total items")
+                # Add total count (removed unique items)
+                embed.set_footer(text=f"Total: {total_items} items")
             else:
                 embed.description = "*Inventory is empty*\n\nUse `/buy` to purchase items or play minigames to collect loot!"
             
@@ -209,12 +204,12 @@ async def show_profile(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="❌ Error",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.red()
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
 # Currency Commands
-@bot.tree.command(name="addcurrency", description="Add currency to a character")
+@bot.tree.command(name="addcurrency", description="Add Bloodpoints or Auric Cells to a character")
 @app_commands.describe(
     name="Character name",
     currency="Currency type",
@@ -225,32 +220,22 @@ async def show_profile(interaction: discord.Interaction, name: str):
     app_commands.Choice(name="Auric Cells", value="auric_cells")
 ])
 async def add_currency(interaction: discord.Interaction, name: str, currency: app_commands.Choice[str], amount: int):
-    if amount <= 0:
-        embed = discord.Embed(
-            title="❌ Error",
-            description="Amount must be positive!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
-        )
-        await interaction.response.send_message(embed=embed)
-        return
-    
     success, message = db.add_currency(name, currency.value, amount)
     if success:
-        currency_name = "Bloodpoints" if currency.value == "bloodpoints" else "Auric Cells"
         embed = discord.Embed(
-            title="✅ Currency Added",
-            description=f"Added **{amount:,}** {currency_name} to **{name}**!",
-            color=discord.Color.from_rgb(69, 70, 42)  # #45462A (Add color)
+            title="<a:check:1467157700831088773> ┃ Currency added!",
+            description=f"Added **{amount:,}** {currency.name} to **{name}**!",
+            color=discord.Color.from_rgb(0, 0, 0)
         )
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="removecurrency", description="Remove currency from a character")
+@bot.tree.command(name="removecurrency", description="Remove Bloodpoints or Auric Cells from a character")
 @app_commands.describe(
     name="Character name",
     currency="Currency type",
@@ -261,206 +246,208 @@ async def add_currency(interaction: discord.Interaction, name: str, currency: ap
     app_commands.Choice(name="Auric Cells", value="auric_cells")
 ])
 async def remove_currency(interaction: discord.Interaction, name: str, currency: app_commands.Choice[str], amount: int):
-    if amount <= 0:
-        embed = discord.Embed(
-            title="❌ Error",
-            description="Amount must be positive!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
-        )
-        await interaction.response.send_message(embed=embed)
-        return
-    
     success, message = db.remove_currency(name, currency.value, amount)
     if success:
-        currency_name = "Bloodpoints" if currency.value == "bloodpoints" else "Auric Cells"
         embed = discord.Embed(
-            title="✅ Currency Removed",
-            description=f"Removed **{amount:,}** {currency_name} from **{name}**!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            title="<a:check:1467157700831088773> ┃ Currency removed!",
+            description=f"Removed **{amount:,}** {currency.name} from **{name}**!",
+            color=discord.Color.from_rgb(0, 0, 0)
         )
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
     await interaction.response.send_message(embed=embed)
 
-# Inventory Commands
-@bot.tree.command(name="additem", description="Add an item to a character's inventory")
-@app_commands.describe(
-    name="Character name",
-    item_name="Item name"
-)
-async def add_item(interaction: discord.Interaction, name: str, item_name: str):
-    success, message = db.add_item(name, item_name)
-    if success:
+# Shop Command (NO EMOJIS)
+@bot.tree.command(name="shop", description="View available items for purchase")
+async def shop(interaction: discord.Interaction):
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT item_name, price, description FROM shop_items ORDER BY price")
+    items = cursor.fetchall()
+    conn.close()
+    
+    if items:
         embed = discord.Embed(
-            title="✅ Item Added",
-            description=f"Added **{item_name}** to **{name}**'s inventory!",
-            color=discord.Color.from_rgb(69, 70, 42)  # #45462A (Add color)
+            title="Shop",  # No emoji
+            description="Purchase items using Bloodpoints with `/buy [name] [item]`",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+        
+        items_text = "\n".join([
+            f"**{item[0]}** - {item[1]:,} BP\n*{item[2]}*"
+            for item in items
+        ])
+        
+        embed.add_field(
+            name="Available Items",  # No emoji
+            value=items_text,
+            inline=False
         )
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="Shop",  # No emoji
+            description="No items available.",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+    
+    await interaction.response.send_message(embed=embed)
+
+# Buy Command
+@bot.tree.command(name="buy", description="Purchase an item from the shop")
+@app_commands.describe(
+    name="Character name",
+    item="Item name"
+)
+async def buy_item(interaction: discord.Interaction, name: str, item: str):
+    success, message, price = db.buy_item(name, item)
+    if success:
+        embed = discord.Embed(
+            title="<a:check:1467157700831088773> ┃ Purchase successful!",
+            description=f"**{name}** purchased **{item}** for **{price:,}** Bloodpoints!",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
+        )
+    await interaction.response.send_message(embed=embed)
+
+# Inventory Management
+@bot.tree.command(name="additem", description="Add an item to a character's inventory")
+@app_commands.describe(
+    name="Character name",
+    item="Item name"
+)
+async def add_item(interaction: discord.Interaction, name: str, item: str):
+    success, message = db.add_item(name, item)
+    if success:
+        embed = discord.Embed(
+            title="<a:check:1467157700831088773> ┃ Item added!",
+            description=f"Added **{item}** to **{name}**'s inventory!",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgba(230, 1, 18)
         )
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="removeitem", description="Remove an item from a character's inventory")
 @app_commands.describe(
     name="Character name",
-    item_name="Item name"
+    item="Item name"
 )
-async def remove_item(interaction: discord.Interaction, name: str, item_name: str):
-    success, message = db.remove_item(name, item_name)
+async def remove_item(interaction: discord.Interaction, name: str, item: str):
+    success, message = db.remove_item(name, item)
     if success:
         embed = discord.Embed(
-            title="✅ Item Removed",
-            description=f"Removed **{item_name}** from **{name}**'s inventory!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            title="<a:check:1467157700831088773> ┃ Item removed!",
+            description=f"Removed **{item}** from **{name}**'s inventory!",
+            color=discord.Color.from_rgb(0, 0, 0)
         )
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
     await interaction.response.send_message(embed=embed)
 
-# Shop Command
-@bot.tree.command(name="buy", description="Buy an item from the shop")
-@app_commands.describe(
-    name="Character name",
-    item_name="Item to buy"
-)
-async def buy_item(interaction: discord.Interaction, name: str, item_name: str):
-    success, message, cost = db.buy_item(name, item_name)
-    if success:
-        embed = discord.Embed(
-            title="✅ Purchase Successful",
-            description=f"**{name}** bought **{item_name}** for **{cost:,}** Bloodpoints!",
-            color=discord.Color.from_rgb(69, 70, 42)  # #45462A (Add color)
-        )
-    else:
-        embed = discord.Embed(
-            title="❌ Error",
-            description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
-        )
-    await interaction.response.send_message(embed=embed)
-
-# Trial System
-@bot.tree.command(name="trial", description="Start a trial and earn rewards")
+# Trial Command
+@bot.tree.command(name="trial", description="Complete a trial and earn rewards")
 @app_commands.describe(name="Character name")
 async def trial(interaction: discord.Interaction, name: str):
     result = db.complete_trial(name)
     if result:
-        role = result['role']
-        message = result['message']
-        bloodpoints = result['bloodpoints']
-        auric_cells = result['auric_cells']
-        performance = result['performance']
-        performance_text = result['performance_text']
-        
-        # Different colors for Killer vs Survivor
-        if role == "Killer":
-            color = discord.Color.from_rgb(117, 6, 8)  # #750608 (Dark Red)
-            emoji = "🔪"
-        else:
-            color = discord.Color.from_rgb(116, 165, 190)  # #74A5BE (Light Blue)
-            emoji = "🏃"
-        
         embed = discord.Embed(
-            title=f"{emoji} Trial Complete - {role}",
-            description=message,
-            color=color
+            title=f"⚔️ Trial Complete - {result['role']}",
+            description=result['message'],
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
-        
-        # Add performance field
         embed.add_field(
-            name="📊 Performance",
-            value=f"**{performance_text}**",
+            name="Performance",
+            value=result['performance_text'],
             inline=False
         )
-        
-        # Add rewards field
         embed.add_field(
-            name="💰 Rewards Earned", 
-            value=f"🩸 **{bloodpoints:,}** Bloodpoints\n💎 **{auric_cells}** Auric Cells", 
+            name="Rewards",
+            value=f"<:bp:1467159740797681716> **{result['bloodpoints']:,}** Bloodpoints\n<:ac:1467159725870154021> **{result['auric_cells']}** Auric Cells",
             inline=False
         )
-        
-        embed.set_footer(text=f"{name} | Role: {role}")
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
             title="❌ Error",
-            description=f"Profile **{name}** not found! Create one with `/create` first.",
-            color=discord.Color.red()
+            description=f"Profile **{name}** not found!",
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
-# Dice Roll
+# Dice Roll Command
 @bot.tree.command(name="roll", description="Roll dice (e.g., 1d20, 2d6)")
-@app_commands.describe(dice="Dice format (XdY)")
+@app_commands.describe(dice="Dice notation (e.g., 1d20, 2d6+5)")
 async def roll_dice(interaction: discord.Interaction, dice: str):
     try:
-        pattern = r'(\d+)d(\d+)'
-        match = re.match(pattern, dice.lower())
-        
+        # Parse dice notation (e.g., "2d6+3")
+        match = re.match(r'(\d+)d(\d+)([+-]\d+)?', dice.lower())
         if not match:
-            raise ValueError("Invalid format")
+            await interaction.response.send_message("Invalid dice format! Use format like: 1d20, 2d6, or 1d20+5")
+            return
         
         num_dice = int(match.group(1))
         num_sides = int(match.group(2))
+        modifier = int(match.group(3)) if match.group(3) else 0
         
         if num_dice > 100 or num_sides > 1000:
-            raise ValueError("Too many dice or sides")
+            await interaction.response.send_message("Too many dice or sides! Keep it reasonable.")
+            return
         
+        # Roll the dice
         rolls = [random.randint(1, num_sides) for _ in range(num_dice)]
-        total = sum(rolls)
+        total = sum(rolls) + modifier
+        
+        # Format the result
+        rolls_str = ", ".join(map(str, rolls))
+        modifier_str = f" {modifier:+d}" if modifier != 0 else ""
         
         embed = discord.Embed(
-            title=f"🎲 Rolling {dice}",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            title="🎲 Dice Roll",
+            description=f"Rolling **{dice}**",
+            color=discord.Color.from_rgb(0, 0, 0)
         )
-        embed.add_field(name="Rolls", value=", ".join(map(str, rolls)), inline=False)
-        embed.add_field(name="Total", value=f"**{total}**", inline=False)
+        embed.add_field(name="Rolls", value=rolls_str, inline=False)
+        embed.add_field(name="Total", value=f"**{total}**{modifier_str}", inline=False)
         
         await interaction.response.send_message(embed=embed)
-    except:
-        embed = discord.Embed(
-            title="❌ Error",
-            description="Invalid dice format! Use format like: 1d20, 2d6, etc.",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
-        )
-        await interaction.response.send_message(embed=embed)
+    except Exception as e:
+        await interaction.response.send_message(f"Error rolling dice: {str(e)}")
 
 # Choose Command
-@bot.tree.command(name="choose", description="Choose a random option from a list")
-@app_commands.describe(options="Options separated by commas")
-async def choose_option(interaction: discord.Interaction, options: str):
-    option_list = [opt.strip() for opt in options.split(',') if opt.strip()]
+@bot.tree.command(name="choose", description="Pick a random option from a list")
+@app_commands.describe(options="Comma-separated list of options")
+async def choose(interaction: discord.Interaction, options: str):
+    choices = [choice.strip() for choice in options.split(',') if choice.strip()]
     
-    if len(option_list) < 2:
-        embed = discord.Embed(
-            title="❌ Error",
-            description="Please provide at least 2 options separated by commas!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
-        )
-        await interaction.response.send_message(embed=embed)
+    if len(choices) < 2:
+        await interaction.response.send_message("Please provide at least 2 options separated by commas!")
         return
     
-    choice = random.choice(option_list)
+    chosen = random.choice(choices)
     
     embed = discord.Embed(
         title="🎯 Random Choice",
-        description=f"I choose: **{choice}**",
-        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+        description=f"I choose: **{chosen}**",
+        color=discord.Color.from_rgb(0, 0, 0)
     )
-    embed.add_field(name="Options", value=", ".join(option_list), inline=False)
+    embed.set_footer(text=f"Options: {', '.join(choices)}")
     
     await interaction.response.send_message(embed=embed)
 
