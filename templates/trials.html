@@ -3,24 +3,34 @@
 {% block title %}Manage Trials{% endblock %}
 
 {% block content %}
-<h1><i class="bi bi-trophy-fill"></i> Manage Trial Messages</h1>
+<h1>Manage Trial Messages</h1>
 <p class="lead">Add, edit, or remove trial completion messages</p>
 
 <div class="card mb-4">
     <div class="card-header">
-        <i class="bi bi-plus-circle"></i> Add New Trial Message
+        Add New Trial Message
     </div>
     <div class="card-body">
         <form method="POST" action="/trials/add">
             <div class="row g-3">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select name="role" class="form-select" required>
                         <option value="">Select Role...</option>
                         <option value="Killer">Killer</option>
                         <option value="Survivor">Survivor</option>
                     </select>
                 </div>
-                <div class="col-md-7">
+                <div class="col-md-2">
+                    <select name="performance_level" class="form-select" required>
+                        <option value="">Level...</option>
+                        <option value="0">0 (Failure)</option>
+                        <option value="1">1 (Poor)</option>
+                        <option value="2">2 (Average)</option>
+                        <option value="3">3 (Good)</option>
+                        <option value="4">4 (Perfect)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
                     <textarea name="message" class="form-control" placeholder="Trial completion message..." rows="2" required></textarea>
                 </div>
                 <div class="col-md-2">
@@ -37,13 +47,14 @@
     <div class="col-md-6">
         <div class="card mb-3">
             <div class="card-header bg-danger">
-                <i class="bi bi-knife"></i> Killer Messages
+                Killer Messages
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-dark table-sm">
                         <thead>
                             <tr>
+                                <th>Level</th>
                                 <th>Message</th>
                                 <th class="text-end">Actions</th>
                             </tr>
@@ -52,7 +63,8 @@
                             {% for msg in messages %}
                                 {% if msg[1] == 'Killer' %}
                                 <tr>
-                                    <td>{{ msg[2] }}</td>
+                                    <td><span class="badge bg-warning text-dark">{{ msg[2] }}</span></td>
+                                    <td>{{ msg[3] }}</td>
                                     <td class="text-end">
                                         <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ msg[0] }}">
                                             <i class="bi bi-pencil"></i>
@@ -76,13 +88,14 @@
     <div class="col-md-6">
         <div class="card mb-3">
             <div class="card-header bg-success">
-                <i class="bi bi-person"></i> Survivor Messages
+                Survivor Messages
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-dark table-sm">
                         <thead>
                             <tr>
+                                <th>Level</th>
                                 <th>Message</th>
                                 <th class="text-end">Actions</th>
                             </tr>
@@ -91,7 +104,8 @@
                             {% for msg in messages %}
                                 {% if msg[1] == 'Survivor' %}
                                 <tr>
-                                    <td>{{ msg[2] }}</td>
+                                    <td><span class="badge bg-warning text-dark">{{ msg[2] }}</span></td>
+                                    <td>{{ msg[3] }}</td>
                                     <td class="text-end">
                                         <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ msg[0] }}">
                                             <i class="bi bi-pencil"></i>
@@ -132,8 +146,18 @@
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Performance Level</label>
+                        <select name="performance_level" class="form-select" required>
+                            <option value="0" {% if msg[2] == 0 %}selected{% endif %}>0 (Failure)</option>
+                            <option value="1" {% if msg[2] == 1 %}selected{% endif %}>1 (Poor)</option>
+                            <option value="2" {% if msg[2] == 2 %}selected{% endif %}>2 (Average)</option>
+                            <option value="3" {% if msg[2] == 3 %}selected{% endif %}>3 (Good)</option>
+                            <option value="4" {% if msg[2] == 4 %}selected{% endif %}>4 (Perfect)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Message</label>
-                        <textarea name="message" class="form-control" rows="3" required>{{ msg[2] }}</textarea>
+                        <textarea name="message" class="form-control" rows="3" required>{{ msg[3] }}</textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
