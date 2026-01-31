@@ -3,21 +3,29 @@
 {% block title %}Manage Shop{% endblock %}
 
 {% block content %}
-<h1><i class="bi bi-shop"></i> Manage Shop Items</h1>
+<h1>Manage Shop Items</h1>
 <p class="lead">Add, edit, or remove items from the shop</p>
 
 <div class="card mb-4">
     <div class="card-header">
-        <i class="bi bi-plus-circle"></i> Add New Shop Item
+        Add New Shop Item
     </div>
     <div class="card-body">
         <form method="POST" action="/shop/add">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <input type="text" name="name" class="form-control" placeholder="Item Name" required>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <input type="number" name="price" class="form-control" placeholder="Price (BP)" required min="0">
+                </div>
+                <div class="col-md-2">
+                    <select name="category" class="form-select">
+                        <option value="Consumables">Consumables</option>
+                        <option value="Tools">Tools</option>
+                        <option value="Collectibles">Collectibles</option>
+                        <option value="Miscellaneous" selected>Miscellaneous</option>
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <input type="text" name="description" class="form-control" placeholder="Description">
@@ -34,7 +42,7 @@
 
 <div class="card">
     <div class="card-header">
-        <i class="bi bi-cart"></i> Shop Items ({{ items|length }})
+        Shop Items ({{ items|length }})
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -44,6 +52,7 @@
                         <th>ID</th>
                         <th>Item Name</th>
                         <th>Price (BP)</th>
+                        <th>Category</th>
                         <th>Description</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -57,6 +66,13 @@
                         </td>
                         <td>
                             <span id="item-price-{{ item[0] }}">{{ "{:,}".format(item[2]) }}</span>
+                        </td>
+                        <td>
+                            {% if item[4] %}
+                                <span class="badge bg-info">{{ item[4] }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Miscellaneous</span>
+                            {% endif %}
                         </td>
                         <td>
                             <span id="item-desc-{{ item[0] }}">{{ item[3] or 'N/A' }}</span>
@@ -90,6 +106,15 @@
                                         <div class="mb-3">
                                             <label class="form-label">Price (Bloodpoints)</label>
                                             <input type="number" name="price" class="form-control" value="{{ item[2] }}" required min="0">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Category</label>
+                                            <select name="category" class="form-select">
+                                                <option value="Consumables" {% if item[4] == 'Consumables' %}selected{% endif %}>Consumables</option>
+                                                <option value="Tools" {% if item[4] == 'Tools' %}selected{% endif %}>Tools</option>
+                                                <option value="Collectibles" {% if item[4] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
+                                                <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
+                                            </select>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Description</label>
