@@ -368,11 +368,10 @@ async def trial(interaction: discord.Interaction, name: str):
     result = db.complete_trial(name)
     if result:
         embed = discord.Embed(
-            title=f"<a:loading:1467153150015180800> ┃ {result['role']} Trial Complete",
+            title=f"<a:loading:1467153150015180800> ┃ {result['role']} Trial",
             description=result['message'],
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
-        embed.add_field(name="‎", value="", inline=False)
         embed.add_field(
             name="Result:",
             value=result['performance_text'],
@@ -381,7 +380,7 @@ async def trial(interaction: discord.Interaction, name: str):
         embed.add_field(
             name="Rewards",
             value=f"<:bp:1467159740797681716> **{result['bloodpoints']:,}** Bloodpoints\n<:ac:1467159725870154021> **{result['auric_cells']}** Auric Cells",
-            inline=False
+            inline=True
         )
         await interaction.response.send_message(embed=embed)
     else:
