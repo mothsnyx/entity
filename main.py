@@ -179,7 +179,7 @@ class ProfileView(discord.ui.View):
                             for item in items
                         ])
                         embed.add_field(
-                            name=f"── ⋆⋅ {category} ⋅⋆ ──",  # No emoji prefix
+                            name=f"·········•✦ {category}",  # No emoji prefix
                             value=items_list,
                             inline=False
                         )
