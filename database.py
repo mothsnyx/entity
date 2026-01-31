@@ -117,6 +117,11 @@ class Database:
         cursor.execute("SELECT COUNT(*) FROM trial_messages")
         if cursor.fetchone()[0] == 0:
             trial_messages = [
+                # Killer messages - Performance 0 (0 Kills - Total Failure)
+                ("Killer", 0, "A complete failure. All survivors escaped. The Entity is furious with your incompetence."),
+                ("Killer", 0, "Humiliating defeat. Not a single survivor fell to your blade. Shame fills the fog."),
+                ("Killer", 0, "The survivors toyed with you. All four escaped unscathed. You have disappointed The Entity."),
+                
                 # Killer messages - Performance 1 (1 Kill - Poor)
                 ("Killer", 1, "The survivors proved elusive. You managed one sacrifice, but three escaped into the fog."),
                 ("Killer", 1, "Your hunt was challenging. Only one survivor fell to your blade tonight."),
@@ -136,6 +141,11 @@ class Database:
                 ("Killer", 4, "FLAWLESS VICTORY! All survivors sacrificed. The Entity is greatly pleased."),
                 ("Killer", 4, "The trial ended with all survivors on hooks. A perfect sacrifice to The Entity."),
                 ("Killer", 4, "Total domination! No one survived. The fog consumes all."),
+                
+                # Survivor messages - Performance 0 (0 Escapes - Total Failure)
+                ("Survivor", 0, "Total annihilation. All four survivors were sacrificed. The killer was unstoppable."),
+                ("Survivor", 0, "A massacre. No one escaped. The Entity claims all four souls tonight."),
+                ("Survivor", 0, "Complete defeat. The killer showed no mercy. All survivors fell to the hooks."),
                 
                 # Survivor messages - Performance 1 (1 Escape - Poor)
                 ("Survivor", 1, "You barely made it out alive. Three teammates fell, but you escaped alone."),
@@ -479,8 +489,8 @@ class Database:
         role = profile['role']
         
         # Performance-based rewards
-        # Random performance: 1-4 escapes/kills
-        performance = random.randint(1, 4)
+        # Random performance: 0-4 escapes/kills
+        performance = random.randint(0, 4)
         
         # Get a RANDOM trial message for THIS SPECIFIC ROLE AND PERFORMANCE LEVEL
         conn = self.get_connection()
@@ -494,14 +504,16 @@ class Database:
         # Use the random message, or fallback if none found
         message = result[0] if result else f"You completed a trial as {role}."
         
-        # Bloodpoints: 5,000 per escape/kill
+        # Bloodpoints: 5,000 per escape/kill (0 for total failure)
+        # 0 = 0 BP
         # 1 = 5,000 BP
         # 2 = 10,000 BP
         # 3 = 15,000 BP
         # 4 = 20,000 BP
         bloodpoints = performance * 5000
         
-        # Auric Cells: 1 per escape/kill
+        # Auric Cells: 1 per escape/kill (0 for total failure)
+        # 0 = 0 AC
         # 1 = 1 AC
         # 2 = 2 AC
         # 3 = 3 AC
@@ -511,6 +523,7 @@ class Database:
         # Performance description
         if role == "Killer":
             performance_text = {
+                0: "0 Kills (Total Failure)",
                 1: "1 Kill",
                 2: "2 Kills",
                 3: "3 Kills",
@@ -518,27 +531,30 @@ class Database:
             }
         else:  # Survivor
             performance_text = {
+                0: "0 Survivors Escaped (Total Failure)",
                 1: "1 Survivor Escaped",
                 2: "2 Survivors Escaped",
                 3: "3 Survivors Escaped",
                 4: "4 Survivors Escaped (Perfect!)"
             }
         
-        # Add the rewards to the character's profile
-        cursor.execute(
-            "UPDATE profiles SET bloodpoints = bloodpoints + ?, auric_cells = auric_cells + ? WHERE name = ?",
-            (bloodpoints, auric_cells, name)
-        )
-        conn.commit()
+        # Add the rewards to the character's profile (only if performance > 0)
+        if performance > 0:
+            cursor.execute(
+                "UPDATE profiles SET bloodpoints = bloodpoints + ?, auric_cells = auric_cells + ? WHERE name = ?",
+                (bloodpoints, auric_cells, name)
+            )
+            conn.commit()
+        
         conn.close()
         
         # Return all the information to display in Discord
         return {
             'role': role,                      # "Killer" or "Survivor"
             'message': message,                # Random message from database matching performance
-            'bloodpoints': bloodpoints,        # 5,000 / 10,000 / 15,000 / 20,000
-            'auric_cells': auric_cells,       # 1 / 2 / 3 / 4
-            'performance': performance,        # 1 / 2 / 3 / 4
+            'bloodpoints': bloodpoints,        # 0 / 5,000 / 10,000 / 15,000 / 20,000
+            'auric_cells': auric_cells,       # 0 / 1 / 2 / 3 / 4
+            'performance': performance,        # 0 / 1 / 2 / 3 / 4
             'performance_text': performance_text[performance]  # Display text
         }
     
