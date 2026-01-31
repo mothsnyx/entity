@@ -131,7 +131,7 @@ class ProfileView(discord.ui.View):
             )
                     # Profile Name
             embed.add_field(
-                name=f"<:15824redneonstar:1467170916017639615> ┃ {self.profile_data['**name**']}'s Profile", value="", inline=False
+                name=f"<:15824redneonstar:1467170916017639615> ┃ **{self.profile_data['name']}**'s Profile", value="", inline=False
             )
             # Role
             embed.add_field(
