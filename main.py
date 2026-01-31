@@ -202,7 +202,7 @@ async def show_profile(interaction: discord.Interaction, name: str):
         await interaction.response.send_message(embed=embed, view=view)
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -385,7 +385,7 @@ async def trial(interaction: discord.Interaction, name: str):
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -458,7 +458,7 @@ async def travel(interaction: discord.Interaction, name: str):
     profile = db.get_profile(name)
     if not profile:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -482,16 +482,16 @@ async def hunting(interaction: discord.Interaction, name: str):
     result = db.hunting_minigame(name)
     if result:
         embed = discord.Embed(
-            title="🏹 Hunting",
+            title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Hunting",
             description=result['message'],
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
-            embed.add_field(name="Found", value=f"**{result['item']}**", inline=False)
+            embed.add_field(name="You found:", value=f"**{result['item']}**", inline=True)
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -513,7 +513,7 @@ async def fishing(interaction: discord.Interaction, name: str):
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -535,7 +535,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
