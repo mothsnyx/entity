@@ -368,7 +368,7 @@ async def trial(interaction: discord.Interaction, name: str):
     result = db.complete_trial(name)
     if result:
         embed = discord.Embed(
-            title=f"⚔️ Trial Complete - {result['role']}",
+            title=f"<a:loading:1467153150015180800> ┃ Trial Complete - {result['role']}",
             description=result['message'],
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -419,12 +419,12 @@ async def roll_dice(interaction: discord.Interaction, dice: str):
         modifier_str = f" {modifier:+d}" if modifier != 0 else ""
         
         embed = discord.Embed(
-            title="🎲 Dice Roll",
+            title="<a:40586diceroll:1467250239181295657> ┃ Roll",
             description=f"Rolling **{dice}**",
             color=discord.Color.from_rgb(0, 0, 0)
         )
-        embed.add_field(name="Rolls", value=rolls_str, inline=False)
-        embed.add_field(name="Total", value=f"**{total}**{modifier_str}", inline=False)
+        embed.add_field(name="You rolled:", value=rolls_str, inline=False)
+        embed.add_field(name="Total:", value=f"**{total}**{modifier_str}", inline=False)
         
         await interaction.response.send_message(embed=embed)
     except Exception as e:
@@ -504,7 +504,7 @@ async def fishing(interaction: discord.Interaction, name: str):
     result = db.fishing_minigame(name)
     if result:
         embed = discord.Embed(
-            title="🎣 Fishing",
+            title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Fishing",
             description=result['message'],
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
@@ -526,7 +526,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
     result = db.scavenging_minigame(name)
     if result:
         embed = discord.Embed(
-            title="🔍 Scavenging",
+            title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Scavenging",
             description=result['message'],
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
@@ -553,7 +553,7 @@ async def list_profiles(interaction: discord.Interaction):
     
     if profiles:
         embed = discord.Embed(
-            title="📋 All Character Profiles",
+            title="<:15824redneonstar:1467170916017639615> ┃ Character Profiles",
             description=f"Total characters: **{len(profiles)}**",
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -564,22 +564,22 @@ async def list_profiles(interaction: discord.Interaction):
         
         if killers:
             killer_list = "\n".join([
-                f"🔪 **{p[0]}** • 🩸 {p[2]:,} BP • 💎 {p[3]} AC"
+                f"<:killer:1467160220009762837> **{p[0]}**"
                 for p in killers
             ])
             embed.add_field(name="Killers", value=killer_list, inline=False)
         
         if survivors:
             survivor_list = "\n".join([
-                f"🏃 **{p[0]}** • 🩸 {p[2]:,} BP • 💎 {p[3]} AC"
+                f"<:survivor:1467160220982841345> **{p[0]}**"
                 for p in survivors
             ])
             embed.add_field(name="Survivors", value=survivor_list, inline=False)
         
-        embed.set_footer(text="Use /profile [name] to view detailed information")
+        embed.set_footer(text="Use /profile [name] to view detailed information.")
     else:
         embed = discord.Embed(
-            title="📋 All Character Profiles",
+            title="<:15824redneonstar:1467170916017639615> ┃ Character Profiles",
             description="No profiles found. Create one with `/create`!",
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -590,14 +590,14 @@ async def list_profiles(interaction: discord.Interaction):
 @bot.tree.command(name="help", description="Show all available commands")
 async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="📚 Bot Commands Help",
-        description="Here are all available commands for the Dead by Daylight Bot:",
+        title="<:15824redneonstar:1467170916017639615> ┃ Bot Commands Help",
+        description="Here are all available commands for the bot:",
         color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
     
     # Profile Management
     embed.add_field(
-        name="👤 Profile Management",
+        name=".✦  Profile Management",
         value=(
             "`/create [name] [role]` - Create a new character profile\n"
             "`/profile [name]` - View character profile and inventory\n"
@@ -611,7 +611,7 @@ async def help_command(interaction: discord.Interaction):
     
     # Currency
     embed.add_field(
-        name="💰 Currency",
+        name=".✦  Currency",
         value=(
             "`/addcurrency [name] [currency] [amount]` - Add Bloodpoints or Auric Cells\n"
             "`/removecurrency [name] [currency] [amount]` - Remove currency"
@@ -621,7 +621,7 @@ async def help_command(interaction: discord.Interaction):
     
     # Inventory & Shop
     embed.add_field(
-        name="🎒 Inventory & Shop",
+        name=".✦  Inventory & Shop",
         value=(
             "`/buy [name] [item]` - Buy item from shop with Bloodpoints\n"
             "`/additem [name] [item]` - Add item to inventory\n"
@@ -632,7 +632,7 @@ async def help_command(interaction: discord.Interaction):
     
     # Gameplay
     embed.add_field(
-        name="🎮 Gameplay",
+        name=".✦  Gameplay",
         value=(
             "`/trial [name]` - Complete a trial and earn rewards\n"
             "`/hunting [name]` - Go hunting for resources\n"
@@ -645,7 +645,7 @@ async def help_command(interaction: discord.Interaction):
     
     # Utility
     embed.add_field(
-        name="🎲 Utility",
+        name=".✦  Utility",
         value=(
             "`/roll [dice]` - Roll dice (e.g., 1d20, 2d6)\n"
             "`/choose [options]` - Pick random option from comma-separated list"
