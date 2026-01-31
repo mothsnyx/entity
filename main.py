@@ -131,14 +131,12 @@ class ProfileView(discord.ui.View):
             )
                     # Profile Name
             embed.add_field(
-                name=f"<:15824redneonstar:1467170916017639615> ┃ {self.profile_data['name']}'s Profile", value="", inline=False
+                name=f"<:15824redneonstar:1467170916017639615> ┃ {self.profile_data['**name**']}'s Profile", value="", inline=False
             )
-            embed.add_field(name="‎", value="", inline=False)
             # Role
             embed.add_field(
-                name=".✦ Role:", value=self.profile_data['role'], inline=False
+                name=".✦ Role:", value=self.profile_data['role'], inline=True
             )
-            embed.add_field(name="‎", value="", inline=False)
             
             # Currency
             currency_text = (
@@ -146,7 +144,7 @@ class ProfileView(discord.ui.View):
                 f"<:ac:1467159725870154021> {self.profile_data['auric_cells']:,} ac"
             )
             embed.add_field(
-                name=".✦ Currency:", value=currency_text, inline=False
+                name=".✦ Currency:", value=currency_text, inline=True
             )
             return embed
             
