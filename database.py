@@ -537,15 +537,15 @@ class Database:
         item_name = result[0]
         message = result[1]
         
-        # Only add to inventory if item_name is not None/empty
-        if item_name and item_name.strip() and item_name.lower() != 'none':
+        # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
+        if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
         
         return {
-            'item': item_name if (item_name and item_name.lower() != 'none') else None,
+            'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
             'message': message
         }
     
@@ -562,15 +562,15 @@ class Database:
         item_name = result[0]
         message = result[1]
         
-        # Only add to inventory if item_name is not None/empty
-        if item_name and item_name.strip() and item_name.lower() != 'none':
+        # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
+        if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
         
         return {
-            'item': item_name if (item_name and item_name.lower() != 'none') else None,
+            'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
             'message': message
         }
     
@@ -587,14 +587,14 @@ class Database:
         item_name = result[0]
         message = result[1]
         
-        # Only add to inventory if item_name is not None/empty
-        if item_name and item_name.strip() and item_name.lower() != 'none':
+        # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
+        if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
         
         return {
-            'item': item_name if (item_name and item_name.lower() != 'none') else None,
+            'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
             'message': message
         }
