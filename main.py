@@ -133,9 +133,7 @@ class ProfileView(discord.ui.View):
             embed.add_field(name="‎", value="", inline=False)
             embed.add_field(name="── .✦ Role", value=self.profile_data['role'], inline=True)
             embed.add_field(name="‎", value="", inline=False)
-            embed.add_field(name="<:bp:1467159740797681716> Bloodpoints", value=f"{self.profile_data['bloodpoints']:,}", inline=True)
-            embed.add_field(name="‎", value="", inline=False)
-            embed.add_field(name="<:ac:1467159725870154021> Auric Cells", value=f"{self.profile_data['auric_cells']:,}", inline=True)
+            embed.add_field(name="── .✦ Bloodpoints", value=f"{self.profile_data['bloodpoints']:,}",\n embed.add_field(name="── .✦ Auric Cells", value=f"{self.profile_data['auric_cells']:,}", inline=True)
             embed.add_field(name="‎", value="", inline=False)
             return embed
         else:
