@@ -50,6 +50,7 @@ class Database:
             CREATE TABLE IF NOT EXISTS trial_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 role TEXT NOT NULL,
+                performance_level INTEGER NOT NULL,
                 message TEXT NOT NULL
             )
         ''')
@@ -116,21 +117,47 @@ class Database:
         cursor.execute("SELECT COUNT(*) FROM trial_messages")
         if cursor.fetchone()[0] == 0:
             trial_messages = [
-                # Killer messages
-                ("Killer", "You stalked through the fog, your presence striking fear into the survivors. The Entity is pleased."),
-                ("Killer", "The hunt was exhilarating. You hooked multiple survivors and asserted your dominance."),
-                ("Killer", "Your brutal efficiency earned you a ruthless victory. The survivors never stood a chance."),
-                ("Killer", "You patrolled the generators with precision, cutting off all escape routes."),
-                ("Killer", "The trial ended with all survivors on hooks. A perfect sacrifice to The Entity."),
-                # Survivor messages
-                ("Survivor", "You narrowly escaped through the exit gates, leaving your teammates behind in the fog."),
-                ("Survivor", "Working together, you managed to repair all generators and escape with your team."),
-                ("Survivor", "You were hooked but managed to escape. Your determination earned you survival."),
-                ("Survivor", "You unhooked your teammates and healed the wounded. Your altruism was rewarded."),
-                ("Survivor", "The hatch appeared just in time. You slipped through as the killer closed in."),
-                ("Survivor", "You looped the killer for five generators. Your skills bought your team precious time.")
+                # Killer messages - Performance 1 (1 Kill - Poor)
+                ("Killer", 1, "The survivors proved elusive. You managed one sacrifice, but three escaped into the fog."),
+                ("Killer", 1, "Your hunt was challenging. Only one survivor fell to your blade tonight."),
+                ("Killer", 1, "The Entity whispers its disappointment. Most survivors escaped your grasp."),
+                
+                # Killer messages - Performance 2 (2 Kills - Average)
+                ("Killer", 2, "A decent hunt. Two survivors sacrificed, but two escaped through the gates."),
+                ("Killer", 2, "You stalked through the fog with moderate success. Half the survivors fell."),
+                ("Killer", 2, "The trial ended in balance. Two hooks, two escapes."),
+                
+                # Killer messages - Performance 3 (3 Kills - Good)
+                ("Killer", 3, "An impressive display of power! Three survivors sacrificed, only one escaped."),
+                ("Killer", 3, "Your brutal efficiency earned a strong victory. Three fell to The Entity."),
+                ("Killer", 3, "You dominated the trial. Three survivors on hooks, one narrowly escaped."),
+                
+                # Killer messages - Performance 4 (4 Kills - Perfect)
+                ("Killer", 4, "FLAWLESS VICTORY! All survivors sacrificed. The Entity is greatly pleased."),
+                ("Killer", 4, "The trial ended with all survivors on hooks. A perfect sacrifice to The Entity."),
+                ("Killer", 4, "Total domination! No one survived. The fog consumes all."),
+                
+                # Survivor messages - Performance 1 (1 Escape - Poor)
+                ("Survivor", 1, "You barely made it out alive. Three teammates fell, but you escaped alone."),
+                ("Survivor", 1, "A desperate escape. The killer claimed your teammates, but you found the hatch."),
+                ("Survivor", 1, "Survival came at a cost. Only you made it through the gates."),
+                
+                # Survivor messages - Performance 2 (2 Escapes - Average)
+                ("Survivor", 2, "A difficult trial. You and one teammate escaped, but two were sacrificed."),
+                ("Survivor", 2, "Half the team made it out. A bittersweet escape through the fog."),
+                ("Survivor", 2, "Two escaped, two sacrificed. The killer fought well tonight."),
+                
+                # Survivor messages - Performance 3 (3 Escapes - Good)
+                ("Survivor", 3, "Excellent teamwork! Three survivors escaped, though one fell to the killer."),
+                ("Survivor", 3, "You unhooked your teammates and healed the wounded. Three made it out!"),
+                ("Survivor", 3, "An impressive trial. Three survivors through the gates, one sacrificed."),
+                
+                # Survivor messages - Performance 4 (4 Escapes - Perfect)
+                ("Survivor", 4, "PERFECT ESCAPE! All four survivors made it out. The killer stands defeated!"),
+                ("Survivor", 4, "Working together, you managed to repair all generators and escape with your team."),
+                ("Survivor", 4, "You looped the killer for five generators. All four survivors escaped to safety!")
             ]
-            cursor.executemany("INSERT INTO trial_messages (role, message) VALUES (?, ?)", trial_messages)
+            cursor.executemany("INSERT INTO trial_messages (role, performance_level, message) VALUES (?, ?, ?)", trial_messages)
         
         # Check and add realms
         cursor.execute("SELECT COUNT(*) FROM realms")
@@ -451,21 +478,21 @@ class Database:
         # Extract the role (either "Killer" or "Survivor")
         role = profile['role']
         
-        # Get a RANDOM trial message for THIS SPECIFIC ROLE
+        # Performance-based rewards
+        # Random performance: 1-4 escapes/kills
+        performance = random.randint(1, 4)
+        
+        # Get a RANDOM trial message for THIS SPECIFIC ROLE AND PERFORMANCE LEVEL
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT message FROM trial_messages WHERE role = ? ORDER BY RANDOM() LIMIT 1", 
-            (role,)
+            "SELECT message FROM trial_messages WHERE role = ? AND performance_level = ? ORDER BY RANDOM() LIMIT 1", 
+            (role, performance)
         )
         result = cursor.fetchone()
         
         # Use the random message, or fallback if none found
         message = result[0] if result else f"You completed a trial as {role}."
-        
-        # Performance-based rewards
-        # Random performance: 1-4 escapes/kills
-        performance = random.randint(1, 4)
         
         # Bloodpoints: 5,000 per escape/kill
         # 1 = 5,000 BP
@@ -508,7 +535,7 @@ class Database:
         # Return all the information to display in Discord
         return {
             'role': role,                      # "Killer" or "Survivor"
-            'message': message,                # Random message from database
+            'message': message,                # Random message from database matching performance
             'bloodpoints': bloodpoints,        # 5,000 / 10,000 / 15,000 / 20,000
             'auric_cells': auric_cells,       # 1 / 2 / 3 / 4
             'performance': performance,        # 1 / 2 / 3 / 4
