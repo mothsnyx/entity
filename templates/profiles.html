@@ -3,12 +3,12 @@
 {% block title %}View Profiles{% endblock %}
 
 {% block content %}
-<h1><i class="bi bi-people-fill"></i> Character Profiles</h1>
+<h1>Character Profiles</h1>
 <p class="lead">View all created character profiles</p>
 
 <div class="card">
     <div class="card-header">
-        <i class="bi bi-list"></i> All Profiles ({{ profiles|length }})
+        All Profiles ({{ profiles|length }})
     </div>
     <div class="card-body">
         {% if profiles %}
@@ -63,7 +63,7 @@
 
 <div class="card mt-4">
     <div class="card-header bg-info">
-        <i class="bi bi-info-circle"></i> Profile Management
+        Profile Management
     </div>
     <div class="card-body">
         <h5>How to Manage Profiles</h5>
