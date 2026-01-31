@@ -127,13 +127,14 @@ class ProfileView(discord.ui.View):
         if self.current_page == 0:
             # Main Info Page
             embed = discord.Embed(
-                title=f"─── ⋆⋅♱⋅⋆ {self.profile_data['name']}'s Profile ⋆⋅♱⋅⋆ ──",
+                title=f"<a:44722scratch:1467169984290750608> ┃ {self.profile_data['name']}'s Profile",
                 color=discord.Color.from_rgb(0, 0, 0) 
             )
             embed.add_field(name="‎", value="", inline=False)
-            embed.add_field(name="── .✦ Role", value=self.profile_data['role'], inline=True)
+            embed.add_field(name="── .✦ Role", value=self.profile_data['role'], inline=False)
             embed.add_field(name="‎", value="", inline=False)
-            embed.add_field(name="── .✦ Bloodpoints", value=f"{self.profile_data['bloodpoints']:,}",\n embed.add_field(name="── .✦ Auric Cells", value=f"{self.profile_data['auric_cells']:,}", inline=True)
+            embed.add_field(name="── .✦ Bloodpoints", value=f"{self.profile_data['bloodpoints']:,}", inline=False)
+            embed.add_field(name="── .✦ Auric Cells", value=f"{self.profile_data['auric_cells']:,}", inline=False)
             embed.add_field(name="‎", value="", inline=False)
             return embed
         else:
