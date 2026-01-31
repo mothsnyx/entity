@@ -163,8 +163,8 @@ class Database:
                 ("Fresh Meat", "You tracked and hunted a wild animal. Fresh meat acquired!"),
                 ("Animal Hide", "You successfully hunted down prey and collected its hide."),
                 ("Bone Fragment", "Your hunt was successful. You collected bone fragments."),
-                ("Nothing", "Your hunt was unsuccessful. The prey escaped into the fog."),
-                ("Nothing", "You searched the woods but found nothing. Better luck next time.")
+                (None, "Your hunt was unsuccessful. The prey escaped into the fog."),
+                (None, "You searched the woods but found nothing. Better luck next time.")
             ]
             cursor.executemany("INSERT INTO hunting_items (item_name, message) VALUES (?, ?)", hunting_items)
         
@@ -175,8 +175,8 @@ class Database:
                 ("Fresh Fish", "You caught a fresh fish from the murky waters!"),
                 ("Old Boot", "You reeled in... an old boot. At least it's something."),
                 ("Strange Relic", "Something ancient surfaced. A strange relic from the depths."),
-                ("Nothing", "The fish weren't biting today. You caught nothing."),
-                ("Nothing", "Your line got tangled. No catch this time.")
+                (None, "The fish weren't biting today. You caught nothing."),
+                (None, "Your line got tangled. No catch this time.")
             ]
             cursor.executemany("INSERT INTO fishing_items (item_name, message) VALUES (?, ?)", fishing_items)
         
@@ -188,8 +188,8 @@ class Database:
                 ("Old Coins", "You discovered a stash of old coins hidden away."),
                 ("Medical Supplies", "You scavenged some medical supplies from an abandoned building."),
                 ("Mysterious Map", "You found a mysterious map with strange markings."),
-                ("Nothing", "Your search turned up empty. Nothing of value here."),
-                ("Nothing", "You combed through the area but found nothing useful.")
+                (None, "Your search turned up empty. Nothing of value here."),
+                (None, "You combed through the area but found nothing useful.")
             ]
             cursor.executemany("INSERT INTO scavenging_items (item_name, message) VALUES (?, ?)", scavenging_items)
         
@@ -537,15 +537,15 @@ class Database:
         item_name = result[0]
         message = result[1]
         
-        # This check prevents "None" or "Nothing" from being saved
-        # It only executes if item_name is a valid string
-        if item_name:
+        # Only add to inventory if item_name is not None/empty
+        if item_name and item_name.strip():
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
+        
         return {
-            'item': item_name,
+            'item': item_name if item_name else None,
             'message': message
         }
     
@@ -562,14 +562,15 @@ class Database:
         item_name = result[0]
         message = result[1]
         
-        if item_name:
+        # Only add to inventory if item_name is not None/empty
+        if item_name and item_name.strip():
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
         
         return {
-            'item': item_name,
+            'item': item_name if item_name else None,
             'message': message
         }
     
@@ -586,13 +587,14 @@ class Database:
         item_name = result[0]
         message = result[1]
         
-        if item_name:
+        # Only add to inventory if item_name is not None/empty
+        if item_name and item_name.strip():
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
         
         return {
-            'item': item_name,
+            'item': item_name if item_name else None,
             'message': message
         }
