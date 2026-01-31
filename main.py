@@ -27,15 +27,15 @@ async def create_profile(interaction: discord.Interaction, name: str, role: app_
     success, message = db.create_profile(name, role.value)
     if success:
         embed = discord.Embed(
-            title="✅ Profile Created",
+            title="<a:check:1467157700831088773> ┃ Profile Created!",
             description=f"Successfully created profile for **{name}** as **{role.value}**!",
             color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E (Error color)
+            color=discord.Color.from_rgba(230, 1, 18)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -48,15 +48,15 @@ async def edit_profile_name(interaction: discord.Interaction, name: str, new_nam
     success, message = db.edit_profile_name(name, new_name)
     if success:
         embed = discord.Embed(
-            title="✅ Name Updated",
+            title="<a:check:1467157700831088773> ┃ Name updated!",
             description=f"Successfully renamed **{name}** to **{new_name}**!",
             color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -73,15 +73,15 @@ async def edit_profile_role(interaction: discord.Interaction, name: str, new_rol
     success, message = db.edit_profile_role(name, new_role.value)
     if success:
         embed = discord.Embed(
-            title="✅ Role Updated",
+            title="<a:check:1467157700831088773> ┃ Role updated!",
             description=f"Successfully changed **{name}**'s role to **{new_role.value}**!",
             color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -91,15 +91,15 @@ async def delete_profile(interaction: discord.Interaction, name: str):
     success, message = db.delete_profile(name)
     if success:
         embed = discord.Embed(
-            title="✅ Profile Deleted",
+            title="<a:check:1467157700831088773> ┃ Profile deleted!",
             description=f"Successfully deleted profile for **{name}**!",
             color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
         embed = discord.Embed(
-            title="❌ Error",
+            title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -127,19 +127,22 @@ class ProfileView(discord.ui.View):
         if self.current_page == 0:
             # Main Info Page
             embed = discord.Embed(
-                title=f"🎮 {self.profile_data['name']}'s Profile",
+                title=f"─── ⋆⋅♱⋅⋆ {self.profile_data['name']}'s Profile ⋆⋅♱⋅⋆ ──",
                 color=discord.Color.from_rgb(0, 0, 0) 
             )
-            embed.add_field(name="Role", value=self.profile_data['role'], inline=True)
+            embed.add_field(name="‎", value="", inline=False)
+            embed.add_field(name="── .✦ Role", value=self.profile_data['role'], inline=True)
             embed.add_field(name="‎", value="", inline=False)
             embed.add_field(name="<:bp:1467159740797681716> Bloodpoints", value=f"{self.profile_data['bloodpoints']:,}", inline=True)
+            embed.add_field(name="‎", value="", inline=False)
             embed.add_field(name="<:ac:1467159725870154021> Auric Cells", value=f"{self.profile_data['auric_cells']:,}", inline=True)
+            embed.add_field(name="‎", value="", inline=False)
             return embed
         else:
             # Inventory Page with categories
             embed = discord.Embed(
                 title=f"<:Dbdsurvivorinteractivesummary:1467161545661485139> {self.profile_data['name']}'s Inventory",
-                color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+                color=discord.Color.from_rgb(0, 0, 0) 
             )
             
             # Check if inventory has any items
