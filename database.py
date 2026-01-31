@@ -537,12 +537,13 @@ class Database:
         item_name = result[0]
         message = result[1]
         
+        # This check prevents "None" or "Nothing" from being saved
+        # It only executes if item_name is a valid string
         if item_name:
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
-        
         return {
             'item': item_name,
             'message': message
