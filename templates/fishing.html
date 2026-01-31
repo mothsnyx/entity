@@ -3,7 +3,7 @@
 {% block title %}Manage Fishing{% endblock %}
 
 {% block content %}
-<h1><i class="bi bi-water"></i> Manage Fishing Loot</h1>
+<h1>Manage Fishing Loot</h1>
 <p class="lead">Configure items and messages for the fishing minigame</p>
 
 <div class="alert alert-info">
@@ -12,15 +12,23 @@
 
 <div class="card mb-4">
     <div class="card-header">
-        <i class="bi bi-plus-circle"></i> Add New Fishing Outcome
+        Add New Fishing Outcome
     </div>
     <div class="card-body">
         <form method="POST" action="/fishing/add">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <input type="text" name="item_name" class="form-control" placeholder="Item Name (leave empty for no item)">
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-2">
+                    <select name="category" class="form-select">
+                        <option value="Consumables">Consumables</option>
+                        <option value="Tools">Tools</option>
+                        <option value="Collectibles">Collectibles</option>
+                        <option value="Miscellaneous" selected>Miscellaneous</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
                     <textarea name="message" class="form-control" placeholder="Message to display..." rows="2" required></textarea>
                 </div>
                 <div class="col-md-2">
@@ -35,7 +43,7 @@
 
 <div class="card">
     <div class="card-header">
-        <i class="bi bi-list"></i> Fishing Outcomes ({{ items|length }})
+        Fishing Outcomes ({{ items|length }})
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -44,6 +52,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Item Name</th>
+                        <th>Category</th>
                         <th>Message</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -57,6 +66,13 @@
                                 <span class="badge bg-info">{{ item[1] }}</span>
                             {% else %}
                                 <span class="badge bg-secondary">No Item</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item[3] %}
+                                <span class="badge bg-info">{{ item[3] }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">N/A</span>
                             {% endif %}
                         </td>
                         <td>{{ item[2] }}</td>
@@ -85,6 +101,15 @@
                                         <div class="mb-3">
                                             <label class="form-label">Item Name (optional)</label>
                                             <input type="text" name="item_name" class="form-control" value="{{ item[1] or '' }}" placeholder="Leave empty for no item">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Category</label>
+                                            <select name="category" class="form-select">
+                                                <option value="Consumables" {% if item[3] == 'Consumables' %}selected{% endif %}>Consumables</option>
+                                                <option value="Tools" {% if item[3] == 'Tools' %}selected{% endif %}>Tools</option>
+                                                <option value="Collectibles" {% if item[3] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
+                                                <option value="Miscellaneous" {% if item[3] == 'Miscellaneous' or not item[3] %}selected{% endif %}>Miscellaneous</option>
+                                            </select>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Message</label>
