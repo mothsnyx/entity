@@ -538,14 +538,14 @@ class Database:
         message = result[1]
         
         # Only add to inventory if item_name is not None/empty
-        if item_name and item_name.strip():
+        if item_name and item_name.strip() and item_name.lower() != 'none':
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
         
         return {
-            'item': item_name if item_name else None,
+            'item': item_name if (item_name and item_name.lower() != 'none') else None,
             'message': message
         }
     
@@ -563,14 +563,14 @@ class Database:
         message = result[1]
         
         # Only add to inventory if item_name is not None/empty
-        if item_name and item_name.strip():
+        if item_name and item_name.strip() and item_name.lower() != 'none':
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
         
         return {
-            'item': item_name if item_name else None,
+            'item': item_name if (item_name and item_name.lower() != 'none') else None,
             'message': message
         }
     
@@ -588,13 +588,13 @@ class Database:
         message = result[1]
         
         # Only add to inventory if item_name is not None/empty
-        if item_name and item_name.strip():
+        if item_name and item_name.strip() and item_name.lower() != 'none':
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
         
         conn.close()
         
         return {
-            'item': item_name if item_name else None,
+            'item': item_name if (item_name and item_name.lower() != 'none') else None,
             'message': message
         }
