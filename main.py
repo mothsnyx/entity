@@ -361,21 +361,23 @@ async def remove_item(interaction: discord.Interaction, name: str, item: str):
         )
     await interaction.response.send_message(embed=embed)
 
-# Trial Command
+#  Command
 @bot.tree.command(name="trial", description="Complete a trial and earn rewards")
 @app_commands.describe(name="Character name")
 async def trial(interaction: discord.Interaction, name: str):
     result = db.complete_trial(name)
     if result:
         embed = discord.Embed(
-            title=f"<a:loading:1467153150015180800> ┃ Trial Complete - {result['role']}",
+            title=f"<a:loading:1467153150015180800> ┃ {result['role']} Trial Complete",
             description=result['message'],
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            
+        embed.add_field(name="‎", value="", inline=False)
         )
         embed.add_field(
-            name="Performance",
+            name="Result:",
             value=result['performance_text'],
-            inline=False
+            inline=True
         )
         embed.add_field(
             name="Rewards",
