@@ -3,12 +3,12 @@
 {% block title %}Manage Realms{% endblock %}
 
 {% block content %}
-<h1><i class="bi bi-globe"></i> Manage Realms</h1>
+<h1>Manage Realms</h1>
 <p class="lead">Add, edit, or remove game realms</p>
 
 <div class="card mb-4">
     <div class="card-header">
-        <i class="bi bi-plus-circle"></i> Add New Realm
+        Add New Realm
     </div>
     <div class="card-body">
         <form method="POST" action="/realms/add">
@@ -28,7 +28,7 @@
 
 <div class="card">
     <div class="card-header">
-        <i class="bi bi-list"></i> All Realms ({{ realms|length }})
+        All Realms ({{ realms|length }})
     </div>
     <div class="card-body">
         <div class="table-responsive">
