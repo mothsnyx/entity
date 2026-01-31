@@ -135,16 +135,51 @@ class ProfileView(discord.ui.View):
             embed.add_field(name="💎 Auric Cells", value=f"{self.profile_data['auric_cells']:,}", inline=True)
             return embed
         else:
-            # Inventory Page
+            # Inventory Page with categories
             embed = discord.Embed(
                 title=f"🎒 {self.profile_data['name']}'s Inventory",
                 color=discord.Color.purple()
             )
-            if self.inventory_data:
-                items_list = "\n".join([f"• {item['item_name']}" for item in self.inventory_data])
-                embed.description = items_list
+            
+            # Check if inventory has any items
+            total_items = 0
+            unique_items = 0
+            has_items = False
+            
+            for category, items in self.inventory_data.items():
+                if items:
+                    has_items = True
+                    unique_items += len(items)
+                    total_items += sum(item['quantity'] for item in items)
+            
+            if has_items:
+                # Category emojis
+                category_emojis = {
+                    'Consumables': '💊',
+                    'Tools': '🔧',
+                    'Collectibles': '💎',
+                    'Miscellaneous': '📦'
+                }
+                
+                # Add each category as a field
+                for category, items in self.inventory_data.items():
+                    if items:  # Only show categories with items
+                        emoji = category_emojis.get(category, '📦')
+                        items_list = "\n".join([
+                            f"**{item['item_name']}** × `{item['quantity']}`"
+                            for item in items
+                        ])
+                        embed.add_field(
+                            name=f"{emoji} {category}",
+                            value=items_list,
+                            inline=False
+                        )
+                
+                # Add total count
+                embed.set_footer(text=f"Total: {unique_items} unique items • {total_items} total items")
             else:
-                embed.description = "*Inventory is empty*"
+                embed.description = "*Inventory is empty*\n\nUse `/buy` to purchase items or play minigames to collect loot!"
+            
             return embed
 
 @bot.tree.command(name="profile", description="Show a character's profile")
@@ -312,6 +347,8 @@ async def trial(interaction: discord.Interaction, name: str):
         message = result['message']
         bloodpoints = result['bloodpoints']
         auric_cells = result['auric_cells']
+        performance = result['performance']
+        performance_text = result['performance_text']
         
         # Different colors for Killer vs Survivor
         if role == "Killer":
@@ -326,11 +363,21 @@ async def trial(interaction: discord.Interaction, name: str):
             description=message,
             color=color
         )
+        
+        # Add performance field
+        embed.add_field(
+            name="📊 Performance",
+            value=f"**{performance_text}**",
+            inline=False
+        )
+        
+        # Add rewards field
         embed.add_field(
             name="💰 Rewards Earned", 
             value=f"🩸 **{bloodpoints:,}** Bloodpoints\n💎 **{auric_cells}** Auric Cells", 
             inline=False
         )
+        
         embed.set_footer(text=f"{name} | Role: {role}")
         await interaction.response.send_message(embed=embed)
     else:
@@ -493,6 +540,122 @@ async def scavenging(interaction: discord.Interaction, name: str):
         )
         await interaction.response.send_message(embed=embed)
 
+# List Command
+@bot.tree.command(name="list", description="Show all your character profiles")
+async def list_profiles(interaction: discord.Interaction):
+    # Get all profiles (you might want to filter by user ID in future)
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name, role, bloodpoints, auric_cells FROM profiles ORDER BY name")
+    profiles = cursor.fetchall()
+    conn.close()
+    
+    if profiles:
+        embed = discord.Embed(
+            title="📋 All Character Profiles",
+            description=f"Total characters: **{len(profiles)}**",
+            color=discord.Color.blue()
+        )
+        
+        # Group by role
+        killers = [p for p in profiles if p[1] == 'Killer']
+        survivors = [p for p in profiles if p[1] == 'Survivor']
+        
+        if killers:
+            killer_list = "\n".join([
+                f"🔪 **{p[0]}** • 🩸 {p[2]:,} BP • 💎 {p[3]} AC"
+                for p in killers
+            ])
+            embed.add_field(name="Killers", value=killer_list, inline=False)
+        
+        if survivors:
+            survivor_list = "\n".join([
+                f"🏃 **{p[0]}** • 🩸 {p[2]:,} BP • 💎 {p[3]} AC"
+                for p in survivors
+            ])
+            embed.add_field(name="Survivors", value=survivor_list, inline=False)
+        
+        embed.set_footer(text="Use /profile [name] to view detailed information")
+    else:
+        embed = discord.Embed(
+            title="📋 All Character Profiles",
+            description="No profiles found. Create one with `/create`!",
+            color=discord.Color.orange()
+        )
+    
+    await interaction.response.send_message(embed=embed)
+
+# Help Command
+@bot.tree.command(name="help", description="Show all available commands")
+async def help_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📚 Bot Commands Help",
+        description="Here are all available commands for the Dead by Daylight Bot:",
+        color=discord.Color.gold()
+    )
+    
+    # Profile Management
+    embed.add_field(
+        name="👤 Profile Management",
+        value=(
+            "`/create [name] [role]` - Create a new character profile\n"
+            "`/profile [name]` - View character profile and inventory\n"
+            "`/list` - Show all your character profiles\n"
+            "`/editname [name] [new_name]` - Change character name\n"
+            "`/editrole [name] [new_role]` - Change character role\n"
+            "`/deleteprofile [name]` - Delete a character profile"
+        ),
+        inline=False
+    )
+    
+    # Currency
+    embed.add_field(
+        name="💰 Currency",
+        value=(
+            "`/addcurrency [name] [currency] [amount]` - Add Bloodpoints or Auric Cells\n"
+            "`/removecurrency [name] [currency] [amount]` - Remove currency"
+        ),
+        inline=False
+    )
+    
+    # Inventory & Shop
+    embed.add_field(
+        name="🎒 Inventory & Shop",
+        value=(
+            "`/buy [name] [item]` - Buy item from shop with Bloodpoints\n"
+            "`/additem [name] [item]` - Add item to inventory\n"
+            "`/removeitem [name] [item]` - Remove item from inventory"
+        ),
+        inline=False
+    )
+    
+    # Gameplay
+    embed.add_field(
+        name="🎮 Gameplay",
+        value=(
+            "`/trial [name]` - Complete a trial and earn rewards\n"
+            "`/hunting [name]` - Go hunting for resources\n"
+            "`/fishing [name]` - Go fishing for resources\n"
+            "`/scavenging [name]` - Go scavenging for resources\n"
+            "`/travel [name]` - Travel to a random realm"
+        ),
+        inline=False
+    )
+    
+    # Utility
+    embed.add_field(
+        name="🎲 Utility",
+        value=(
+            "`/roll [dice]` - Roll dice (e.g., 1d20, 2d6)\n"
+            "`/choose [options]` - Pick random option from comma-separated list"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(text="💡 Tip: Use /profile to see your inventory organized by categories!")
+    
+    await interaction.response.send_message(embed=embed)
+    
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
