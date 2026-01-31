@@ -352,10 +352,10 @@ async def trial(interaction: discord.Interaction, name: str):
         
         # Different colors for Killer vs Survivor
         if role == "Killer":
-            color = discord.Color.red()
+            color = discord.Color.from_rgb(117, 6, 8)  # #750608 (Dark Red)
             emoji = "🔪"
         else:
-            color = discord.Color.blue()
+            color = discord.Color.from_rgb(116, 165, 190)  # #74A5BE (Light Blue)
             emoji = "🏃"
         
         embed = discord.Embed(
