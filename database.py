@@ -362,11 +362,45 @@ class Database:
     def get_inventory(self, name):
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT item_name FROM inventory WHERE character_name = ?", (name,))
+        
+        # Count each item and group by name
+        cursor.execute("""
+            SELECT item_name, COUNT(*) as quantity 
+            FROM inventory 
+            WHERE character_name = ? 
+            GROUP BY item_name
+            ORDER BY item_name
+        """, (name,))
         results = cursor.fetchall()
         conn.close()
         
-        return [{'item_name': r[0]} for r in results]
+        # Categorize items
+        categorized = {
+            'Consumables': [],
+            'Tools': [],
+            'Collectibles': [],
+            'Miscellaneous': []
+        }
+        
+        # Item categories mapping
+        consumables = ['medkit', 'first aid kit', 'fresh meat', 'fresh fish', 'medical supplies']
+        tools = ['toolbox', 'flashlight', 'engineer\'s toolbox', 'sport flashlight']
+        collectibles = ['map', 'key', 'animal hide', 'bone fragment', 'strange relic', 'old coins', 'mysterious map']
+        
+        for item_name, quantity in results:
+            item_lower = item_name.lower()
+            item_data = {'item_name': item_name, 'quantity': quantity}
+            
+            if item_lower in consumables:
+                categorized['Consumables'].append(item_data)
+            elif item_lower in tools:
+                categorized['Tools'].append(item_data)
+            elif item_lower in collectibles:
+                categorized['Collectibles'].append(item_data)
+            else:
+                categorized['Miscellaneous'].append(item_data)
+        
+        return categorized
     
     # Shop Methods
     def buy_item(self, name, item_name):
@@ -418,8 +452,6 @@ class Database:
         role = profile['role']
         
         # Get a RANDOM trial message for THIS SPECIFIC ROLE
-        # This searches the database for messages matching the character's role
-        # and picks ONE at random using SQL's "ORDER BY RANDOM()"
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -431,11 +463,39 @@ class Database:
         # Use the random message, or fallback if none found
         message = result[0] if result else f"You completed a trial as {role}."
         
-        # Award random currency amounts
-        # Bloodpoints: 15,000 to 32,000 (random)
-        # Auric Cells: 1 to 5 (random)
-        bloodpoints = random.randint(15000, 32000)
-        auric_cells = random.randint(1, 5)
+        # Performance-based rewards
+        # Random performance: 1-4 escapes/kills
+        performance = random.randint(1, 4)
+        
+        # Bloodpoints: 5,000 per escape/kill
+        # 1 = 5,000 BP
+        # 2 = 10,000 BP
+        # 3 = 15,000 BP
+        # 4 = 20,000 BP
+        bloodpoints = performance * 5000
+        
+        # Auric Cells: 1 per escape/kill
+        # 1 = 1 AC
+        # 2 = 2 AC
+        # 3 = 3 AC
+        # 4 = 4 AC
+        auric_cells = performance
+        
+        # Performance description
+        if role == "Killer":
+            performance_text = {
+                1: "1 Kill",
+                2: "2 Kills",
+                3: "3 Kills",
+                4: "4 Kills (Perfect!)"
+            }
+        else:  # Survivor
+            performance_text = {
+                1: "1 Survivor Escaped",
+                2: "2 Survivors Escaped",
+                3: "3 Survivors Escaped",
+                4: "4 Survivors Escaped (Perfect!)"
+            }
         
         # Add the rewards to the character's profile
         cursor.execute(
@@ -447,10 +507,12 @@ class Database:
         
         # Return all the information to display in Discord
         return {
-            'role': role,              # "Killer" or "Survivor"
-            'message': message,        # Random message from database
-            'bloodpoints': bloodpoints, # Amount earned this trial
-            'auric_cells': auric_cells # Amount earned this trial
+            'role': role,                      # "Killer" or "Survivor"
+            'message': message,                # Random message from database
+            'bloodpoints': bloodpoints,        # 5,000 / 10,000 / 15,000 / 20,000
+            'auric_cells': auric_cells,       # 1 / 2 / 3 / 4
+            'performance': performance,        # 1 / 2 / 3 / 4
+            'performance_text': performance_text[performance]  # Display text
         }
     
     # Other Methods
