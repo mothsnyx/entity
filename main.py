@@ -130,30 +130,31 @@ class ProfileView(discord.ui.View):
                 color=discord.Color.from_rgb(0, 0, 0) 
             )
                     # Profile Name
-        embed.add_field(
-            name=f"<:15824redneonstar:1467170916017639615> ┃ {self.profile_data['name']}'s Profile",
-            value="",
-            inline=False
-        )
-        
-        # Role
-        embed.add_field(
-            name=".✦ Role:",
-            value=self.profile_data['role'],
-            inline=False
-        )
-        
-        # Currency
-        currency_text = (
-            f"<:bp:1467159740797681716> {self.profile_data['bloodpoints']:,} bp\n"
-            f"<:ac:1467159725870154021> {self.profile_data['auric_cells']:,} ac"
-        )
-        embed.add_field(
-            name=".✦ Currency:",
-            value=currency_text,
-            inline=False
-        )
-        return embed
+            embed.add_field(
+                name=f"<:15824redneonstar:1467170916017639615> ┃ {self.profile_data['name']}'s Profile",
+                value="",
+                inline=False
+            )
+            
+            # Role
+            embed.add_field(
+                name=".✦ Role:",
+                value=self.profile_data['role'],
+                inline=False
+            )
+            
+            # Currency
+            currency_text = (
+                f"<:bp:1467159740797681716> {self.profile_data['bloodpoints']:,} bp\n"
+                f"<:ac:1467159725870154021> {self.profile_data['auric_cells']:,} ac"
+            )
+            embed.add_field(
+                name=".✦ Currency:",
+                value=currency_text,
+                inline=False
+            )
+            return embed
+            
         else:
             # Inventory Page with categories
             embed = discord.Embed(
