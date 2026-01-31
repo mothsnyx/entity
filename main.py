@@ -151,7 +151,7 @@ class ProfileView(discord.ui.View):
         else:
             # Inventory Page with categories
             embed = discord.Embed(
-                title=f"<:Dbdsurvivorinteractivesummary:1467161545661485139> {self.profile_data['name']}'s Inventory",
+                title=f"<:15824redneonstar:1467170916017639615> ┃ **{self.profile_data['name']}**'s Inventory",
                 color=discord.Color.from_rgb(0, 0, 0) 
             )
             
