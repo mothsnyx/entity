@@ -66,7 +66,7 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS hunting_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_name TEXT NOT NULL,
+                item_name TEXT,
                 message TEXT NOT NULL
             )
         ''')
@@ -75,7 +75,7 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS fishing_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_name TEXT NOT NULL,
+                item_name TEXT,
                 message TEXT NOT NULL
             )
         ''')
@@ -84,7 +84,7 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS scavenging_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_name TEXT NOT NULL,
+                item_name TEXT,
                 message TEXT NOT NULL
             )
         ''')
