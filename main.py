@@ -153,7 +153,7 @@ class ProfileView(discord.ui.View):
             value=currency_text,
             inline=False
         )
-        
+        return embed
         else:
             # Inventory Page with categories
             embed = discord.Embed(
