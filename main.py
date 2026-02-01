@@ -483,11 +483,11 @@ async def hunting(interaction: discord.Interaction, name: str):
     if result:
         embed = discord.Embed(
             title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Hunting",
-            description=result['message'],
+            description=result.get('description', result['message']),
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
-            embed.add_field(name="You found:", value=f"**{result['item']}**", inline=True)
+            embed.add_field(name="You found:", value=f"**{result['item']}**", inline=False)
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
@@ -505,11 +505,19 @@ async def fishing(interaction: discord.Interaction, name: str):
     if result:
         embed = discord.Embed(
             title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Fishing",
-            description=result['message'],
+            description=result.get('description', result['message']),
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
             embed.add_field(name="You caught:", value=f"**{result['item']}**", inline=False)
+        await interaction.response.send_message(embed=embed)
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=f"Profile **{name}** not found!",
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+        )
+        await interaction.response.send_message(embed=embed)
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
@@ -527,7 +535,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
     if result:
         embed = discord.Embed(
             title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Scavenging",
-            description=result['message'],
+            description=result.get('description', result['message']),
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
