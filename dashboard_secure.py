@@ -156,13 +156,14 @@ def add_shop_item():
     item_name = request.form.get('name')
     price = request.form.get('price')
     description = request.form.get('description')
+    category = request.form.get('category', 'Miscellaneous')
     
     if item_name and price:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO shop_items (item_name, price, description) VALUES (?, ?, ?)",
-                         (item_name, int(price), description))
+            cursor.execute("INSERT INTO shop_items (item_name, price, description, category) VALUES (?, ?, ?, ?)",
+                         (item_name, int(price), description, category))
             conn.commit()
             conn.close()
             flash(f'Item "{item_name}" added to shop!', 'success')
@@ -190,13 +191,14 @@ def edit_shop_item(item_id):
     item_name = request.form.get('name')
     price = request.form.get('price')
     description = request.form.get('description')
+    category = request.form.get('category', 'Miscellaneous')
     
     if item_name and price:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE shop_items SET item_name = ?, price = ?, description = ? WHERE id = ?",
-                         (item_name, int(price), description, item_id))
+            cursor.execute("UPDATE shop_items SET item_name = ?, price = ?, description = ?, category = ? WHERE id = ?",
+                         (item_name, int(price), description, category, item_id))
             conn.commit()
             conn.close()
             flash('Shop item updated successfully!', 'success')
@@ -209,7 +211,7 @@ def edit_shop_item(item_id):
 def trials():
     conn = db.get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM trial_messages ORDER BY role, id")
+    cursor.execute("SELECT * FROM trial_messages ORDER BY performance_level, role, id")
     messages = cursor.fetchall()
     conn.close()
     return render_template('trials.html', messages=messages)
@@ -218,16 +220,18 @@ def trials():
 @login_required
 def add_trial_message():
     role = request.form.get('role')
+    performance_level = request.form.get('performance_level')
     message = request.form.get('message')
     
-    if role and message:
+    if role and performance_level is not None and message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO trial_messages (role, message) VALUES (?, ?)", (role, message))
+            cursor.execute("INSERT INTO trial_messages (role, performance_level, message) VALUES (?, ?, ?)", 
+                         (role, int(performance_level), message))
             conn.commit()
             conn.close()
-            flash(f'Trial message for {role} added!', 'success')
+            flash(f'Trial message for {role} (Level {performance_level}) added!', 'success')
         except Exception as e:
             flash(f'Error: {str(e)}', 'danger')
     return redirect(url_for('trials'))
@@ -250,14 +254,15 @@ def delete_trial_message(message_id):
 @login_required
 def edit_trial_message(message_id):
     role = request.form.get('role')
+    performance_level = request.form.get('performance_level')
     message = request.form.get('message')
     
-    if role and message:
+    if role and performance_level is not None and message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE trial_messages SET role = ?, message = ? WHERE id = ?",
-                         (role, message, message_id))
+            cursor.execute("UPDATE trial_messages SET role = ?, performance_level = ?, message = ? WHERE id = ?",
+                         (role, int(performance_level), message, message_id))
             conn.commit()
             conn.close()
             flash('Trial message updated successfully!', 'success')
@@ -280,13 +285,15 @@ def hunting():
 def add_hunting_item():
     item_name = request.form.get('item_name')
     message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO hunting_items (item_name, message) VALUES (?, ?)",
-                         (item_name if item_name else None, message))
+            cursor.execute("INSERT INTO hunting_items (item_name, message, category, description) VALUES (?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description))
             conn.commit()
             conn.close()
             flash('Hunting item added!', 'success')
@@ -313,13 +320,15 @@ def delete_hunting_item(item_id):
 def edit_hunting_item(item_id):
     item_name = request.form.get('item_name')
     message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE hunting_items SET item_name = ?, message = ? WHERE id = ?",
-                         (item_name if item_name else None, message, item_id))
+            cursor.execute("UPDATE hunting_items SET item_name = ?, message = ?, category = ?, description = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, item_id))
             conn.commit()
             conn.close()
             flash('Hunting item updated successfully!', 'success')
@@ -342,13 +351,15 @@ def fishing():
 def add_fishing_item():
     item_name = request.form.get('item_name')
     message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO fishing_items (item_name, message) VALUES (?, ?)",
-                         (item_name if item_name else None, message))
+            cursor.execute("INSERT INTO fishing_items (item_name, message, category, description) VALUES (?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description))
             conn.commit()
             conn.close()
             flash('Fishing item added!', 'success')
@@ -375,13 +386,15 @@ def delete_fishing_item(item_id):
 def edit_fishing_item(item_id):
     item_name = request.form.get('item_name')
     message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE fishing_items SET item_name = ?, message = ? WHERE id = ?",
-                         (item_name if item_name else None, message, item_id))
+            cursor.execute("UPDATE fishing_items SET item_name = ?, message = ?, category = ?, description = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, item_id))
             conn.commit()
             conn.close()
             flash('Fishing item updated successfully!', 'success')
@@ -404,13 +417,15 @@ def scavenging():
 def add_scavenging_item():
     item_name = request.form.get('item_name')
     message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO scavenging_items (item_name, message) VALUES (?, ?)",
-                         (item_name if item_name else None, message))
+            cursor.execute("INSERT INTO scavenging_items (item_name, message, category, description) VALUES (?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description))
             conn.commit()
             conn.close()
             flash('Scavenging item added!', 'success')
@@ -437,13 +452,15 @@ def delete_scavenging_item(item_id):
 def edit_scavenging_item(item_id):
     item_name = request.form.get('item_name')
     message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE scavenging_items SET item_name = ?, message = ? WHERE id = ?",
-                         (item_name if item_name else None, message, item_id))
+            cursor.execute("UPDATE scavenging_items SET item_name = ?, message = ?, category = ?, description = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, item_id))
             conn.commit()
             conn.close()
             flash('Scavenging item updated successfully!', 'success')
