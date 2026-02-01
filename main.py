@@ -509,7 +509,7 @@ async def fishing(interaction: discord.Interaction, name: str):
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
-            embed.add_field(name="Caught", value=f"**{result['item']}**", inline=False)
+            embed.add_field(name="You caught:", value=f"**{result['item']}**", inline=False)
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
@@ -531,7 +531,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
-            embed.add_field(name="Found", value=f"**{result['item']}**", inline=False)
+            embed.add_field(name="You found:", value=f"**{result['item']}**", inline=False)
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
