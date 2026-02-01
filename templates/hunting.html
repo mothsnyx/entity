@@ -16,7 +16,7 @@
     </div>
     <div class="card-body">
         <form method="POST" action="/hunting/add">
-            <div class="row g-3">
+            <div class="row g-3 mb-2">
                 <div class="col-md-3">
                     <input type="text" name="item_name" class="form-control" placeholder="Item Name (leave empty for no item)">
                 </div>
@@ -29,12 +29,18 @@
                     </select>
                 </div>
                 <div class="col-md-5">
-                    <textarea name="message" class="form-control" placeholder="Message to display..." rows="2" required></textarea>
+                    <textarea name="message" class="form-control" placeholder="Short message (for logs)..." rows="2" required></textarea>
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100 h-100">
                         <i class="bi bi-plus"></i> Add
                     </button>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <textarea name="description" class="form-control" placeholder="Description (what players see in Discord)..." rows="2"></textarea>
+                    <small class="text-muted">This is what appears in the embed description</small>
                 </div>
             </div>
         </form>
@@ -54,6 +60,7 @@
                         <th>Item Name</th>
                         <th>Category</th>
                         <th>Message</th>
+                        <th>Description</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -76,6 +83,7 @@
                             {% endif %}
                         </td>
                         <td>{{ item[2] }}</td>
+                        <td>{{ item[4] if item[4] else 'N/A' }}</td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ item[0] }}">
                                 <i class="bi bi-pencil"></i> Edit
@@ -112,8 +120,13 @@
                                             </select>
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label">Message</label>
-                                            <textarea name="message" class="form-control" rows="3" required>{{ item[2] }}</textarea>
+                                            <label class="form-label">Message (for logs)</label>
+                                            <textarea name="message" class="form-control" rows="2" required>{{ item[2] }}</textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Description (shown in Discord)</label>
+                                            <textarea name="description" class="form-control" rows="3">{{ item[4] or '' }}</textarea>
+                                            <small class="text-muted">This is what appears in the embed</small>
                                         </div>
                                     </div>
                                     <div class="modal-footer">
