@@ -518,14 +518,6 @@ async def fishing(interaction: discord.Interaction, name: str):
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
-        await interaction.response.send_message(embed=embed)
-    else:
-        embed = discord.Embed(
-            title="<a:error:1467157734817398946> ┃ Error!",
-            description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
-        )
-        await interaction.response.send_message(embed=embed)
 
 # Scavenging Minigame
 @bot.tree.command(name="scavenging", description="Go scavenging for resources")
