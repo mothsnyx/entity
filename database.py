@@ -574,11 +574,12 @@ class Database:
         
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT item_name, message FROM hunting_items ORDER BY RANDOM() LIMIT 1")
+        cursor.execute("SELECT item_name, message, description FROM hunting_items ORDER BY RANDOM() LIMIT 1")
         result = cursor.fetchone()
         
         item_name = result[0]
         message = result[1]
+        description = result[2] if len(result) > 2 else message  # Fallback to message if no description
         
         # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
         if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
@@ -589,7 +590,8 @@ class Database:
         
         return {
             'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
-            'message': message
+            'message': message,
+            'description': description
         }
     
     def fishing_minigame(self, name):
@@ -599,11 +601,12 @@ class Database:
         
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT item_name, message FROM fishing_items ORDER BY RANDOM() LIMIT 1")
+        cursor.execute("SELECT item_name, message, description FROM fishing_items ORDER BY RANDOM() LIMIT 1")
         result = cursor.fetchone()
         
         item_name = result[0]
         message = result[1]
+        description = result[2] if len(result) > 2 else message  # Fallback to message if no description
         
         # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
         if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
@@ -614,7 +617,8 @@ class Database:
         
         return {
             'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
-            'message': message
+            'message': message,
+            'description': description
         }
     
     def scavenging_minigame(self, name):
@@ -624,11 +628,12 @@ class Database:
         
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT item_name, message FROM scavenging_items ORDER BY RANDOM() LIMIT 1")
+        cursor.execute("SELECT item_name, message, description FROM scavenging_items ORDER BY RANDOM() LIMIT 1")
         result = cursor.fetchone()
         
         item_name = result[0]
         message = result[1]
+        description = result[2] if len(result) > 2 else message  # Fallback to message if no description
         
         # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
         if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
@@ -639,5 +644,6 @@ class Database:
         
         return {
             'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
-            'message': message
+            'message': message,
+            'description': description
         }
