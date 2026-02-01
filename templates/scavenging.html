@@ -76,14 +76,14 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if item[3] %}
-                                <span class="badge bg-info">{{ item[3] }}</span>
+                            {% if item[4] %}
+                                <span class="badge bg-info">{{ item[4] }}</span>
                             {% else %}
                                 <span class="badge bg-secondary">N/A</span>
                             {% endif %}
                         </td>
                         <td>{{ item[2] }}</td>
-                        <td>{{ item[4] if item[4] else 'N/A' }}</td>
+                        <td>{{ item[3] if item[3] else 'N/A' }}</td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ item[0] }}">
                                 <i class="bi bi-pencil"></i> Edit
@@ -113,10 +113,10 @@
                                         <div class="mb-3">
                                             <label class="form-label">Category</label>
                                             <select name="category" class="form-select">
-                                                <option value="Consumables" {% if item[3] == 'Consumables' %}selected{% endif %}>Consumables</option>
-                                                <option value="Tools" {% if item[3] == 'Tools' %}selected{% endif %}>Tools</option>
-                                                <option value="Collectibles" {% if item[3] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
-                                                <option value="Miscellaneous" {% if item[3] == 'Miscellaneous' or not item[3] %}selected{% endif %}>Miscellaneous</option>
+                                                <option value="Consumables" {% if item[4] == 'Consumables' %}selected{% endif %}>Consumables</option>
+                                                <option value="Tools" {% if item[4] == 'Tools' %}selected{% endif %}>Tools</option>
+                                                <option value="Collectibles" {% if item[4] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
+                                                <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
                                             </select>
                                         </div>
                                         <div class="mb-3">
@@ -125,7 +125,7 @@
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Description (shown in Discord)</label>
-                                            <textarea name="description" class="form-control" rows="3">{{ item[4] or '' }}</textarea>
+                                            <textarea name="description" class="form-control" rows="3">{{ item[3] or '' }}</textarea>
                                             <small class="text-muted">This is what appears in the embed</small>
                                         </div>
                                     </div>
