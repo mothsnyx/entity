@@ -157,13 +157,14 @@ def add_shop_item():
     price = request.form.get('price')
     description = request.form.get('description')
     category = request.form.get('category', 'Miscellaneous')
+    currency_type = request.form.get('currency_type', 'bloodpoints')
     
     if item_name and price:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO shop_items (item_name, price, description, category) VALUES (?, ?, ?, ?)",
-                         (item_name, int(price), description, category))
+            cursor.execute("INSERT INTO shop_items (item_name, price, description, category, currency_type) VALUES (?, ?, ?, ?, ?)",
+                         (item_name, int(price), description, category, currency_type))
             conn.commit()
             conn.close()
             flash(f'Item "{item_name}" added to shop!', 'success')
@@ -192,13 +193,14 @@ def edit_shop_item(item_id):
     price = request.form.get('price')
     description = request.form.get('description')
     category = request.form.get('category', 'Miscellaneous')
+    currency_type = request.form.get('currency_type', 'bloodpoints')
     
     if item_name and price:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE shop_items SET item_name = ?, price = ?, description = ?, category = ? WHERE id = ?",
-                         (item_name, int(price), description, category, item_id))
+            cursor.execute("UPDATE shop_items SET item_name = ?, price = ?, description = ?, category = ?, currency_type = ? WHERE id = ?",
+                         (item_name, int(price), description, category, currency_type, item_id))
             conn.commit()
             conn.close()
             flash('Shop item updated successfully!', 'success')
