@@ -484,7 +484,7 @@ async def travel(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgb(0, 0, 0)
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -493,8 +493,8 @@ async def travel(interaction: discord.Interaction, name: str):
     
     embed = discord.Embed(
         title="<:IconSkills_ScoutInnate:1468241348594503791> ┃ Travel",
-        description=f"**{name}** has traveled to **{realm}**!",
-        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+        description=f"**{name}** steps into the Fog and arrives in **{realm}**!",
+        color=discord.Color.from_rgb(0, 0, 0)
     )
     
     await interaction.response.send_message(embed=embed)
