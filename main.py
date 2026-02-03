@@ -443,7 +443,7 @@ async def choose(interaction: discord.Interaction, options: str):
     chosen = random.choice(choices)
     
     embed = discord.Embed(
-        title="🎯 Random Choice",
+        title="🎯 ┃ Random Choice",
         description=f"I choose: **{chosen}**",
         color=discord.Color.from_rgb(0, 0, 0)
     )
@@ -468,7 +468,7 @@ async def travel(interaction: discord.Interaction, name: str):
     realm = db.get_random_realm()
     
     embed = discord.Embed(
-        title="🌍 Travel",
+        title="🌍 ┃ Travel",
         description=f"**{name}** has traveled to **{realm}**!",
         color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
