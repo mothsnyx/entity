@@ -477,7 +477,7 @@ class Database:
             # Check if enough currency
             if current_balance < price:
                 conn.close()
-                return False, f"Insufficient {currency_name}! Need {price:,}, have {current_balance:,}", price, currency_type
+                return False, f"Insufficient {currency_name}! This item costs **{price:,}**, you have **{current_balance:,}**.", price, currency_type
             
             # Deduct currency and add item
             cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (price, name))
