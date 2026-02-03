@@ -424,7 +424,10 @@ async def roll_dice(interaction: discord.Interaction, dice: str):
             color=discord.Color.from_rgb(0, 0, 0)
         )
         embed.add_field(name="You rolled:", value=rolls_str, inline=False)
-        embed.add_field(name="Total:", value=f"**{total}**{modifier_str}", inline=False)
+        
+        # Only show total if rolling multiple dice OR if there's a modifier
+        if num_dice > 1 or modifier != 0:
+            embed.add_field(name="Total:", value=f"**{total}**{modifier_str}", inline=False)
         
         await interaction.response.send_message(embed=embed)
     except Exception as e:
