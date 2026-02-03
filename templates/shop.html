@@ -17,7 +17,13 @@
                     <input type="text" name="name" class="form-control" placeholder="Item Name" required>
                 </div>
                 <div class="col-md-2">
-                    <input type="number" name="price" class="form-control" placeholder="Price (BP)" required min="0">
+                    <input type="number" name="price" class="form-control" placeholder="Price" required min="0">
+                </div>
+                <div class="col-md-2">
+                    <select name="currency_type" class="form-select">
+                        <option value="bloodpoints" selected>Bloodpoints</option>
+                        <option value="auric_cells">Auric Cells</option>
+                    </select>
                 </div>
                 <div class="col-md-2">
                     <select name="category" class="form-select">
@@ -27,10 +33,10 @@
                         <option value="Miscellaneous" selected>Miscellaneous</option>
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <input type="text" name="description" class="form-control" placeholder="Description">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-plus"></i> Add
                     </button>
