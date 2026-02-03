@@ -266,25 +266,36 @@ async def remove_currency(interaction: discord.Interaction, name: str, currency:
 async def shop(interaction: discord.Interaction):
     conn = db.get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT item_name, price, description FROM shop_items ORDER BY price")
+    cursor.execute("SELECT item_name, price, description, currency_type FROM shop_items ORDER BY price")
     items = cursor.fetchall()
     conn.close()
     
     if items:
         embed = discord.Embed(
             title="Shop",  # No emoji
-            description="Purchase items using Bloodpoints with `/buy [name] [item]`",
+            description="Purchase items with `/buy [name] [item]`",
             color=discord.Color.from_rgb(0, 0, 0)
         )
         
-        items_text = "\n".join([
-            f"**{item[0]}** - {item[1]:,} BP\n*{item[2]}*"
-            for item in items
-        ])
+        items_text = []
+        for item in items:
+            item_name = item[0]
+            price = item[1]
+            description = item[2]
+            # Handle currency_type (might be NULL or not exist in old databases)
+            currency_type = item[3] if len(item) > 3 and item[3] else 'bloodpoints'
+            
+            # Determine currency abbreviation
+            if currency_type == 'auric_cells':
+                currency_abbr = "AC"
+            else:
+                currency_abbr = "BP"
+            
+            items_text.append(f"**{item_name}** - {price:,} {currency_abbr}\n*{description}*")
         
         embed.add_field(
             name="Available Items",  # No emoji
-            value=items_text,
+            value="\n".join(items_text),
             inline=False
         )
     else:
@@ -303,19 +314,29 @@ async def shop(interaction: discord.Interaction):
     item="Item name"
 )
 async def buy_item(interaction: discord.Interaction, name: str, item: str):
-    success, message, price = db.buy_item(name, item)
+    success, message, price, currency_type = db.buy_item(name, item)
+    
     if success:
+        # Determine currency display
+        if currency_type == 'auric_cells':
+            currency_name = "Auric Cells"
+            currency_abbr = "AC"
+        else:
+            currency_name = "Bloodpoints"
+            currency_abbr = "BP"
+        
         embed = discord.Embed(
             title="<a:check:1467157700831088773> ┃ Purchase successful!",
-            description=f"**{name}** purchased **{item}** for **{price:,}** Bloodpoints!",
+            description=f"**{name}** purchased **{item}** for **{price:,}** {currency_name}!",
             color=discord.Color.from_rgb(0, 0, 0)
         )
     else:
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
+    
     await interaction.response.send_message(embed=embed)
 
 # Inventory Management
@@ -446,7 +467,7 @@ async def choose(interaction: discord.Interaction, options: str):
     chosen = random.choice(choices)
     
     embed = discord.Embed(
-        title="🎯 ┃ Random Choice",
+        title="<:IconAddon_bloodiedWater:1468241349856722944> ┃ Random Choice",
         description=f"I choose: **{chosen}**",
         color=discord.Color.from_rgb(0, 0, 0)
     )
@@ -471,7 +492,7 @@ async def travel(interaction: discord.Interaction, name: str):
     realm = db.get_random_realm()
     
     embed = discord.Embed(
-        title="🌍 ┃ Travel",
+        title="<:IconSkills_ScoutInnate:1468241348594503791> ┃ Travel",
         description=f"**{name}** has traveled to **{realm}**!",
         color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
