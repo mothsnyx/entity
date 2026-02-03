@@ -445,38 +445,49 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            # Check if profile exists
-            cursor.execute("SELECT bloodpoints FROM profiles WHERE name = ?", (name,))
+            # Check if profile exists and get both currencies
+            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE name = ?", (name,))
             result = cursor.fetchone()
             if not result:
                 conn.close()
-                return False, f"Profile {name} not found!", 0
+                return False, f"Profile {name} not found!", 0, None
             
-            bloodpoints = result[0]
+            bloodpoints, auric_cells = result[0], result[1]
             
-            # Check if item exists in shop
-            cursor.execute("SELECT price FROM shop_items WHERE item_name = ?", (item_name,))
+            # Check if item exists in shop and get its currency type
+            cursor.execute("SELECT price, currency_type FROM shop_items WHERE item_name = ?", (item_name,))
             result = cursor.fetchone()
             if not result:
                 conn.close()
-                return False, f"Item {item_name} not found in shop!", 0
+                return False, f"Item {item_name} not found in shop!", 0, None
             
             price = result[0]
+            currency_type = result[1] if result[1] else 'bloodpoints'  # Default to bloodpoints if NULL
+            
+            # Check currency and balance based on type
+            if currency_type == 'auric_cells':
+                current_balance = auric_cells
+                currency_name = "Auric Cells"
+                currency_column = "auric_cells"
+            else:
+                current_balance = bloodpoints
+                currency_name = "Bloodpoints"
+                currency_column = "bloodpoints"
             
             # Check if enough currency
-            if bloodpoints < price:
+            if current_balance < price:
                 conn.close()
-                return False, f"Insufficient Bloodpoints! Need {price:,}, have {bloodpoints:,}", price
+                return False, f"Insufficient {currency_name}! Need {price:,}, have {current_balance:,}", price, currency_type
             
             # Deduct currency and add item
-            cursor.execute("UPDATE profiles SET bloodpoints = bloodpoints - ? WHERE name = ?", (price, name))
+            cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (price, name))
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             
             conn.commit()
             conn.close()
-            return True, f"Purchased {item_name}", price
+            return True, f"Purchased {item_name}", price, currency_type
         except Exception as e:
-            return False, f"Error: {str(e)}", 0
+            return False, f"Error: {str(e)}", 0, None
     
     # Trial Methods
     def complete_trial(self, name):
