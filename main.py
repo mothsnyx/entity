@@ -204,7 +204,7 @@ async def show_profile(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
 
@@ -517,7 +517,7 @@ async def hunting(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
 
@@ -539,7 +539,7 @@ async def fishing(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
 
@@ -561,7 +561,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
 
@@ -616,7 +616,7 @@ async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
         title="<:15824redneonstar:1467170916017639615> ┃ Bot Commands Help",
         description="Here are all available commands for the bot:",
-        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+        color=discord.Color.from_rgb(0, 0, 0)
     )
     
     # Profile Management
