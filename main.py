@@ -782,7 +782,7 @@ def api_send_embed():
         if data.get('thumbnail_url'):
             embed.set_thumbnail(url=data['thumbnail_url'])
         
-        # Send via bot
+        # Send via bot using asyncio
         async def send():
             channel = bot.get_channel(channel_id)
             if not channel:
@@ -790,12 +790,10 @@ def api_send_embed():
             message = await channel.send(embed=embed)
             return message.id
         
-        # Run async function
+        # Get the bot's event loop
         import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        message_id = loop.run_until_complete(send())
-        loop.close()
+        future = asyncio.run_coroutine_threadsafe(send(), bot.loop)
+        message_id = future.result(timeout=10)
         
         if message_id:
             return jsonify({'status': 'success', 'message_id': str(message_id)}), 200
@@ -826,7 +824,7 @@ def api_update_embed():
         if data.get('thumbnail_url'):
             embed.set_thumbnail(url=data['thumbnail_url'])
         
-        # Update via bot
+        # Update via bot using asyncio
         async def update():
             channel = bot.get_channel(channel_id)
             if not channel:
@@ -835,12 +833,10 @@ def api_update_embed():
             await message.edit(embed=embed)
             return True
         
-        # Run async function
+        # Get the bot's event loop
         import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        success = loop.run_until_complete(update())
-        loop.close()
+        future = asyncio.run_coroutine_threadsafe(update(), bot.loop)
+        success = future.result(timeout=10)
         
         if success:
             return jsonify({'status': 'success'}), 200
