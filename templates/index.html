@@ -1,264 +1,119 @@
 {% extends "base.html" %}
 
-{% block title %}Embeds Manager{% endblock %}
+{% block title %}Dashboard Home{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Embeds Manager</h1>
-
-<!-- Create New Embed Card -->
-<div class="card mb-4">
-    <div class="card-header">
-        Create New Embed
-    </div>
-    <div class="card-body">
-        <form method="POST" action="/embeds/create" id="embedForm">
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Embed Name (for reference)</label>
-                    <input type="text" name="name" class="form-control" placeholder="e.g., Welcome Message" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Color (hex code)</label>
-                    <input type="color" name="color" class="form-control" value="#000000">
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">Title</label>
-                <input type="text" name="title" class="form-control" placeholder="Embed title">
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">Description</label>
-                <textarea name="description" class="form-control" rows="4" placeholder="Embed description text"></textarea>
-            </div>
-            
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Image URL (optional)</label>
-                    <input type="url" name="image_url" class="form-control" placeholder="https://...">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Thumbnail URL (optional)</label>
-                    <input type="url" name="thumbnail_url" class="form-control" placeholder="https://...">
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label class="form-label">Footer Text (optional)</label>
-                <input type="text" name="footer_text" class="form-control" placeholder="Footer text">
-            </div>
-            
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Create Embed
-            </button>
-        </form>
-    </div>
+<div class="text-center mb-5">
+    <h1 class="display-4">The Entity Dashboard</h1>
+    <p class="lead">Manage the bot here:</p>
 </div>
 
-<!-- Preview Card -->
-<div class="card mb-4">
-    <div class="card-header">
-        Live Preview
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-people-fill dashboard-icon"></i>
+                <h3 class="mt-3">Profiles</h3>
+                <p>View all character profiles</p>
+                <a href="/profiles" class="btn btn-primary">View Profiles</a>
+            </div>
+        </div>
     </div>
-    <div class="card-body bg-dark">
-        <div id="embedPreview" style="max-width: 500px;">
-            <div class="border-start border-4 ps-3" style="border-color: #000000 !important;" id="previewBorder">
-                <div class="text-light">
-                    <h5 id="previewTitle" class="text-light">Embed Title</h5>
-                    <p id="previewDescription" class="mb-2">Embed description will appear here...</p>
-                    <img id="previewImage" src="" class="img-fluid mb-2" style="display: none; max-width: 400px;">
-                    <small id="previewFooter" class="text-muted" style="display: none;"></small>
-                </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-globe dashboard-icon"></i>
+                <h3 class="mt-3">Realms</h3>
+                <p>Manage game realms</p>
+                <a href="/realms" class="btn btn-primary">Manage Realms</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-shop dashboard-icon"></i>
+                <h3 class="mt-3">Shop</h3>
+                <p>Manage shop items</p>
+                <a href="/shop" class="btn btn-primary">Manage Shop</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-trophy-fill dashboard-icon"></i>
+                <h3 class="mt-3">Trials</h3>
+                <p>Manage trial messages</p>
+                <a href="/trials" class="btn btn-primary">Manage Trials</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-bullseye dashboard-icon"></i>
+                <h3 class="mt-3">Hunting</h3>
+                <p>Manage hunting loot</p>
+                <a href="/hunting" class="btn btn-primary">Manage Hunting</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-water dashboard-icon"></i>
+                <h3 class="mt-3">Fishing</h3>
+                <p>Manage fishing loot</p>
+                <a href="/fishing" class="btn btn-primary">Manage Fishing</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-search dashboard-icon"></i>
+                <h3 class="mt-3">Scavenging</h3>
+                <p>Manage scavenging loot</p>
+                <a href="/scavenging" class="btn btn-primary">Manage Scavenging</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-chat-square-text dashboard-icon"></i>
+                <h3 class="mt-3">Embeds</h3>
+                <p>Create and send embeds</p>
+                <a href="/embeds" class="btn btn-primary">Manage Embeds</a>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Saved Embeds List -->
-<div class="card">
+<div class="card mt-5">
     <div class="card-header">
-        Saved Embeds
+        Quick Info
     </div>
     <div class="card-body">
-        {% if embeds %}
-            <div class="table-responsive">
-                <table class="table table-dark table-hover">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Title</th>
-                            <th>Channel</th>
-                            <th>Status</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for embed in embeds %}
-                        <tr>
-                            <td><span class="badge bg-primary">{{ embed[1] }}</span></td>
-                            <td>{{ embed[2] or 'No title' }}</td>
-                            <td>
-                                {% if embed[8] %}
-                                    <span class="badge bg-success">Sent</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">Not sent</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if embed[9] %}
-                                    <small class="text-muted">Message ID: {{ embed[9] }}</small>
-                                {% else %}
-                                    <small class="text-muted">Draft</small>
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#sendModal{{ embed[0] }}">
-                                    <i class="bi bi-send"></i> Send
-                                </button>
-                                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editModal{{ embed[0] }}">
-                                    <i class="bi bi-pencil"></i> Edit
-                                </button>
-                                {% if embed[9] %}
-                                <form method="POST" action="/embeds/update/{{ embed[0] }}" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Update the sent message?');">
-                                        <i class="bi bi-arrow-clockwise"></i> Update
-                                    </button>
-                                </form>
-                                {% endif %}
-                                <form method="POST" action="/embeds/delete/{{ embed[0] }}" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this embed?');">
-                                        <i class="bi bi-trash"></i> Delete
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-
-                        <!-- Send Modal -->
-                        <div class="modal fade" id="sendModal{{ embed[0] }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Send Embed: {{ embed[1] }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <form method="POST" action="/embeds/send/{{ embed[0] }}">
-                                        <div class="modal-body">
-                                            <div class="mb-3">
-                                                <label class="form-label">Channel ID</label>
-                                                <input type="text" name="channel_id" class="form-control" placeholder="123456789012345678" required>
-                                                <small class="text-muted">Right-click channel → Copy ID (Developer Mode must be enabled)</small>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-primary">Send to Channel</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Edit Modal -->
-                        <div class="modal fade" id="editModal{{ embed[0] }}" tabindex="-1">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Edit Embed: {{ embed[1] }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <form method="POST" action="/embeds/edit/{{ embed[0] }}">
-                                        <div class="modal-body">
-                                            <div class="mb-3">
-                                                <label class="form-label">Embed Name</label>
-                                                <input type="text" name="name" class="form-control" value="{{ embed[1] }}" required>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Title</label>
-                                                <input type="text" name="title" class="form-control" value="{{ embed[2] or '' }}">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Description</label>
-                                                <textarea name="description" class="form-control" rows="4">{{ embed[3] or '' }}</textarea>
-                                            </div>
-                                            <div class="row g-3 mb-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Color</label>
-                                                    <input type="color" name="color" class="form-control" value="#{{ embed[4] or '000000' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Footer Text</label>
-                                                    <input type="text" name="footer_text" class="form-control" value="{{ embed[5] or '' }}">
-                                                </div>
-                                            </div>
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Image URL</label>
-                                                    <input type="url" name="image_url" class="form-control" value="{{ embed[6] or '' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Thumbnail URL</label>
-                                                    <input type="url" name="thumbnail_url" class="form-control" value="{{ embed[7] or '' }}">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-primary">Save Changes</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="text-muted">No embeds created yet.</p>
-        {% endif %}
+        <h5>Welcome to The Entity Dashboard!</h5>
+        <p>Use this dashboard to manage all aspects of the bot:</p>
+        <ul>
+            <li><strong>Profiles:</strong> View all created character profiles</li>
+            <li><strong>Realms:</strong> Add, edit, or remove game realms</li>
+            <li><strong>Shop Items:</strong> Manage items available for purchase</li>
+            <li><strong>Trial Messages:</strong> Customize messages for Killer and Survivor trials</li>
+            <li><strong>Minigames:</strong> Configure loot tables for hunting, fishing, and scavenging</li>
+            <li><strong>Embeds:</strong> Create and send custom embeds to Discord channels</li>
+        </ul>
+        <p class="mb-0">All changes are saved directly to the database and will be reflected in the Discord bot immediately.</p>
     </div>
 </div>
-
-<script>
-// Live preview functionality
-const form = document.getElementById('embedForm');
-const titleInput = form.querySelector('[name="title"]');
-const descInput = form.querySelector('[name="description"]');
-const colorInput = form.querySelector('[name="color"]');
-const footerInput = form.querySelector('[name="footer_text"]');
-const imageInput = form.querySelector('[name="image_url"]');
-
-const previewTitle = document.getElementById('previewTitle');
-const previewDesc = document.getElementById('previewDescription');
-const previewBorder = document.getElementById('previewBorder');
-const previewFooter = document.getElementById('previewFooter');
-const previewImage = document.getElementById('previewImage');
-
-function updatePreview() {
-    previewTitle.textContent = titleInput.value || 'Embed Title';
-    previewDesc.textContent = descInput.value || 'Embed description will appear here...';
-    previewBorder.style.borderColor = colorInput.value + ' !important';
-    
-    if (footerInput.value) {
-        previewFooter.textContent = footerInput.value;
-        previewFooter.style.display = 'block';
-    } else {
-        previewFooter.style.display = 'none';
-    }
-    
-    if (imageInput.value) {
-        previewImage.src = imageInput.value;
-        previewImage.style.display = 'block';
-    } else {
-        previewImage.style.display = 'none';
-    }
-}
-
-titleInput.addEventListener('input', updatePreview);
-descInput.addEventListener('input', updatePreview);
-colorInput.addEventListener('input', updatePreview);
-footerInput.addEventListener('input', updatePreview);
-imageInput.addEventListener('input', updatePreview);
-</script>
 {% endblock %}
