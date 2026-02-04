@@ -741,14 +741,23 @@ async def on_member_join(member):
             return text
         
         # Create embed with replaced variables
+        title = replace_vars(embed_data[0])
+        description = replace_vars(embed_data[1])
+        footer = replace_vars(embed_data[3])
+        
+        print(f"[WELCOME] Original title: {embed_data[0]}")
+        print(f"[WELCOME] Replaced title: {title}")
+        print(f"[WELCOME] Original footer: {embed_data[3]}")
+        print(f"[WELCOME] Replaced footer: {footer}")
+        
         embed = discord.Embed(
-            title=replace_vars(embed_data[0]),
-            description=replace_vars(embed_data[1]),
+            title=title,
+            description=description,
             color=int(embed_data[2] or '000000', 16)
         )
         
-        if embed_data[3]:
-            embed.set_footer(text=replace_vars(embed_data[3]))
+        if footer:
+            embed.set_footer(text=footer)
         if embed_data[4]:
             embed.set_image(url=embed_data[4])
         if embed_data[5]:
@@ -758,6 +767,11 @@ async def on_member_join(member):
         channel = bot.get_channel(int(channel_id))
         if channel:
             await channel.send(embed=embed)
+            print(f"[WELCOME] Sent welcome message for {member.name}")
+    except Exception as e:
+        print(f"[WELCOME] Error: {e}")
+        import traceback
+        traceback.print_exc()
     except Exception as e:
         print(f"Error in welcome message: {e}")
 
