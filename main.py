@@ -695,6 +695,72 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
+@bot.event
+async def on_member_join(member):
+    """Send welcome message when a new member joins"""
+    try:
+        # Get welcome settings
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT enabled, embed_id, channel_id FROM welcome_settings WHERE id = 1")
+        settings = cursor.fetchone()
+        
+        if not settings or not settings[0]:  # Not enabled
+            conn.close()
+            return
+        
+        embed_id = settings[1]
+        channel_id = settings[2]
+        
+        if not embed_id or not channel_id:
+            conn.close()
+            return
+        
+        # Get embed data
+        cursor.execute("SELECT title, description, color, footer_text, image_url, thumbnail_url FROM embeds WHERE id = ?", (embed_id,))
+        embed_data = cursor.fetchone()
+        conn.close()
+        
+        if not embed_data:
+            return
+        
+        # Replace variables in embed
+        def replace_vars(text):
+            if not text:
+                return text
+            replacements = {
+                '{user}': member.name,
+                '{mention}': member.mention,
+                '{member_count}': str(member.guild.member_count),
+                '{server}': member.guild.name,
+                '{user_tag}': str(member),
+                '{user_id}': str(member.id)
+            }
+            for key, value in replacements.items():
+                text = text.replace(key, value)
+            return text
+        
+        # Create embed with replaced variables
+        embed = discord.Embed(
+            title=replace_vars(embed_data[0]),
+            description=replace_vars(embed_data[1]),
+            color=int(embed_data[2] or '000000', 16)
+        )
+        
+        if embed_data[3]:
+            embed.set_footer(text=replace_vars(embed_data[3]))
+        if embed_data[4]:
+            embed.set_image(url=embed_data[4])
+        if embed_data[5]:
+            embed.set_thumbnail(url=embed_data[5])
+        
+        # Send to welcome channel
+        channel = bot.get_channel(int(channel_id))
+        if channel:
+            await channel.send(embed=embed)
+    except Exception as e:
+        print(f"Error in welcome message: {e}")
+
 # ==================== FLASK API FOR EMBEDS ====================
 @api.route('/send_embed', methods=['POST'])
 def api_send_embed():
