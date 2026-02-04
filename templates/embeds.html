@@ -46,8 +46,10 @@
             <div class="mt-3">
                 <small class="text-muted">
                     <strong>Available Variables:</strong> 
-                    {user} (username), {mention} (@user), {member_count} (total members), 
+                    {user} (username), {mention} (@user - only works in description), {member_count} (total members), 
                     {server} (server name), {user_tag} (user#1234), {user_id} (user ID)
+                    <br>
+                    <strong>Note:</strong> {mention} only renders properly in the description field. For title/footer, use {user} or {user_tag} instead.
                 </small>
             </div>
         </form>
