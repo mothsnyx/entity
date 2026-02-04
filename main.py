@@ -588,17 +588,17 @@ async def list_profiles(interaction: discord.Interaction):
         
         if killers:
             killer_list = "\n".join([
-                f"<:killer:1467160220009762837> **{p[0]}**"
+                f" **{p[0]}**"
                 for p in killers
             ])
-            embed.add_field(name="Killers", value=killer_list, inline=False)
+            embed.add_field(name="<:killer:1467160220009762837> Killers", value=killer_list, inline=False)
         
         if survivors:
             survivor_list = "\n".join([
-                f"<:survivor:1467160220982841345> **{p[0]}**"
+                f" **{p[0]}**"
                 for p in survivors
             ])
-            embed.add_field(name="Survivors", value=survivor_list, inline=False)
+            embed.add_field(name="<:survivor:1467160220982841345> Survivors", value=survivor_list, inline=False)
         
         embed.set_footer(text="Use /profile [name] to view detailed information.")
     else:
