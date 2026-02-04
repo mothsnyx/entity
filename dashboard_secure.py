@@ -480,6 +480,181 @@ def profiles():
     conn.close()
     return render_template('profiles.html', profiles=profiles_list)
 
+# ==================== EMBEDS ROUTES ====================
+@app.route('/embeds')
+@login_required
+def embeds():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM embeds ORDER BY created_at DESC")
+    embeds_list = cursor.fetchall()
+    conn.close()
+    return render_template('embeds.html', embeds=embeds_list)
+
+@app.route('/embeds/create', methods=['POST'])
+@login_required
+def create_embed():
+    name = request.form.get('name')
+    title = request.form.get('title')
+    description = request.form.get('description')
+    color = request.form.get('color', '#000000').lstrip('#')
+    footer_text = request.form.get('footer_text')
+    image_url = request.form.get('image_url')
+    thumbnail_url = request.form.get('thumbnail_url')
+    
+    if name:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""INSERT INTO embeds 
+                            (name, title, description, color, footer_text, image_url, thumbnail_url) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                         (name, title, description, color, footer_text, image_url, thumbnail_url))
+            conn.commit()
+            conn.close()
+            flash(f'Embed "{name}" created!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/edit/<int:embed_id>', methods=['POST'])
+@login_required
+def edit_embed(embed_id):
+    name = request.form.get('name')
+    title = request.form.get('title')
+    description = request.form.get('description')
+    color = request.form.get('color', '#000000').lstrip('#')
+    footer_text = request.form.get('footer_text')
+    image_url = request.form.get('image_url')
+    thumbnail_url = request.form.get('thumbnail_url')
+    
+    if name:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""UPDATE embeds SET 
+                            name = ?, title = ?, description = ?, color = ?, 
+                            footer_text = ?, image_url = ?, thumbnail_url = ?
+                            WHERE id = ?""",
+                         (name, title, description, color, footer_text, image_url, thumbnail_url, embed_id))
+            conn.commit()
+            conn.close()
+            flash('Embed updated!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/delete/<int:embed_id>', methods=['POST'])
+@login_required
+def delete_embed(embed_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM embeds WHERE id = ?", (embed_id,))
+        conn.commit()
+        conn.close()
+        flash('Embed deleted!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/send/<int:embed_id>', methods=['POST'])
+@login_required
+def send_embed(embed_id):
+    channel_id = request.form.get('channel_id')
+    
+    if not channel_id:
+        flash('Channel ID is required!', 'danger')
+        return redirect(url_for('embeds'))
+    
+    try:
+        # Get embed data
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM embeds WHERE id = ?", (embed_id,))
+        embed_data = cursor.fetchone()
+        
+        if not embed_data:
+            flash('Embed not found!', 'danger')
+            return redirect(url_for('embeds'))
+        
+        # Send request to bot API endpoint
+        import requests
+        bot_url = "http://localhost:5002/send_embed"  # We'll create this endpoint
+        
+        payload = {
+            'channel_id': channel_id,
+            'embed_id': embed_id,
+            'title': embed_data[2],
+            'description': embed_data[3],
+            'color': embed_data[4],
+            'footer_text': embed_data[5],
+            'image_url': embed_data[6],
+            'thumbnail_url': embed_data[7]
+        }
+        
+        response = requests.post(bot_url, json=payload, timeout=5)
+        
+        if response.status_code == 200:
+            result = response.json()
+            message_id = result.get('message_id')
+            
+            # Save channel_id and message_id to database
+            cursor.execute("UPDATE embeds SET channel_id = ?, message_id = ? WHERE id = ?",
+                         (channel_id, message_id, embed_id))
+            conn.commit()
+            flash(f'Embed sent to channel!', 'success')
+        else:
+            flash(f'Failed to send embed: {response.text}', 'danger')
+        
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/update/<int:embed_id>', methods=['POST'])
+@login_required
+def update_embed_message(embed_id):
+    try:
+        # Get embed data
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM embeds WHERE id = ?", (embed_id,))
+        embed_data = cursor.fetchone()
+        
+        if not embed_data or not embed_data[9]:  # Check if message_id exists
+            flash('Embed not sent yet or message ID not found!', 'danger')
+            return redirect(url_for('embeds'))
+        
+        # Send update request to bot API
+        import requests
+        bot_url = "http://localhost:5002/update_embed"
+        
+        payload = {
+            'channel_id': embed_data[8],
+            'message_id': embed_data[9],
+            'title': embed_data[2],
+            'description': embed_data[3],
+            'color': embed_data[4],
+            'footer_text': embed_data[5],
+            'image_url': embed_data[6],
+            'thumbnail_url': embed_data[7]
+        }
+        
+        response = requests.post(bot_url, json=payload, timeout=5)
+        
+        if response.status_code == 200:
+            flash('Embed updated in channel!', 'success')
+        else:
+            flash(f'Failed to update embed: {response.text}', 'danger')
+        
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('embeds'))
+
 # ==================== IP WHITELIST (Optional) ====================
 # Aktiviere dies, um nur bestimmte IPs zuzulassen
 ENABLE_IP_WHITELIST = False
