@@ -117,7 +117,7 @@
             <div class="border-start border-4 ps-3" style="border-color: #000000 !important;" id="previewBorder">
                 <div class="text-light">
                     <h5 id="previewTitle" class="text-light">Embed Title</h5>
-                    <p id="previewDescription" class="mb-2">Embed description will appear here...</p>
+                    <p id="previewDescription" class="mb-2" style="white-space: pre-wrap; word-wrap: break-word;">Embed description will appear here...</p>
                     <img id="previewImage" src="" class="img-fluid mb-2" style="display: none; max-width: 400px;">
                     <small id="previewFooter" class="text-muted" style="display: none;"></small>
                 </div>
@@ -286,18 +286,72 @@ const previewBorder = document.getElementById('previewBorder');
 const previewFooter = document.getElementById('previewFooter');
 const previewImage = document.getElementById('previewImage');
 
+// Function to convert Discord markdown to HTML
+function discordMarkdown(text) {
+    if (!text) return text;
+    
+    // Escape HTML first
+    text = text.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;');
+    
+    // Bold **text**
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // Italic *text* or _text_
+    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+    
+    // Underline __text__
+    text = text.replace(/__(.+?)__/g, '<u>$1</u>');
+    
+    // Strikethrough ~~text~~
+    text = text.replace(/~~(.+?)~~/g, '<del>$1</del>');
+    
+    // Code `text`
+    text = text.replace(/`(.+?)`/g, '<code style="background: #2f3136; padding: 2px 4px; border-radius: 3px;">$1</code>');
+    
+    // Code block ```text```
+    text = text.replace(/```(.+?)```/gs, '<pre style="background: #2f3136; padding: 8px; border-radius: 4px; margin: 8px 0;">$1</pre>');
+    
+    // Spoiler ||text||
+    text = text.replace(/\|\|(.+?)\|\|/g, '<span style="background: #202225; color: #202225; padding: 0 2px; border-radius: 3px;" onmouseover="this.style.color=\'#dcddde\'" onmouseout="this.style.color=\'#202225\'">$1</span>');
+    
+    // Quote > text (at start of line)
+    text = text.replace(/^> (.+)$/gm, '<div style="border-left: 4px solid #4f545c; padding-left: 8px; margin: 4px 0;">$1</div>');
+    
+    // Block quote >>> text
+    text = text.replace(/^>>> (.+)$/gms, '<div style="border-left: 4px solid #4f545c; padding-left: 8px; margin: 4px 0;">$1</div>');
+    
+    // Links [text](url)
+    text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" style="color: #00b0f4; text-decoration: none;">$1</a>');
+    
+    // Line breaks
+    text = text.replace(/\n/g, '<br>');
+    
+    return text;
+}
+
 function updatePreview() {
+    // Update title (plain text, no markdown in titles)
     previewTitle.textContent = titleInput.value || 'Embed Title';
-    previewDesc.textContent = descInput.value || 'Embed description will appear here...';
+    
+    // Update description with Discord markdown
+    const rawDesc = descInput.value || 'Embed description will appear here...';
+    previewDesc.innerHTML = discordMarkdown(rawDesc);
+    
+    // Update color
     previewBorder.style.borderColor = colorInput.value + ' !important';
     
+    // Update footer with Discord markdown
     if (footerInput.value) {
-        previewFooter.textContent = footerInput.value;
+        previewFooter.innerHTML = discordMarkdown(footerInput.value);
         previewFooter.style.display = 'block';
     } else {
         previewFooter.style.display = 'none';
     }
     
+    // Update image
     if (imageInput.value) {
         previewImage.src = imageInput.value;
         previewImage.style.display = 'block';
