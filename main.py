@@ -12,6 +12,7 @@ import threading
 # Bot Setup
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True  # Required to detect member joins!
 bot = commands.Bot(command_prefix="!", intents=intents)
 db = Database()
 
@@ -686,6 +687,16 @@ async def help_command(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
     
+# Test Welcome Command
+@bot.tree.command(name="testwelcome", description="Test the welcome message system")
+async def test_welcome(interaction: discord.Interaction):
+    """Manually trigger a welcome message to test it"""
+    print(f"[TEST] Testing welcome message triggered by {interaction.user.name}")
+    await interaction.response.send_message("Testing welcome message...", ephemeral=True)
+    
+    # Trigger the welcome event with the command user
+    await on_member_join(interaction.user)
+
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
@@ -698,6 +709,7 @@ async def on_ready():
 @bot.event
 async def on_member_join(member):
     """Send welcome message when a new member joins"""
+    print(f"[WELCOME] Member joined: {member.name} (ID: {member.id})")
     try:
         # Get welcome settings
         conn = db.get_connection()
@@ -705,14 +717,25 @@ async def on_member_join(member):
         cursor.execute("SELECT enabled, embed_id, channel_id FROM welcome_settings WHERE id = 1")
         settings = cursor.fetchone()
         
-        if not settings or not settings[0]:  # Not enabled
+        print(f"[WELCOME] Settings: {settings}")
+        
+        if not settings:
+            print("[WELCOME] No settings found in database!")
+            conn.close()
+            return
+            
+        if not settings[0]:  # Not enabled
+            print("[WELCOME] Welcome messages are disabled!")
             conn.close()
             return
         
         embed_id = settings[1]
         channel_id = settings[2]
         
+        print(f"[WELCOME] Embed ID: {embed_id}, Channel ID: {channel_id}")
+        
         if not embed_id or not channel_id:
+            print("[WELCOME] Missing embed_id or channel_id!")
             conn.close()
             return
         
@@ -721,7 +744,10 @@ async def on_member_join(member):
         embed_data = cursor.fetchone()
         conn.close()
         
+        print(f"[WELCOME] Embed data: {embed_data}")
+        
         if not embed_data:
+            print("[WELCOME] No embed found with that ID!")
             return
         
         # Replace variables in embed
@@ -765,11 +791,15 @@ async def on_member_join(member):
         
         # Send to welcome channel
         channel = bot.get_channel(int(channel_id))
+        print(f"[WELCOME] Channel object: {channel}")
+        
         if channel:
-            await channel.send(embed=embed)
-            print(f"[WELCOME] Sent welcome message for {member.name}")
+            message = await channel.send(embed=embed)
+            print(f"[WELCOME] ✅ Sent welcome message! Message ID: {message.id}")
+        else:
+            print(f"[WELCOME] ❌ Channel not found! ID: {channel_id}")
     except Exception as e:
-        print(f"[WELCOME] Error: {e}")
+        print(f"[WELCOME] ❌ Error: {e}")
         import traceback
         traceback.print_exc()
     except Exception as e:
