@@ -6,12 +6,17 @@ import re
 from database import Database
 import os
 from dotenv import load_dotenv
+from flask import Flask, request, jsonify
+import threading
 
 # Bot Setup
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 db = Database()
+
+# Flask API for dashboard communication
+api = Flask(__name__)
 
 # Profile Commands
 @bot.tree.command(name="create", description="Create a character profile")
@@ -204,7 +209,7 @@ async def show_profile(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
@@ -467,7 +472,7 @@ async def choose(interaction: discord.Interaction, options: str):
     chosen = random.choice(choices)
     
     embed = discord.Embed(
-        title="<:IconAddon_bloodiedWater:1468241349856722944> ┃ Random Choice",
+        title="🎯 ┃ Random Choice",
         description=f"I choose: **{chosen}**",
         color=discord.Color.from_rgb(0, 0, 0)
     )
@@ -484,7 +489,7 @@ async def travel(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(0, 0, 0)
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -492,9 +497,9 @@ async def travel(interaction: discord.Interaction, name: str):
     realm = db.get_random_realm()
     
     embed = discord.Embed(
-        title="<:IconSkills_ScoutInnate:1468241348594503791> ┃ Travel",
-        description=f"**{name}** steps into the Fog and arrives in **{realm}**!",
-        color=discord.Color.from_rgb(0, 0, 0)
+        title="🌍 ┃ Travel",
+        description=f"**{name}** has traveled to **{realm}**!",
+        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
     
     await interaction.response.send_message(embed=embed)
@@ -517,7 +522,7 @@ async def hunting(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
@@ -539,7 +544,7 @@ async def fishing(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
@@ -561,7 +566,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
         await interaction.response.send_message(embed=embed)
 
@@ -588,17 +593,17 @@ async def list_profiles(interaction: discord.Interaction):
         
         if killers:
             killer_list = "\n".join([
-                f" **{p[0]}**"
+                f"<:killer:1467160220009762837> **{p[0]}**"
                 for p in killers
             ])
-            embed.add_field(name="<:killer:1467160220009762837> Killers", value=killer_list, inline=False)
+            embed.add_field(name="Killers", value=killer_list, inline=False)
         
         if survivors:
             survivor_list = "\n".join([
-                f" **{p[0]}**"
+                f"<:survivor:1467160220982841345> **{p[0]}**"
                 for p in survivors
             ])
-            embed.add_field(name="<:survivor:1467160220982841345> Survivors", value=survivor_list, inline=False)
+            embed.add_field(name="Survivors", value=survivor_list, inline=False)
         
         embed.set_footer(text="Use /profile [name] to view detailed information.")
     else:
@@ -616,7 +621,7 @@ async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
         title="<:15824redneonstar:1467170916017639615> ┃ Bot Commands Help",
         description="Here are all available commands for the bot:",
-        color=discord.Color.from_rgb(0, 0, 0)
+        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
     
     # Profile Management
@@ -690,6 +695,98 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
+# ==================== FLASK API FOR EMBEDS ====================
+@api.route('/send_embed', methods=['POST'])
+def api_send_embed():
+    try:
+        data = request.json
+        channel_id = int(data['channel_id'])
+        
+        # Create embed
+        embed = discord.Embed(
+            title=data.get('title'),
+            description=data.get('description'),
+            color=int(data.get('color', '000000'), 16)
+        )
+        
+        if data.get('footer_text'):
+            embed.set_footer(text=data['footer_text'])
+        if data.get('image_url'):
+            embed.set_image(url=data['image_url'])
+        if data.get('thumbnail_url'):
+            embed.set_thumbnail(url=data['thumbnail_url'])
+        
+        # Send via bot
+        async def send():
+            channel = bot.get_channel(channel_id)
+            if not channel:
+                return None
+            message = await channel.send(embed=embed)
+            return message.id
+        
+        # Run async function
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        message_id = loop.run_until_complete(send())
+        loop.close()
+        
+        if message_id:
+            return jsonify({'status': 'success', 'message_id': str(message_id)}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Channel not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@api.route('/update_embed', methods=['POST'])
+def api_update_embed():
+    try:
+        data = request.json
+        channel_id = int(data['channel_id'])
+        message_id = int(data['message_id'])
+        
+        # Create embed
+        embed = discord.Embed(
+            title=data.get('title'),
+            description=data.get('description'),
+            color=int(data.get('color', '000000'), 16)
+        )
+        
+        if data.get('footer_text'):
+            embed.set_footer(text=data['footer_text'])
+        if data.get('image_url'):
+            embed.set_image(url=data['image_url'])
+        if data.get('thumbnail_url'):
+            embed.set_thumbnail(url=data['thumbnail_url'])
+        
+        # Update via bot
+        async def update():
+            channel = bot.get_channel(channel_id)
+            if not channel:
+                return False
+            message = await channel.fetch_message(message_id)
+            await message.edit(embed=embed)
+            return True
+        
+        # Run async function
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        success = loop.run_until_complete(update())
+        loop.close()
+        
+        if success:
+            return jsonify({'status': 'success'}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Channel or message not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+def run_api():
+    api.run(host='0.0.0.0', port=5002, debug=False)
+
 # Run the bot
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -697,4 +794,10 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 if not TOKEN:
     print("ERROR: Discord Token not found! Check .env file")
 else:
+    # Start Flask API in separate thread
+    api_thread = threading.Thread(target=run_api, daemon=True)
+    api_thread.start()
+    print("🌐 API server started on port 5002")
+    
+    # Start Discord bot
     bot.run(TOKEN)
