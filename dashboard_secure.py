@@ -488,8 +488,44 @@ def embeds():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM embeds ORDER BY created_at DESC")
     embeds_list = cursor.fetchall()
+    
+    # Get welcome settings
+    cursor.execute("SELECT * FROM welcome_settings WHERE id = 1")
+    welcome_settings = cursor.fetchone()
+    
     conn.close()
-    return render_template('embeds.html', embeds=embeds_list)
+    return render_template('embeds.html', embeds=embeds_list, welcome_settings=welcome_settings)
+
+@app.route('/embeds/welcome/settings', methods=['POST'])
+@login_required
+def update_welcome_settings():
+    enabled = int(request.form.get('enabled', 0))
+    embed_id = request.form.get('embed_id')
+    channel_id = request.form.get('channel_id')
+    
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        # Convert empty strings to None
+        embed_id = int(embed_id) if embed_id else None
+        channel_id = channel_id if channel_id else None
+        
+        cursor.execute("""UPDATE welcome_settings 
+                         SET enabled = ?, embed_id = ?, channel_id = ? 
+                         WHERE id = 1""",
+                      (enabled, embed_id, channel_id))
+        conn.commit()
+        conn.close()
+        
+        if enabled:
+            flash('Welcome messages enabled!', 'success')
+        else:
+            flash('Welcome messages disabled!', 'info')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('embeds'))
 
 @app.route('/embeds/create', methods=['POST'])
 @login_required
