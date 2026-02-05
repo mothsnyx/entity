@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="text-center mb-5">
-    <h1 class="display-4">The Entity Dashboard</h1>
+    <h1 class="display-4">The Entity</h1>
     <p class="lead">Manage the bot here:</p>
 </div>
 
@@ -91,8 +91,19 @@
             <div class="card-body">
                 <i class="bi bi-chat-square-text dashboard-icon"></i>
                 <h3 class="mt-3">Embeds</h3>
-                <p>Create and send embeds</p>
+                <p>Create and send custom embeds</p>
                 <a href="/embeds" class="btn btn-primary">Manage Embeds</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <i class="bi bi-emoji-smile dashboard-icon"></i>
+                <h3 class="mt-3">Reaction Roles</h3>
+                <p>Setup emoji reaction roles</p>
+                <a href="/reaction-roles" class="btn btn-primary">Manage Roles</a>
             </div>
         </div>
     </div>
@@ -112,6 +123,7 @@
             <li><strong>Trial Messages:</strong> Customize messages for Killer and Survivor trials</li>
             <li><strong>Minigames:</strong> Configure loot tables for hunting, fishing, and scavenging</li>
             <li><strong>Embeds:</strong> Create and send custom embeds to Discord channels</li>
+            <li><strong>Reaction Roles:</strong> Set up automatic role assignment via emoji reactions</li>
         </ul>
         <p class="mb-0">All changes are saved directly to the database and will be reflected in the Discord bot immediately.</p>
     </div>
