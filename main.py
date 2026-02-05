@@ -933,9 +933,21 @@ def api_send_embed():
         
         # Send via bot using asyncio
         async def send():
+            # Try to get regular channel first
             channel = bot.get_channel(channel_id)
+            
+            # If not found, try to get thread (includes forum posts)
+            if not channel:
+                # Search all guilds for the thread
+                for guild in bot.guilds:
+                    thread = guild.get_thread(channel_id)
+                    if thread:
+                        channel = thread
+                        break
+            
             if not channel:
                 return None
+            
             message = await channel.send(embed=embed)
             
             # Add reactions for reaction roles
@@ -983,7 +995,18 @@ def api_update_embed():
         
         # Update via bot using asyncio
         async def update():
+            # Try to get regular channel first
             channel = bot.get_channel(channel_id)
+            
+            # If not found, try to get thread (includes forum posts)
+            if not channel:
+                # Search all guilds for the thread
+                for guild in bot.guilds:
+                    thread = guild.get_thread(channel_id)
+                    if thread:
+                        channel = thread
+                        break
+            
             if not channel:
                 return False
             message = await channel.fetch_message(message_id)
