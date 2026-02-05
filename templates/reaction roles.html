@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Reaction Roles Manager{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Reaction Roles Manager</h1>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> 
+    <strong>How it works:</strong> Create or select an embed, add emoji-to-role mappings, then send it to a channel. 
+    Users can click emoji reactions to get roles automatically!
+</div>
+
+<!-- Create/Select Embed for Reaction Roles -->
+<div class="card mb-4">
+    <div class="card-header">
+        Select Embed for Reaction Roles
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/reaction-roles/create">
+            <div class="mb-3">
+                <label class="form-label">Choose an Embed</label>
+                <select name="embed_id" class="form-select" id="embedSelect" required>
+                    <option value="">-- Select an Embed --</option>
+                    {% for embed in embeds %}
+                    <option value="{{ embed[0] }}">{{ embed[1] }} - {{ embed[2] or 'No title' }}</option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Select an existing embed to add reaction roles to it.</small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Reaction Role Mappings</label>
+                <div id="reactionRolesList">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-4">
+                            <input type="text" name="emoji[]" class="form-control" placeholder="🎮 or :emoji:" required>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" name="role_id[]" class="form-control" placeholder="Role ID (e.g., 123456789)" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-success w-100" onclick="addReactionRole()">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <small class="text-muted">
+                    Add emoji and role ID pairs. Users will get the role when they click the emoji reaction.
+                </small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Channel ID</label>
+                <input type="text" name="channel_id" class="form-control" placeholder="123456789012345678" required>
+                <small class="text-muted">The Discord channel where this reaction role message will be sent.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-send"></i> Create & Send Reaction Role Message
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Active Reaction Role Messages -->
+<div class="card">
+    <div class="card-header">
+        Active Reaction Role Messages
+    </div>
+    <div class="card-body">
+        {% if reaction_messages %}
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th>Message ID</th>
+                            <th>Embed</th>
+                            <th>Roles</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in reaction_messages %}
+                        <tr>
+                            <td><code>{{ msg.message_id }}</code></td>
+                            <td><span class="badge bg-primary">{{ msg.embed_name }}</span></td>
+                            <td>
+                                {% for role in msg.roles %}
+                                <span class="badge bg-secondary">{{ role.emoji }} → {{ role.role_id }}</span>
+                                {% endfor %}
+                            </td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewModal{{ msg.message_id }}">
+                                    <i class="bi bi-eye"></i> View
+                                </button>
+                                <form method="POST" action="/reaction-roles/delete/{{ msg.message_id }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove all reaction roles from this message?');">
+                                        <i class="bi bi-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <!-- View Modal -->
+                        <div class="modal fade" id="viewModal{{ msg.message_id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Reaction Roles Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p><strong>Message ID:</strong> <code>{{ msg.message_id }}</code></p>
+                                        <p><strong>Embed:</strong> {{ msg.embed_name }}</p>
+                                        <hr>
+                                        <h6>Role Mappings:</h6>
+                                        <ul class="list-unstyled">
+                                            {% for role in msg.roles %}
+                                            <li class="mb-2">
+                                                <span class="badge bg-info">{{ role.emoji }}</span> 
+                                                → Role ID: <code>{{ role.role_id }}</code>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No active reaction role messages yet.</p>
+            <p class="text-muted">Create one above to get started!</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Help Card -->
+<div class="card mt-4">
+    <div class="card-header bg-info">
+        <i class="bi bi-question-circle"></i> How to Get Role IDs
+    </div>
+    <div class="card-body">
+        <ol>
+            <li>Enable Developer Mode in Discord (Settings → Advanced → Developer Mode)</li>
+            <li>Right-click on any role in Server Settings → Roles</li>
+            <li>Click "Copy ID" to get the role ID</li>
+            <li>Paste the ID into the "Role ID" field above</li>
+        </ol>
+        <p class="mb-0"><strong>Tip:</strong> You can use Unicode emojis (🎮, 🎨, etc.) or custom Discord emojis (:emoji_name:)</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addReactionRole() {
+    const list = document.getElementById('reactionRolesList');
+    const newRow = document.createElement('div');
+    newRow.className = 'row g-2 mb-2';
+    newRow.innerHTML = `
+        <div class="col-md-4">
+            <input type="text" name="emoji[]" class="form-control" placeholder="🎮 or :emoji:" required>
+        </div>
+        <div class="col-md-6">
+            <input type="text" name="role_id[]" class="form-control" placeholder="Role ID (e.g., 123456789)" required>
+        </div>
+        <div class="col-md-2">
+            <button type="button" class="btn btn-danger w-100" onclick="this.parentElement.parentElement.remove()">
+                <i class="bi bi-dash"></i>
+            </button>
+        </div>
+    `;
+    list.appendChild(newRow);
+}
+</script>
+{% endblock %}
