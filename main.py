@@ -13,6 +13,8 @@ import threading
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True  # Required to detect member joins!
+intents.guilds = True  # Required for guild information
+intents.guild_reactions = True  # Required for reaction events!
 bot = commands.Bot(command_prefix="!", intents=intents)
 db = Database()
 
@@ -804,6 +806,7 @@ async def on_member_join(member):
         traceback.print_exc()
 
 @bot.event
+@bot.event
 async def on_raw_reaction_add(payload):
     """Handle reaction roles when user adds a reaction"""
     # Ignore bot's own reactions
@@ -811,11 +814,22 @@ async def on_raw_reaction_add(payload):
         return
     
     try:
+        # Format emoji for comparison
+        emoji_str = str(payload.emoji)
+        # For custom emojis, format as <:name:id> or <a:name:id>
+        if payload.emoji.id:
+            if payload.emoji.animated:
+                emoji_str = f"<a:{payload.emoji.name}:{payload.emoji.id}>"
+            else:
+                emoji_str = f"<:{payload.emoji.name}:{payload.emoji.id}>"
+        
+        print(f"[REACTION ROLE DEBUG] User reacted with: {emoji_str} on message {payload.message_id}")
+        
         # Check if this message has reaction roles
         conn = db.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?",
-                     (str(payload.message_id), str(payload.emoji)))
+                     (str(payload.message_id), emoji_str))
         result = cursor.fetchone()
         conn.close()
         
@@ -852,11 +866,20 @@ async def on_raw_reaction_add(payload):
 async def on_raw_reaction_remove(payload):
     """Handle reaction roles when user removes a reaction"""
     try:
+        # Format emoji for comparison
+        emoji_str = str(payload.emoji)
+        # For custom emojis, format as <:name:id> or <a:name:id>
+        if payload.emoji.id:
+            if payload.emoji.animated:
+                emoji_str = f"<a:{payload.emoji.name}:{payload.emoji.id}>"
+            else:
+                emoji_str = f"<:{payload.emoji.name}:{payload.emoji.id}>"
+        
         # Check if this message has reaction roles
         conn = db.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?",
-                     (str(payload.message_id), str(payload.emoji)))
+                     (str(payload.message_id), emoji_str))
         result = cursor.fetchone()
         conn.close()
         
