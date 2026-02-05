@@ -802,8 +802,89 @@ async def on_member_join(member):
         print(f"[WELCOME] ❌ Error: {e}")
         import traceback
         traceback.print_exc()
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    """Handle reaction roles when user adds a reaction"""
+    # Ignore bot's own reactions
+    if payload.user_id == bot.user.id:
+        return
+    
+    try:
+        # Check if this message has reaction roles
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?",
+                     (str(payload.message_id), str(payload.emoji)))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return  # Not a reaction role message
+        
+        role_id = int(result[0])
+        
+        # Get guild and member
+        guild = bot.get_guild(payload.guild_id)
+        if not guild:
+            return
+        
+        member = guild.get_member(payload.user_id)
+        if not member:
+            return
+        
+        # Get role
+        role = guild.get_role(role_id)
+        if not role:
+            print(f"[REACTION ROLE] Role {role_id} not found")
+            return
+        
+        # Add role
+        await member.add_roles(role)
+        print(f"[REACTION ROLE] ✅ Added {role.name} to {member.name}")
+        
     except Exception as e:
-        print(f"Error in welcome message: {e}")
+        print(f"[REACTION ROLE] Error adding role: {e}")
+        import traceback
+        traceback.print_exc()
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    """Handle reaction roles when user removes a reaction"""
+    try:
+        # Check if this message has reaction roles
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT role_id FROM reaction_roles WHERE message_id = ? AND emoji = ?",
+                     (str(payload.message_id), str(payload.emoji)))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return  # Not a reaction role message
+        
+        role_id = int(result[0])
+        
+        # Get guild and member
+        guild = bot.get_guild(payload.guild_id)
+        if not guild:
+            return
+        
+        member = guild.get_member(payload.user_id)
+        if not member:
+            return
+        
+        # Get role
+        role = guild.get_role(role_id)
+        if not role:
+            return
+        
+        # Remove role
+        await member.remove_roles(role)
+        print(f"[REACTION ROLE] ❌ Removed {role.name} from {member.name}")
+        
+    except Exception as e:
+        print(f"[REACTION ROLE] Error removing role: {e}")
 
 # ==================== FLASK API FOR EMBEDS ====================
 @api.route('/send_embed', methods=['POST'])
@@ -811,6 +892,7 @@ def api_send_embed():
     try:
         data = request.json
         channel_id = int(data['channel_id'])
+        reaction_roles = data.get('reaction_roles', [])
         
         # Create embed
         embed = discord.Embed(
@@ -832,6 +914,14 @@ def api_send_embed():
             if not channel:
                 return None
             message = await channel.send(embed=embed)
+            
+            # Add reactions for reaction roles
+            for rr in reaction_roles:
+                try:
+                    await message.add_reaction(rr['emoji'])
+                except Exception as e:
+                    print(f"Failed to add reaction {rr['emoji']}: {e}")
+            
             return message.id
         
         # Get the bot's event loop
@@ -886,6 +976,56 @@ def api_update_embed():
             return jsonify({'status': 'success'}), 200
         else:
             return jsonify({'status': 'error', 'message': 'Channel or message not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@api.route('/upload_image', methods=['POST'])
+def api_upload_image():
+    """Upload image to Discord and return the CDN URL"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if not file.filename:
+            return jsonify({'status': 'error', 'message': 'Empty filename'}), 400
+        
+        # Get upload channel ID from env or use a default
+        # You need to set UPLOAD_CHANNEL_ID in your .env file
+        upload_channel_id = int(os.getenv('UPLOAD_CHANNEL_ID', '0'))
+        
+        if not upload_channel_id:
+            return jsonify({'status': 'error', 'message': 'Upload channel not configured'}), 500
+        
+        # Upload to Discord
+        async def upload():
+            channel = bot.get_channel(upload_channel_id)
+            if not channel:
+                return None
+            
+            # Read file data
+            file_data = file.read()
+            discord_file = discord.File(io.BytesIO(file_data), filename=file.filename)
+            
+            # Send file to Discord channel
+            message = await channel.send(file=discord_file)
+            
+            # Return the attachment URL
+            if message.attachments:
+                return message.attachments[0].url
+            return None
+        
+        # Get the bot's event loop
+        import asyncio
+        import io
+        future = asyncio.run_coroutine_threadsafe(upload(), bot.loop)
+        image_url = future.result(timeout=10)
+        
+        if image_url:
+            return jsonify({'status': 'success', 'url': image_url}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to upload'}), 500
             
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
