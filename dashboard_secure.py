@@ -202,6 +202,288 @@ def edit_shop_item(item_id):
             flash(f'Error: {str(e)}', 'danger')
     return redirect(url_for('shop'))
 
+# ==================== TRIALS ROUTES ====================
+
+@app.route('/trials')
+@login_required
+def trials():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM trial_messages ORDER BY performance_level, role, id")
+    messages = cursor.fetchall()
+    conn.close()
+    return render_template('trials.html', messages=messages)
+
+@app.route('/trials/add', methods=['POST'])
+@login_required
+def add_trial_message():
+    role = request.form.get('role')
+    performance_level = request.form.get('performance_level')
+    message = request.form.get('message')
+    
+    if role and performance_level is not None and message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO trial_messages (role, performance_level, message) VALUES (?, ?, ?)", 
+                         (role, int(performance_level), message))
+            conn.commit()
+            conn.close()
+            flash(f'Trial message for {role} (Level {performance_level}) added!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('trials'))
+
+@app.route('/trials/delete/<int:message_id>', methods=['POST'])
+@login_required
+def delete_trial_message(message_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM trial_messages WHERE id = ?", (message_id,))
+        conn.commit()
+        conn.close()
+        flash('Trial message deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('trials'))
+
+@app.route('/trials/edit/<int:message_id>', methods=['POST'])
+@login_required
+def edit_trial_message(message_id):
+    role = request.form.get('role')
+    performance_level = request.form.get('performance_level')
+    message = request.form.get('message')
+    
+    if role and performance_level is not None and message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE trial_messages SET role = ?, performance_level = ?, message = ? WHERE id = ?",
+                         (role, int(performance_level), message, message_id))
+            conn.commit()
+            conn.close()
+            flash('Trial message updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('trials'))
+
+# ==================== HUNTING ROUTES ====================
+
+@app.route('/hunting')
+@login_required
+def hunting():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM hunting_items")
+    items = cursor.fetchall()
+    conn.close()
+    return render_template('hunting.html', items=items)
+
+@app.route('/hunting/add', methods=['POST'])
+@login_required
+def add_hunting_item():
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO hunting_items (item_name, message, category, description) VALUES (?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description))
+            conn.commit()
+            conn.close()
+            flash('Hunting item added!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('hunting'))
+
+@app.route('/hunting/delete/<int:item_id>', methods=['POST'])
+@login_required
+def delete_hunting_item(item_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM hunting_items WHERE id = ?", (item_id,))
+        conn.commit()
+        conn.close()
+        flash('Hunting item deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('hunting'))
+
+@app.route('/hunting/edit/<int:item_id>', methods=['POST'])
+@login_required
+def edit_hunting_item(item_id):
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE hunting_items SET item_name = ?, message = ?, category = ?, description = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, item_id))
+            conn.commit()
+            conn.close()
+            flash('Hunting item updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('hunting'))
+
+# ==================== FISHING ROUTES ====================
+
+@app.route('/fishing')
+@login_required
+def fishing():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM fishing_items")
+    items = cursor.fetchall()
+    conn.close()
+    return render_template('fishing.html', items=items)
+
+@app.route('/fishing/add', methods=['POST'])
+@login_required
+def add_fishing_item():
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO fishing_items (item_name, message, category, description) VALUES (?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description))
+            conn.commit()
+            conn.close()
+            flash('Fishing item added!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('fishing'))
+
+@app.route('/fishing/delete/<int:item_id>', methods=['POST'])
+@login_required
+def delete_fishing_item(item_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM fishing_items WHERE id = ?", (item_id,))
+        conn.commit()
+        conn.close()
+        flash('Fishing item deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('fishing'))
+
+@app.route('/fishing/edit/<int:item_id>', methods=['POST'])
+@login_required
+def edit_fishing_item(item_id):
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE fishing_items SET item_name = ?, message = ?, category = ?, description = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, item_id))
+            conn.commit()
+            conn.close()
+            flash('Fishing item updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('fishing'))
+
+# ==================== SCAVENGING ROUTES ====================
+
+@app.route('/scavenging')
+@login_required
+def scavenging():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM scavenging_items")
+    items = cursor.fetchall()
+    conn.close()
+    return render_template('scavenging.html', items=items)
+
+@app.route('/scavenging/add', methods=['POST'])
+@login_required
+def add_scavenging_item():
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO scavenging_items (item_name, message, category, description) VALUES (?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description))
+            conn.commit()
+            conn.close()
+            flash('Scavenging item added!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('scavenging'))
+
+@app.route('/scavenging/delete/<int:item_id>', methods=['POST'])
+@login_required
+def delete_scavenging_item(item_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM scavenging_items WHERE id = ?", (item_id,))
+        conn.commit()
+        conn.close()
+        flash('Scavenging item deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('scavenging'))
+
+@app.route('/scavenging/edit/<int:item_id>', methods=['POST'])
+@login_required
+def edit_scavenging_item(item_id):
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE scavenging_items SET item_name = ?, message = ?, category = ?, description = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, item_id))
+            conn.commit()
+            conn.close()
+            flash('Scavenging item updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('scavenging'))
+
+# ==================== PROFILES ROUTES ====================
+
+@app.route('/profiles')
+@login_required
+def profiles():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM profiles ORDER BY name")
+    profiles_list = cursor.fetchall()
+    conn.close()
+    return render_template('profiles.html', profiles=profiles_list)
+
 # ==================== EMBEDS ROUTES (Separated from Reaction Roles) ====================
 
 @app.route('/embeds')
