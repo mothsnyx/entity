@@ -54,7 +54,7 @@
             <div class="mb-3">
                 <label class="form-label">Channel ID</label>
                 <input type="text" name="channel_id" class="form-control" placeholder="123456789012345678" required>
-                <small class="text-muted">The Discord channel where this reaction role message will be sent.</small>
+                <small class="text-muted">The Discord channel, thread, or forum post ID where this reaction role message will be sent.</small>
             </div>
 
             <button type="submit" class="btn btn-primary">
@@ -145,15 +145,25 @@
 <!-- Help Card -->
 <div class="card mt-4">
     <div class="card-header bg-info">
-        <i class="bi bi-question-circle"></i> How to Get Role IDs
+        <i class="bi bi-question-circle"></i> How to Get IDs
     </div>
     <div class="card-body">
+        <h6>📋 Role IDs:</h6>
         <ol>
             <li>Enable Developer Mode in Discord (Settings → Advanced → Developer Mode)</li>
             <li>Right-click on any role in Server Settings → Roles</li>
             <li>Click "Copy ID" to get the role ID</li>
             <li>Paste the ID into the "Role ID" field above</li>
         </ol>
+        
+        <hr>
+        
+        <h6>📍 Channel/Thread/Forum IDs:</h6>
+        <ul>
+            <li><strong>Regular Channel:</strong> Right-click the channel → Copy ID</li>
+            <li><strong>Thread:</strong> Right-click the thread → Copy ID</li>
+            <li><strong>Forum Post:</strong> Right-click the forum post → Copy ID</li>
+        </ul>
         <p class="mb-0"><strong>Tip:</strong> You can use Unicode emojis (🎮, 🎨, etc.) or custom Discord emojis (:emoji_name:)</p>
     </div>
 </div>
