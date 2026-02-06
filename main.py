@@ -877,6 +877,9 @@ async def on_message(message):
     if message.author == bot.user:
         return
     
+    # Debug logging
+    print(f"[DEBUG] Message received: '{message.content[:50]}' from {message.author.name} (webhook: {message.webhook_id is not None})")
+    
     # Process commands first (important!)
     await bot.process_commands(message)
     
@@ -884,8 +887,24 @@ async def on_message(message):
     dice_pattern = r'\[(\d+d\d+(?:[+-]\d+)?)\]'
     matches = re.findall(dice_pattern, message.content.lower())
     
-    # Only process if there are dice rolls and the message doesn't start with ! (to avoid duplicates with !roll command)
-    if matches and not message.content.startswith('!'):
+    if matches:
+        print(f"[DEBUG] Found dice: {matches}")
+    
+    # Only process if there are dice rolls and the message doesn't start with ! or tup: (to avoid duplicates)
+    # Also ignore if it's not from a webhook (to avoid processing the user's trigger message)
+    if matches and not message.content.startswith('!') and not message.content.startswith('tup:'):
+        # Check if this is from a webhook (Tupperbot messages are webhooks)
+        is_webhook = message.webhook_id is not None
+        
+        print(f"[DEBUG] Processing dice roll - Is webhook: {is_webhook}, Author bot: {message.author.bot}")
+        
+        # Only process webhook messages OR regular messages (but webhooks are preferred for Tupper)
+        # This prevents double-processing
+        if not is_webhook and message.author.bot:
+            # Skip bot messages that aren't webhooks
+            print(f"[DEBUG] Skipping bot message that isn't a webhook")
+            return
+            
         try:
             # Keep the original text for display
             display_text = message.content
@@ -893,6 +912,8 @@ async def on_message(message):
             # Get the author info (will show webhook name if it's from Tupperbot)
             author_name = message.author.display_name
             author_avatar = message.author.display_avatar.url if message.author.display_avatar else message.author.default_avatar.url
+            
+            print(f"[DEBUG] Creating embed for author: {author_name}")
             
             embed = discord.Embed(
                 description="",  # Will be filled below
@@ -940,10 +961,14 @@ async def on_message(message):
             # Set description to show the text with results
             embed.description = display_text
             
+            print(f"[DEBUG] Attempting to delete original message")
+            
             # Try to delete the original message (Tupper message)
             try:
                 await message.delete()
+                print(f"[DEBUG] Message deleted successfully")
             except discord.Forbidden:
+                print(f"[DEBUG] No permission to delete, sending without deleting")
                 # If bot doesn't have permission to delete, just reply instead
                 await message.channel.send(embed=embed)
                 return
@@ -953,10 +978,16 @@ async def on_message(message):
                 return
             
             # Send the embed (not as a reply since original is deleted)
+            print(f"[DEBUG] Sending dice roll embed")
             await message.channel.send(embed=embed)
+            print(f"[DEBUG] Embed sent successfully")
             
         except Exception as e:
             print(f"[AUTO ROLL] Error: {e}")
+            import traceback
+            traceback.print_exc()
+
+
 
 @bot.event
 @bot.event
