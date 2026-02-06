@@ -905,12 +905,27 @@ async def on_message(message):
             # Get the author info (webhook name and avatar)
             author_name = message.author.name
             
-            # Get avatar - try multiple methods for webhooks
-            if message.author.avatar:
+            # Get avatar - webhooks use different properties
+            author_avatar = None
+            if hasattr(message.author, 'avatar') and message.author.avatar:
                 author_avatar = message.author.avatar.url
-            elif message.author.display_avatar:
+            elif hasattr(message.author, 'display_avatar') and message.author.display_avatar:
                 author_avatar = message.author.display_avatar.url
-            else:
+            
+            # Fallback: try to get avatar from webhook directly
+            if not author_avatar and message.webhook_id:
+                try:
+                    webhook = await message.channel.webhooks()
+                    for wh in webhook:
+                        if wh.id == message.webhook_id:
+                            if wh.avatar:
+                                author_avatar = wh.avatar.url
+                            break
+                except:
+                    pass
+            
+            # Final fallback
+            if not author_avatar:
                 author_avatar = message.author.default_avatar.url
             
             embed = discord.Embed(
@@ -958,18 +973,16 @@ async def on_message(message):
             # Set description to show the text with results at the top
             embed.description = display_text
             
-            # Now add the dice roll details EXACTLY like /roll command
+            # Add dice roll details - WITHOUT the "Result:" field for Tupper
             for result in roll_results:
                 rolls_str = ", ".join(map(str, result['rolls']))
                 modifier_str = f" {result['modifier']:+d}" if result['modifier'] != 0 else ""
                 
-                # Format EXACTLY like /roll command - with lowercase d
+                # Show only the dice details, no "Result:" field
                 if result['num_dice'] > 1 or result['modifier'] != 0:
-                    embed.add_field(name="Result:", value=f"**{result['total']}**", inline=False)
                     embed.add_field(name="", value=f"-# Rolling {result['dice_expr']}\n-# Rolls: {rolls_str}{modifier_str}", inline=False)
                 else:
                     # Single die, no modifier
-                    embed.add_field(name="Result:", value=f"**{result['rolls'][0]}**", inline=False)
                     embed.add_field(name="", value=f"-# Rolling {result['dice_expr']}", inline=False)
             
             # Try to delete the original message (Tupper message)
@@ -985,6 +998,7 @@ async def on_message(message):
             
         except Exception as e:
             print(f"[AUTO ROLL] Error: {e}")
+
 
 
 
