@@ -679,6 +679,48 @@ def send_embed(embed_id):
     
     return redirect(url_for('embeds'))
 
+@app.route('/embeds/update/<int:embed_id>', methods=['POST'])
+@login_required
+def update_embed_message(embed_id):
+    try:
+        # Get embed data
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM embeds WHERE id = ?", (embed_id,))
+        embed_data = cursor.fetchone()
+        
+        if not embed_data or not embed_data[9]:  # Check if message_id exists
+            flash('Embed not sent yet or message ID not found!', 'danger')
+            return redirect(url_for('embeds'))
+        
+        # Send update request to bot API
+        import requests
+        bot_url = "http://localhost:5002/update_embed"
+        
+        payload = {
+            'channel_id': embed_data[8],
+            'message_id': embed_data[9],
+            'title': embed_data[2],
+            'description': embed_data[3],
+            'color': embed_data[4],
+            'footer_text': embed_data[5],
+            'image_url': embed_data[6],
+            'thumbnail_url': embed_data[7]
+        }
+        
+        response = requests.post(bot_url, json=payload, timeout=5)
+        
+        if response.status_code == 200:
+            flash('Embed updated in channel!', 'success')
+        else:
+            flash(f'Failed to update embed: {response.text}', 'danger')
+        
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('embeds'))
+
 # ==================== REACTION ROLES ROUTES (Separate from Embeds) ====================
 
 @app.route('/reaction-roles')
