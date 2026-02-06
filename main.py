@@ -462,6 +462,71 @@ async def roll_dice(interaction: discord.Interaction, dice: str):
     except Exception as e:
         await interaction.response.send_message(f"Error rolling dice: {str(e)}")
 
+# Prefix command version of roll (works with Tupperbot!)
+@bot.command(name="roll", aliases=["r"])
+async def roll_prefix(ctx, *, dice: str):
+    """Roll dice using prefix command with optional text (e.g., !roll [1d20], !roll Attack [1d20+5])"""
+    try:
+        # Extract all dice rolls in brackets [1d20], [2d6+5], etc.
+        dice_pattern = r'\[(\d+d\d+(?:[+-]\d+)?)\]'
+        matches = re.findall(dice_pattern, dice.lower())
+        
+        if not matches:
+            await ctx.send("No dice found! Use brackets like: `!roll [1d20]` or `!roll Attack [1d20+5]`")
+            return
+        
+        # Keep the original text for display
+        display_text = dice
+        
+        embed = discord.Embed(
+            title="<a:40586diceroll:1467250239181295657> ┃ Roll",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+        
+        # Roll each dice expression found
+        for dice_expr in matches:
+            # Parse dice notation (e.g., "2d6+3")
+            match = re.match(r'(\d+)d(\d+)([+-]\d+)?', dice_expr)
+            if not match:
+                continue
+            
+            num_dice = int(match.group(1))
+            num_sides = int(match.group(2))
+            modifier = int(match.group(3)) if match.group(3) else 0
+            
+            if num_dice > 100 or num_sides > 1000:
+                await ctx.send("Too many dice or sides! Keep it reasonable.")
+                return
+            
+            # Roll the dice
+            rolls = [random.randint(1, num_sides) for _ in range(num_dice)]
+            total = sum(rolls) + modifier
+            
+            # Format the result
+            rolls_str = ", ".join(map(str, rolls))
+            modifier_str = f" {modifier:+d}" if modifier != 0 else ""
+            
+            # Replace the bracketed dice with the result in display text
+            result_str = f"**{total}**" if (num_dice > 1 or modifier != 0) else f"**{rolls[0]}**"
+            display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
+            
+            # Add field showing the breakdown
+            field_name = f"🎲 {dice_expr.upper()}"
+            if num_dice > 1 or modifier != 0:
+                field_value = f"Rolls: {rolls_str}\nTotal: **{total}**{modifier_str}"
+            else:
+                field_value = f"Result: **{rolls[0]}**"
+            
+            embed.add_field(name=field_name, value=field_value, inline=False)
+        
+        # Set description to show the text with results
+        embed.description = display_text
+        
+        await ctx.send(embed=embed)
+    except Exception as e:
+        await ctx.send(f"Error rolling dice: {str(e)}")
+
+
 # Choose Command
 @bot.tree.command(name="choose", description="Pick a random option from a list")
 @app_commands.describe(options="Comma-separated list of options")
@@ -804,6 +869,74 @@ async def on_member_join(member):
         print(f"[WELCOME] ❌ Error: {e}")
         import traceback
         traceback.print_exc()
+
+@bot.event
+async def on_message(message):
+    """Automatically detect and roll dice in brackets [1d20]"""
+    # Ignore messages from the bot itself
+    if message.author == bot.user:
+        return
+    
+    # Process commands first (important!)
+    await bot.process_commands(message)
+    
+    # Check if message contains dice in brackets
+    dice_pattern = r'\[(\d+d\d+(?:[+-]\d+)?)\]'
+    matches = re.findall(dice_pattern, message.content.lower())
+    
+    # Only process if there are dice rolls and the message doesn't start with ! (to avoid duplicates with !roll command)
+    if matches and not message.content.startswith('!'):
+        try:
+            # Keep the original text for display
+            display_text = message.content
+            
+            embed = discord.Embed(
+                title="<a:40586diceroll:1467250239181295657> ┃ Auto Roll",
+                color=discord.Color.from_rgb(0, 0, 0)
+            )
+            
+            # Roll each dice expression found
+            for dice_expr in matches:
+                # Parse dice notation (e.g., "2d6+3")
+                match = re.match(r'(\d+)d(\d+)([+-]\d+)?', dice_expr)
+                if not match:
+                    continue
+                
+                num_dice = int(match.group(1))
+                num_sides = int(match.group(2))
+                modifier = int(match.group(3)) if match.group(3) else 0
+                
+                if num_dice > 100 or num_sides > 1000:
+                    continue  # Skip unreasonable dice
+                
+                # Roll the dice
+                rolls = [random.randint(1, num_sides) for _ in range(num_dice)]
+                total = sum(rolls) + modifier
+                
+                # Format the result
+                rolls_str = ", ".join(map(str, rolls))
+                modifier_str = f" {modifier:+d}" if modifier != 0 else ""
+                
+                # Replace the bracketed dice with the result in display text
+                result_str = f"**{total}**" if (num_dice > 1 or modifier != 0) else f"**{rolls[0]}**"
+                display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
+                
+                # Add field showing the breakdown
+                field_name = f"🎲 {dice_expr.upper()}"
+                if num_dice > 1 or modifier != 0:
+                    field_value = f"Rolls: {rolls_str}\nTotal: **{total}**{modifier_str}"
+                else:
+                    field_value = f"Result: **{rolls[0]}**"
+                
+                embed.add_field(name=field_name, value=field_value, inline=False)
+            
+            # Set description to show the text with results
+            embed.description = display_text
+            
+            # Reply to the original message
+            await message.reply(embed=embed, mention_author=False)
+        except Exception as e:
+            print(f"[AUTO ROLL] Error: {e}")
 
 @bot.event
 @bot.event
