@@ -515,11 +515,11 @@ async def roll_prefix(ctx, *, dice: str):
             display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
             
             # Add result field - big and prominent
-            field_name = f"[{dice_expr.upper()}]"
+            field_name = f"-# Rolling: {dice_expr.upper()}"
             if num_dice > 1 or modifier != 0:
-                field_value = f"# Rolls: {rolls_str}{modifier_str}"
+                field_value = f"-# Rolls: {rolls_str}{modifier_str}"
             else:
-                field_value = f"# {rolls[0]}"
+                field_value = f"-# {rolls[0]}"
             
             embed.add_field(name=field_name, value=field_value, inline=False)
         
@@ -948,11 +948,11 @@ async def on_message(message):
                 display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
                 
                 # Add result field - big and prominent
-                field_name = f"[{dice_expr.upper()}]"
+                field_name = f"-# Rolling: {dice_expr.upper()}"
                 if num_dice > 1 or modifier != 0:
                     field_value = f"-# Rolls: {rolls_str}{modifier_str}"
                 else:
-                    field_value = f"# {rolls[0]}"
+                    field_value = f"-# {rolls[0]}"
                 
                 embed.add_field(name=field_name, value=field_value, inline=False)
             
