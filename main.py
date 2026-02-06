@@ -561,7 +561,7 @@ async def travel(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgb(0, 0, 0)
         )
         await interaction.response.send_message(embed=embed)
         return
