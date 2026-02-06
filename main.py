@@ -1013,8 +1013,6 @@ async def on_raw_reaction_add(payload):
             else:
                 emoji_str = f"<:{payload.emoji.name}:{payload.emoji.id}>"
         
-        print(f"[REACTION ROLE DEBUG] User reacted with: {emoji_str} on message {payload.message_id}")
-        
         # Check if this message has reaction roles
         conn = db.get_connection()
         cursor = conn.cursor()
@@ -1040,17 +1038,13 @@ async def on_raw_reaction_add(payload):
         # Get role
         role = guild.get_role(role_id)
         if not role:
-            print(f"[REACTION ROLE] Role {role_id} not found")
             return
         
         # Add role
         await member.add_roles(role)
-        print(f"[REACTION ROLE] ✅ Added {role.name} to {member.name}")
         
     except Exception as e:
-        print(f"[REACTION ROLE] Error adding role: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"[REACTION ROLE] Error: {e}")
 
 @bot.event
 async def on_raw_reaction_remove(payload):
@@ -1094,10 +1088,9 @@ async def on_raw_reaction_remove(payload):
         
         # Remove role
         await member.remove_roles(role)
-        print(f"[REACTION ROLE] ❌ Removed {role.name} from {member.name}")
         
     except Exception as e:
-        print(f"[REACTION ROLE] Error removing role: {e}")
+        print(f"[REACTION ROLE] Error: {e}")
 
 # ==================== FLASK API FOR EMBEDS ====================
 @api.route('/send_embed', methods=['POST'])
