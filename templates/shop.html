@@ -72,6 +72,11 @@
                         </td>
                         <td>
                             <span id="item-price-{{ item[0] }}">{{ "{:,}".format(item[2]) }}</span>
+                            {% if item[5] == 'auric_cells' %}
+                                <span class="badge bg-warning text-dark">AC</span>
+                            {% else %}
+                                <span class="badge bg-success">BP</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if item[4] %}
@@ -110,8 +115,15 @@
                                             <input type="text" name="name" class="form-control" value="{{ item[1] }}" required>
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label">Price (Bloodpoints)</label>
+                                            <label class="form-label">Price</label>
                                             <input type="number" name="price" class="form-control" value="{{ item[2] }}" required min="0">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Currency Type</label>
+                                            <select name="currency_type" class="form-select">
+                                                <option value="bloodpoints" {% if item[5] == 'bloodpoints' or not item[5] %}selected{% endif %}>Bloodpoints (BP)</option>
+                                                <option value="auric_cells" {% if item[5] == 'auric_cells' %}selected{% endif %}>Auric Cells (AC)</option>
+                                            </select>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Category</label>
