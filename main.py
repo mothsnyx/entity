@@ -454,12 +454,12 @@ async def roll_dice(interaction: discord.Interaction, dice: str):
         
         # Show result first - big and prominent
         if num_dice > 1 or modifier != 0:
-            embed.add_field(name="Result", value=f"# {total}", inline=False)
+            embed.add_field(name="Result:", value=f"**{total}**", inline=False)
             # Show details below in small text
             embed.add_field(name="", value=f"-# Rolling {dice.upper()}\n-# Rolls: {rolls_str}{modifier_str}", inline=False)
         else:
             # Single die, no modifier - just show the result
-            embed.add_field(name="Result", value=f"# {rolls[0]}", inline=False)
+            embed.add_field(name="Result:", value=f"**{rolls[0]}**", inline=False)
             embed.add_field(name="", value=f"-# Rolling {dice.upper()}", inline=False)
         
         await interaction.response.send_message(embed=embed)
@@ -515,9 +515,9 @@ async def roll_prefix(ctx, *, dice: str):
             display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
             
             # Add result field - big and prominent
-            field_name = f"🎲 {dice_expr.upper()}"
+            field_name = f"[{dice_expr.upper()]}"
             if num_dice > 1 or modifier != 0:
-                field_value = f"# {total}\n-# Rolls: {rolls_str}{modifier_str}"
+                field_value = f"# Rolls: {rolls_str}{modifier_str}"
             else:
                 field_value = f"# {rolls[0]}"
             
@@ -948,9 +948,9 @@ async def on_message(message):
                 display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
                 
                 # Add result field - big and prominent
-                field_name = f"🎲 {dice_expr.upper()}"
+                field_name = f"[{dice_expr.upper()]}"
                 if num_dice > 1 or modifier != 0:
-                    field_value = f"# {total}\n-# Rolls: {rolls_str}{modifier_str}"
+                    field_value = f"-# Rolls: {rolls_str}{modifier_str}"
                 else:
                     field_value = f"# {rolls[0]}"
                 
