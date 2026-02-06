@@ -515,7 +515,7 @@ async def roll_prefix(ctx, *, dice: str):
             display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
             
             # Add result field - big and prominent
-            field_name = f"[{dice_expr.upper()]}"
+            field_name = f"[{dice_expr.upper()}]"
             if num_dice > 1 or modifier != 0:
                 field_value = f"# Rolls: {rolls_str}{modifier_str}"
             else:
