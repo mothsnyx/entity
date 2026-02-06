@@ -890,10 +890,17 @@ async def on_message(message):
             # Keep the original text for display
             display_text = message.content
             
+            # Get the author info (will show webhook name if it's from Tupperbot)
+            author_name = message.author.display_name
+            author_avatar = message.author.display_avatar.url if message.author.display_avatar else message.author.default_avatar.url
+            
             embed = discord.Embed(
-                title="<a:40586diceroll:1467250239181295657> ┃ Auto Roll",
+                description="",  # Will be filled below
                 color=discord.Color.from_rgb(0, 0, 0)
             )
+            
+            # Set author to show the character/user name and avatar
+            embed.set_author(name=author_name, icon_url=author_avatar)
             
             # Roll each dice expression found
             for dice_expr in matches:
@@ -933,8 +940,21 @@ async def on_message(message):
             # Set description to show the text with results
             embed.description = display_text
             
-            # Reply to the original message
-            await message.reply(embed=embed, mention_author=False)
+            # Try to delete the original message (Tupper message)
+            try:
+                await message.delete()
+            except discord.Forbidden:
+                # If bot doesn't have permission to delete, just reply instead
+                await message.channel.send(embed=embed)
+                return
+            except Exception as e:
+                print(f"[AUTO ROLL] Couldn't delete message: {e}")
+                await message.channel.send(embed=embed)
+                return
+            
+            # Send the embed (not as a reply since original is deleted)
+            await message.channel.send(embed=embed)
+            
         except Exception as e:
             print(f"[AUTO ROLL] Error: {e}")
 
