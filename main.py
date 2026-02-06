@@ -890,37 +890,45 @@ async def on_message(message):
     if matches:
         print(f"[DEBUG] Found dice: {matches}")
     
-    # Only process if there are dice rolls and the message doesn't start with ! or tup: (to avoid duplicates)
-    # Also ignore if it's not from a webhook (to avoid processing the user's trigger message)
-    if matches and not message.content.startswith('!') and not message.content.startswith('tup:'):
-        # Check if this is from a webhook (Tupperbot messages are webhooks)
+    # ONLY process webhook messages (Tupperbot messages)
+    # Skip messages that start with ! (commands) or any text before : (Tupperbot triggers like "tup:" or "sk:")
+    if matches and not message.content.startswith('!'):
+        # Check if this contains a Tupperbot trigger (text:message format)
+        has_tupper_trigger = ':' in message.content and not message.content.startswith('http')
+        
+        # ONLY process if it's a webhook message (the actual Tupper character message)
         is_webhook = message.webhook_id is not None
         
-        print(f"[DEBUG] Processing dice roll - Is webhook: {is_webhook}, Author bot: {message.author.bot}")
-        
-        # Only process webhook messages OR regular messages (but webhooks are preferred for Tupper)
-        # This prevents double-processing
-        if not is_webhook and message.author.bot:
-            # Skip bot messages that aren't webhooks
-            print(f"[DEBUG] Skipping bot message that isn't a webhook")
+        if not is_webhook:
+            # Skip non-webhook messages (these are your trigger messages like "sk:[1d20]")
+            print(f"[DEBUG] Skipping non-webhook message (trigger message)")
             return
+        
+        print(f"[DEBUG] Processing dice roll - Webhook message from character")
             
         try:
             # Keep the original text for display
             display_text = message.content
             
-            # Get the author info (will show webhook name if it's from Tupperbot)
-            author_name = message.author.display_name
-            author_avatar = message.author.display_avatar.url if message.author.display_avatar else message.author.default_avatar.url
+            # Get the author info (webhook name and avatar)
+            author_name = message.author.name  # Use .name for webhooks, not .display_name
             
-            print(f"[DEBUG] Creating embed for author: {author_name}")
+            # Get avatar - try multiple methods for webhooks
+            if message.author.avatar:
+                author_avatar = message.author.avatar.url
+            elif message.author.display_avatar:
+                author_avatar = message.author.display_avatar.url
+            else:
+                author_avatar = message.author.default_avatar.url
+            
+            print(f"[DEBUG] Creating embed for character: {author_name}")
             
             embed = discord.Embed(
                 description="",  # Will be filled below
                 color=discord.Color.from_rgb(0, 0, 0)
             )
             
-            # Set author to show the character/user name and avatar
+            # Set author to show the character name and avatar
             embed.set_author(name=author_name, icon_url=author_avatar)
             
             # Roll each dice expression found
@@ -961,12 +969,12 @@ async def on_message(message):
             # Set description to show the text with results
             embed.description = display_text
             
-            print(f"[DEBUG] Attempting to delete original message")
+            print(f"[DEBUG] Attempting to delete webhook message")
             
             # Try to delete the original message (Tupper message)
             try:
                 await message.delete()
-                print(f"[DEBUG] Message deleted successfully")
+                print(f"[DEBUG] Webhook message deleted successfully")
             except discord.Forbidden:
                 print(f"[DEBUG] No permission to delete, sending without deleting")
                 # If bot doesn't have permission to delete, just reply instead
@@ -978,7 +986,7 @@ async def on_message(message):
                 return
             
             # Send the embed (not as a reply since original is deleted)
-            print(f"[DEBUG] Sending dice roll embed")
+            print(f"[DEBUG] Sending dice roll embed for character")
             await message.channel.send(embed=embed)
             print(f"[DEBUG] Embed sent successfully")
             
