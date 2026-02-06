@@ -449,14 +449,18 @@ async def roll_dice(interaction: discord.Interaction, dice: str):
         
         embed = discord.Embed(
             title="<a:40586diceroll:1467250239181295657> ┃ Roll",
-            description=f"Rolling **{dice}**",
             color=discord.Color.from_rgb(0, 0, 0)
         )
-        embed.add_field(name="You rolled:", value=rolls_str, inline=False)
         
-        # Only show total if rolling multiple dice OR if there's a modifier
+        # Show result first - big and prominent
         if num_dice > 1 or modifier != 0:
-            embed.add_field(name="Total:", value=f"**{total}**{modifier_str}", inline=False)
+            embed.add_field(name="Result", value=f"# {total}", inline=False)
+            # Show details below in small text
+            embed.add_field(name="", value=f"-# Rolling {dice.upper()}\n-# Rolls: {rolls_str}{modifier_str}", inline=False)
+        else:
+            # Single die, no modifier - just show the result
+            embed.add_field(name="Result", value=f"# {rolls[0]}", inline=False)
+            embed.add_field(name="", value=f"-# Rolling {dice.upper()}", inline=False)
         
         await interaction.response.send_message(embed=embed)
     except Exception as e:
@@ -510,12 +514,12 @@ async def roll_prefix(ctx, *, dice: str):
             result_str = f"**{total}**" if (num_dice > 1 or modifier != 0) else f"**{rolls[0]}**"
             display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
             
-            # Add field showing the breakdown
+            # Add result field - big and prominent
             field_name = f"🎲 {dice_expr.upper()}"
             if num_dice > 1 or modifier != 0:
-                field_value = f"Rolls: {rolls_str}\nTotal: **{total}**{modifier_str}"
+                field_value = f"# {total}\n-# Rolls: {rolls_str}{modifier_str}"
             else:
-                field_value = f"Result: **{rolls[0]}**"
+                field_value = f"# {rolls[0]}"
             
             embed.add_field(name=field_name, value=field_value, inline=False)
         
@@ -877,9 +881,6 @@ async def on_message(message):
     if message.author == bot.user:
         return
     
-    # Debug logging
-    print(f"[DEBUG] Message received: '{message.content[:50]}' from {message.author.name} (webhook: {message.webhook_id is not None})")
-    
     # Process commands first (important!)
     await bot.process_commands(message)
     
@@ -887,31 +888,22 @@ async def on_message(message):
     dice_pattern = r'\[(\d+d\d+(?:[+-]\d+)?)\]'
     matches = re.findall(dice_pattern, message.content.lower())
     
-    if matches:
-        print(f"[DEBUG] Found dice: {matches}")
-    
     # ONLY process webhook messages (Tupperbot messages)
-    # Skip messages that start with ! (commands) or any text before : (Tupperbot triggers like "tup:" or "sk:")
+    # Skip messages that start with ! (commands)
     if matches and not message.content.startswith('!'):
-        # Check if this contains a Tupperbot trigger (text:message format)
-        has_tupper_trigger = ':' in message.content and not message.content.startswith('http')
-        
         # ONLY process if it's a webhook message (the actual Tupper character message)
         is_webhook = message.webhook_id is not None
         
         if not is_webhook:
             # Skip non-webhook messages (these are your trigger messages like "sk:[1d20]")
-            print(f"[DEBUG] Skipping non-webhook message (trigger message)")
             return
-        
-        print(f"[DEBUG] Processing dice roll - Webhook message from character")
             
         try:
             # Keep the original text for display
             display_text = message.content
             
             # Get the author info (webhook name and avatar)
-            author_name = message.author.name  # Use .name for webhooks, not .display_name
+            author_name = message.author.name
             
             # Get avatar - try multiple methods for webhooks
             if message.author.avatar:
@@ -920,8 +912,6 @@ async def on_message(message):
                 author_avatar = message.author.display_avatar.url
             else:
                 author_avatar = message.author.default_avatar.url
-            
-            print(f"[DEBUG] Creating embed for character: {author_name}")
             
             embed = discord.Embed(
                 description="",  # Will be filled below
@@ -957,43 +947,31 @@ async def on_message(message):
                 result_str = f"**{total}**" if (num_dice > 1 or modifier != 0) else f"**{rolls[0]}**"
                 display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
                 
-                # Add field showing the breakdown
+                # Add result field - big and prominent
                 field_name = f"🎲 {dice_expr.upper()}"
                 if num_dice > 1 or modifier != 0:
-                    field_value = f"Rolls: {rolls_str}\nTotal: **{total}**{modifier_str}"
+                    field_value = f"# {total}\n-# Rolls: {rolls_str}{modifier_str}"
                 else:
-                    field_value = f"Result: **{rolls[0]}**"
+                    field_value = f"# {rolls[0]}"
                 
                 embed.add_field(name=field_name, value=field_value, inline=False)
             
             # Set description to show the text with results
             embed.description = display_text
             
-            print(f"[DEBUG] Attempting to delete webhook message")
-            
             # Try to delete the original message (Tupper message)
             try:
                 await message.delete()
-                print(f"[DEBUG] Webhook message deleted successfully")
-            except discord.Forbidden:
-                print(f"[DEBUG] No permission to delete, sending without deleting")
-                # If bot doesn't have permission to delete, just reply instead
-                await message.channel.send(embed=embed)
-                return
-            except Exception as e:
-                print(f"[AUTO ROLL] Couldn't delete message: {e}")
+            except:
+                # If bot doesn't have permission to delete, just send the embed
                 await message.channel.send(embed=embed)
                 return
             
             # Send the embed (not as a reply since original is deleted)
-            print(f"[DEBUG] Sending dice roll embed for character")
             await message.channel.send(embed=embed)
-            print(f"[DEBUG] Embed sent successfully")
             
         except Exception as e:
             print(f"[AUTO ROLL] Error: {e}")
-            import traceback
-            traceback.print_exc()
 
 
 
