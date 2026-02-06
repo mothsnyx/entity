@@ -544,7 +544,7 @@ async def choose(interaction: discord.Interaction, options: str):
     chosen = random.choice(choices)
     
     embed = discord.Embed(
-        title="🎯 ┃ Random Choice",
+        title="<:IconAddon_bloodiedWater:1468241349856722944> ┃ Random Choice",
         description=f"I choose: **{chosen}**",
         color=discord.Color.from_rgb(0, 0, 0)
     )
@@ -569,8 +569,8 @@ async def travel(interaction: discord.Interaction, name: str):
     realm = db.get_random_realm()
     
     embed = discord.Embed(
-        title="🌍 ┃ Travel",
-        description=f"**{name}** has traveled to **{realm}**!",
+        title="<:IconSkills_ScoutInnate:1468241348594503791> ┃ Travel",
+        description=f"**{name}** steps into the Fog and arrives in **{realm}**.",
         color=discord.Color.from_rgb(116, 7, 14)  # #74070E
     )
     
