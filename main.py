@@ -905,28 +905,20 @@ async def on_message(message):
             # Get the author info (webhook name and avatar)
             author_name = message.author.name
             
-            # Get avatar - webhooks use different properties
-            author_avatar = None
-            if hasattr(message.author, 'avatar') and message.author.avatar:
-                author_avatar = message.author.avatar.url
-            elif hasattr(message.author, 'display_avatar') and message.author.display_avatar:
-                author_avatar = message.author.display_avatar.url
+            # Get avatar - for webhooks, the avatar is in the author object
+            # Webhooks show up as User objects with their avatar embedded
+            author_avatar = message.author.default_avatar.url  # Start with default
             
-            # Fallback: try to get avatar from webhook directly
-            if not author_avatar and message.webhook_id:
-                try:
-                    webhook = await message.channel.webhooks()
-                    for wh in webhook:
-                        if wh.id == message.webhook_id:
-                            if wh.avatar:
-                                author_avatar = wh.avatar.url
-                            break
-                except:
-                    pass
-            
-            # Final fallback
-            if not author_avatar:
-                author_avatar = message.author.default_avatar.url
+            # Try to get the actual avatar
+            try:
+                if message.author.avatar:
+                    # This works for webhook messages - avatar is a property
+                    author_avatar = message.author.avatar.url
+                elif message.author.display_avatar:
+                    author_avatar = message.author.display_avatar.url
+            except Exception as e:
+                print(f"[AUTO ROLL] Avatar fetch warning: {e}")
+                # Keep the default avatar as fallback
             
             embed = discord.Embed(
                 color=discord.Color.from_rgb(0, 0, 0)
