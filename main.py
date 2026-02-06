@@ -914,12 +914,14 @@ async def on_message(message):
                 author_avatar = message.author.default_avatar.url
             
             embed = discord.Embed(
-                description="",  # Will be filled below
                 color=discord.Color.from_rgb(0, 0, 0)
             )
             
             # Set author to show the character name and avatar
             embed.set_author(name=author_name, icon_url=author_avatar)
+            
+            # Store roll results to reuse them
+            roll_results = []
             
             # Roll each dice expression found
             for dice_expr in matches:
@@ -939,25 +941,35 @@ async def on_message(message):
                 rolls = [random.randint(1, num_sides) for _ in range(num_dice)]
                 total = sum(rolls) + modifier
                 
-                # Format the result
-                rolls_str = ", ".join(map(str, rolls))
-                modifier_str = f" {modifier:+d}" if modifier != 0 else ""
+                # Store the results
+                roll_results.append({
+                    'dice_expr': dice_expr,
+                    'num_dice': num_dice,
+                    'num_sides': num_sides,
+                    'modifier': modifier,
+                    'rolls': rolls,
+                    'total': total
+                })
                 
                 # Replace the bracketed dice with the result in display text
                 result_str = f"**{total}**" if (num_dice > 1 or modifier != 0) else f"**{rolls[0]}**"
                 display_text = display_text.replace(f"[{dice_expr}]", result_str, 1)
-                
-                # Add result field - big and prominent
-                field_name = f"-# Rolling: {dice_expr.upper()}"
-                if num_dice > 1 or modifier != 0:
-                    field_value = f"-# Rolls: {rolls_str}{modifier_str}"
-                else:
-                    field_value = f"-# {rolls[0]}"
-                
-                embed.add_field(name=field_name, value=field_value, inline=False)
             
-            # Set description to show the text with results
+            # Set description to show the text with results at the top
             embed.description = display_text
+            
+            # Now add the dice roll details EXACTLY like /roll command
+            for result in roll_results:
+                rolls_str = ", ".join(map(str, result['rolls']))
+                modifier_str = f" {result['modifier']:+d}" if result['modifier'] != 0 else ""
+                
+                # Format EXACTLY like /roll command
+                if result['num_dice'] > 1 or result['modifier'] != 0:
+                    embed.add_field(name="Result:", value=f"**{result['total']}**", inline=False)
+                    embed.add_field(name="", value=f"-# Rolling {result['dice_expr'].upper()}\n-# Rolls: {rolls_str}{modifier_str}", inline=False)
+                else:
+                    embed.add_field(name="Result:", value=f"**{result['rolls'][0]}**", inline=False)
+                    embed.add_field(name="", value=f"-# Rolling {result['dice_expr'].upper()}", inline=False)
             
             # Try to delete the original message (Tupper message)
             try:
@@ -972,6 +984,7 @@ async def on_message(message):
             
         except Exception as e:
             print(f"[AUTO ROLL] Error: {e}")
+
 
 
 
