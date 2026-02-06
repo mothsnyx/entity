@@ -561,7 +561,7 @@ async def travel(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(0, 0, 0)
+            color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -571,7 +571,7 @@ async def travel(interaction: discord.Interaction, name: str):
     embed = discord.Embed(
         title="<:IconSkills_ScoutInnate:1468241348594503791> ┃ Travel",
         description=f"**{name}** steps into the Fog and arrives in **{realm}**.",
-        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+        color=discord.Color.from_rgb(0, 0, 0)
     )
     
     await interaction.response.send_message(embed=embed)
@@ -594,7 +594,7 @@ async def hunting(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
 
@@ -616,7 +616,7 @@ async def fishing(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
 
@@ -638,7 +638,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
 
@@ -656,7 +656,7 @@ async def list_profiles(interaction: discord.Interaction):
         embed = discord.Embed(
             title="<:15824redneonstar:1467170916017639615> ┃ Character Profiles",
             description=f"Total characters: **{len(profiles)}**",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgb(0, 0, 0)  # #74070E
         )
         
         # Group by role
@@ -682,7 +682,7 @@ async def list_profiles(interaction: discord.Interaction):
         embed = discord.Embed(
             title="<:15824redneonstar:1467170916017639615> ┃ Character Profiles",
             description="No profiles found. Create one with `/create`!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgb(0, 0, 0) 
         )
     
     await interaction.response.send_message(embed=embed)
@@ -693,7 +693,7 @@ async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(
         title="<:15824redneonstar:1467170916017639615> ┃ Bot Commands Help",
         description="Here are all available commands for the bot:",
-        color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+        color=discord.Color.from_rgb(0, 0, 0)
     )
     
     # Profile Management
