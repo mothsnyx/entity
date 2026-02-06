@@ -455,12 +455,12 @@ async def roll_dice(interaction: discord.Interaction, dice: str):
         # Show result first - big and prominent
         if num_dice > 1 or modifier != 0:
             embed.add_field(name="Result:", value=f"**{total}**", inline=False)
-            # Show details below in small text
-            embed.add_field(name="", value=f"-# Rolling {dice.upper()}\n-# Rolls: {rolls_str}{modifier_str}", inline=False)
+            # Show details below in small text - using lowercase d
+            embed.add_field(name="", value=f"-# Rolling {dice.lower()}\n-# Rolls: {rolls_str}{modifier_str}", inline=False)
         else:
             # Single die, no modifier - just show the result
             embed.add_field(name="Result:", value=f"**{rolls[0]}**", inline=False)
-            embed.add_field(name="", value=f"-# Rolling {dice.upper()}", inline=False)
+            embed.add_field(name="", value=f"-# Rolling {dice.lower()}", inline=False)
         
         await interaction.response.send_message(embed=embed)
     except Exception as e:
@@ -963,13 +963,14 @@ async def on_message(message):
                 rolls_str = ", ".join(map(str, result['rolls']))
                 modifier_str = f" {result['modifier']:+d}" if result['modifier'] != 0 else ""
                 
-                # Format EXACTLY like /roll command
+                # Format EXACTLY like /roll command - with lowercase d
                 if result['num_dice'] > 1 or result['modifier'] != 0:
                     embed.add_field(name="Result:", value=f"**{result['total']}**", inline=False)
-                    embed.add_field(name="", value=f"-# Rolling {result['dice_expr'].upper()}\n-# Rolls: {rolls_str}{modifier_str}", inline=False)
+                    embed.add_field(name="", value=f"-# Rolling {result['dice_expr']}\n-# Rolls: {rolls_str}{modifier_str}", inline=False)
                 else:
+                    # Single die, no modifier
                     embed.add_field(name="Result:", value=f"**{result['rolls'][0]}**", inline=False)
-                    embed.add_field(name="", value=f"-# Rolling {result['dice_expr'].upper()}", inline=False)
+                    embed.add_field(name="", value=f"-# Rolling {result['dice_expr']}", inline=False)
             
             # Try to delete the original message (Tupper message)
             try:
