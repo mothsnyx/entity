@@ -134,13 +134,22 @@
 
 <!-- Saved Embeds List -->
 <div class="card">
-    <div class="card-header">
-        Saved Embeds
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Saved Embeds (<span id="total-embeds">{{ embeds|length }}</span>)</span>
+        <div>
+            <span class="text-muted me-3">Show per page:</span>
+            <select id="items-per-page" class="form-select form-select-sm d-inline-block w-auto">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
     </div>
     <div class="card-body">
         {% if embeds %}
             <div class="table-responsive">
-                <table class="table table-dark table-hover">
+                <table class="table table-dark table-hover" id="embeds-table">
                     <thead>
                         <tr>
                             <th>Name</th>
@@ -150,9 +159,9 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="embeds-tbody">
                         {% for embed in embeds %}
-                        <tr>
+                        <tr class="embed-row">
                             <td><span class="badge bg-primary">{{ embed[1] }}</span></td>
                             <td>{{ embed[2] or 'No title' }}</td>
                             <td>
@@ -282,6 +291,30 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination Controls -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted">
+                    Showing <span id="showing-start">1</span> to <span id="showing-end">25</span> of <span id="showing-total">{{ embeds|length }}</span> embeds
+                </div>
+                <nav>
+                    <ul class="pagination mb-0">
+                        <li class="page-item" id="prev-page-item">
+                            <a class="page-link" href="#" id="prev-page">
+                                <i class="bi bi-chevron-left"></i> Previous
+                            </a>
+                        </li>
+                        <li class="page-item disabled">
+                            <span class="page-link" id="page-info">Page 1</span>
+                        </li>
+                        <li class="page-item" id="next-page-item">
+                            <a class="page-link" href="#" id="next-page">
+                                Next <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
         {% else %}
             <p class="text-muted">No embeds created yet.</p>
         {% endif %}
@@ -290,6 +323,85 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// Pagination variables
+let currentPage = 1;
+let itemsPerPage = 25;
+let allRows = [];
+
+// Initialize pagination
+document.addEventListener('DOMContentLoaded', function() {
+    allRows = Array.from(document.querySelectorAll('.embed-row'));
+    updatePagination();
+    
+    // Items per page change
+    document.getElementById('items-per-page').addEventListener('change', function() {
+        itemsPerPage = parseInt(this.value);
+        currentPage = 1;
+        updatePagination();
+    });
+    
+    // Previous page
+    document.getElementById('prev-page').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (currentPage > 1) {
+            currentPage--;
+            updatePagination();
+        }
+    });
+    
+    // Next page
+    document.getElementById('next-page').addEventListener('click', function(e) {
+        e.preventDefault();
+        const totalPages = Math.ceil(allRows.length / itemsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            updatePagination();
+        }
+    });
+});
+
+function updatePagination() {
+    const totalItems = allRows.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    
+    // Hide all rows
+    allRows.forEach(row => row.style.display = 'none');
+    
+    // Show only current page rows
+    for (let i = startIndex; i < endIndex; i++) {
+        allRows[i].style.display = '';
+    }
+    
+    // Update info text
+    document.getElementById('showing-start').textContent = totalItems > 0 ? startIndex + 1 : 0;
+    document.getElementById('showing-end').textContent = endIndex;
+    document.getElementById('showing-total').textContent = totalItems;
+    document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+    
+    // Update button states
+    const prevItem = document.getElementById('prev-page-item');
+    const nextItem = document.getElementById('next-page-item');
+    
+    if (currentPage <= 1) {
+        prevItem.classList.add('disabled');
+    } else {
+        prevItem.classList.remove('disabled');
+    }
+    
+    if (currentPage >= totalPages) {
+        nextItem.classList.add('disabled');
+    } else {
+        nextItem.classList.remove('disabled');
+    }
+    
+    // Scroll to top of table
+    document.getElementById('embeds-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+
 <script>
 // Live preview functionality
 const form = document.getElementById('embedForm');
