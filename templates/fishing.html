@@ -48,12 +48,21 @@
 </div>
 
 <div class="card">
-    <div class="card-header">
-        Fishing Outcomes ({{ items|length }})
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Fishing Outcomes (<span id="total-items">{{ items|length }}</span>)</span>
+        <div>
+            <span class="text-muted me-3">Show per page:</span>
+            <select id="items-per-page" class="form-select form-select-sm d-inline-block w-auto">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-dark table-striped table-hover">
+            <table class="table table-dark table-striped table-hover" id="items-table">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -64,9 +73,9 @@
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="items-tbody">
                     {% for item in items %}
-                    <tr>
+                    <tr class="item-row">
                         <td>{{ item[0] }}</td>
                         <td>
                             {% if item[1] %}
@@ -141,6 +150,67 @@
                 </tbody>
             </table>
         </div>
+        
+        <!-- Pagination Controls -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted">
+                Showing <span id="showing-start">1</span> to <span id="showing-end">25</span> of <span id="showing-total">{{ items|length }}</span> outcomes
+            </div>
+            <nav>
+                <ul class="pagination mb-0">
+                    <li class="page-item" id="prev-page-item">
+                        <a class="page-link" href="#" id="prev-page"><i class="bi bi-chevron-left"></i> Previous</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link" id="page-info">Page 1</span>
+                    </li>
+                    <li class="page-item" id="next-page-item">
+                        <a class="page-link" href="#" id="next-page">Next <i class="bi bi-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     </div>
 </div>
+
+<script>
+let currentPage = 1;
+let itemsPerPage = 25;
+let allRows = [];
+document.addEventListener('DOMContentLoaded', function() {
+    allRows = Array.from(document.querySelectorAll('.item-row'));
+    updatePagination();
+    document.getElementById('items-per-page').addEventListener('change', function() {
+        itemsPerPage = parseInt(this.value);
+        currentPage = 1;
+        updatePagination();
+    });
+    document.getElementById('prev-page').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (currentPage > 1) { currentPage--; updatePagination(); }
+    });
+    document.getElementById('next-page').addEventListener('click', function(e) {
+        e.preventDefault();
+        const totalPages = Math.ceil(allRows.length / itemsPerPage);
+        if (currentPage < totalPages) { currentPage++; updatePagination(); }
+    });
+});
+function updatePagination() {
+    const totalItems = allRows.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    allRows.forEach(row => row.style.display = 'none');
+    for (let i = startIndex; i < endIndex; i++) { allRows[i].style.display = ''; }
+    document.getElementById('showing-start').textContent = totalItems > 0 ? startIndex + 1 : 0;
+    document.getElementById('showing-end').textContent = endIndex;
+    document.getElementById('showing-total').textContent = totalItems;
+    document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages || 1}`;
+    const prevItem = document.getElementById('prev-page-item');
+    const nextItem = document.getElementById('next-page-item');
+    if (currentPage <= 1) { prevItem.classList.add('disabled'); } else { prevItem.classList.remove('disabled'); }
+    if (currentPage >= totalPages) { nextItem.classList.add('disabled'); } else { nextItem.classList.remove('disabled'); }
+    document.getElementById('items-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
 {% endblock %}
