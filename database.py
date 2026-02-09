@@ -400,13 +400,14 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Count each item and group by name
+        # Get inventory with categories from shop_items
         cursor.execute("""
-            SELECT item_name, COUNT(*) as quantity 
-            FROM inventory 
-            WHERE character_name = ? 
-            GROUP BY item_name
-            ORDER BY item_name
+            SELECT i.item_name, COUNT(*) as quantity, COALESCE(s.category, 'Miscellaneous') as category
+            FROM inventory i
+            LEFT JOIN shop_items s ON i.item_name = s.item_name
+            WHERE i.character_name = ?
+            GROUP BY i.item_name, s.category
+            ORDER BY s.category, i.item_name
         """, (name,))
         results = cursor.fetchall()
         conn.close()
@@ -419,22 +420,14 @@ class Database:
             'Miscellaneous': []
         }
         
-        # Item categories mapping
-        consumables = ['medkit', 'first aid kit', 'fresh meat', 'fresh fish', 'medical supplies']
-        tools = ['toolbox', 'flashlight', 'engineer\'s toolbox', 'sport flashlight']
-        collectibles = ['map', 'key', 'animal hide', 'bone fragment', 'strange relic', 'old coins', 'mysterious map']
-        
-        for item_name, quantity in results:
-            item_lower = item_name.lower()
+        for item_name, quantity, category in results:
             item_data = {'item_name': item_name, 'quantity': quantity}
             
-            if item_lower in consumables:
-                categorized['Consumables'].append(item_data)
-            elif item_lower in tools:
-                categorized['Tools'].append(item_data)
-            elif item_lower in collectibles:
-                categorized['Collectibles'].append(item_data)
+            # Use the category from shop_items
+            if category in categorized:
+                categorized[category].append(item_data)
             else:
+                # If category doesn't exist in our dict, add to Miscellaneous
                 categorized['Miscellaneous'].append(item_data)
         
         return categorized
