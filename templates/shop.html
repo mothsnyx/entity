@@ -49,30 +49,24 @@
 <div class="card">
     <div class="card-header">
         <div class="row align-items-center">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <span>Shop Items (<span id="total-items">{{ items|length }}</span>)</span>
             </div>
-            <div class="col-md-8">
-                <div class="d-flex gap-2 justify-content-end">
-                    <div class="flex-grow-1" style="max-width: 300px;">
-                        <input type="text" id="search-box" class="form-control form-control-sm" placeholder="🔍 Search items...">
-                    </div>
-                    <div>
-                        <select id="sort-by" class="form-select form-select-sm">
-                            <option value="id">Sort: ID</option>
-                            <option value="name">Sort: Name</option>
-                            <option value="price">Sort: Price</option>
-                            <option value="category">Sort: Category</option>
-                        </select>
-                    </div>
-                    <div>
-                        <select id="items-per-page" class="form-select form-select-sm">
-                            <option value="10">10/page</option>
-                            <option value="25" selected>25/page</option>
-                            <option value="50">50/page</option>
-                            <option value="100">100/page</option>
-                        </select>
-                    </div>
+            <div class="col-md-9">
+                <div class="d-flex gap-2 justify-content-end align-items-center">
+                    <input type="text" id="search-box" class="form-control form-control-sm" placeholder="🔍 Search..." style="max-width: 250px;">
+                    <select id="sort-by" class="form-select form-select-sm" style="width: auto;">
+                        <option value="id">Sort: ID</option>
+                        <option value="name">Sort: Name</option>
+                        <option value="price">Sort: Price</option>
+                        <option value="category">Sort: Category</option>
+                    </select>
+                    <select id="items-per-page" class="form-select form-select-sm" style="width: auto;">
+                        <option value="10">10/page</option>
+                        <option value="25" selected>25/page</option>
+                        <option value="50">50/page</option>
+                        <option value="100">100/page</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -206,39 +200,61 @@
 </div>
 
 <script>
-// Pagination, Sorting, and Search
-let currentPage = 1;
-let itemsPerPage = 25;
+// Pagination, Search, and Sort with localStorage persistence
+const PAGE_NAME = 'shop';
+let currentPage = parseInt(localStorage.getItem(`${PAGE_NAME}_currentPage`)) || 1;
+let itemsPerPage = parseInt(localStorage.getItem(`${PAGE_NAME}_itemsPerPage`)) || 25;
 let allRows = [];
 let filteredRows = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     allRows = Array.from(document.querySelectorAll('.item-row'));
     filteredRows = [...allRows];
+    
+    // Restore saved state
+    const savedSort = localStorage.getItem(`${PAGE_NAME}_sortBy`);
+    const savedSearch = localStorage.getItem(`${PAGE_NAME}_searchTerm`);
+    
+    if (savedSort) {
+        document.getElementById('sort-by').value = savedSort;
+        sortRows(savedSort);
+    }
+    
+    if (savedSearch) {
+        document.getElementById('search-box').value = savedSearch;
+        const searchTerm = savedSearch.toLowerCase();
+        filteredRows = allRows.filter(row => row.textContent.toLowerCase().includes(searchTerm));
+    }
+    
+    document.getElementById('items-per-page').value = itemsPerPage;
     updatePagination();
     
     // Search functionality
     document.getElementById('search-box').addEventListener('input', function() {
         const searchTerm = this.value.toLowerCase();
+        localStorage.setItem(`${PAGE_NAME}_searchTerm`, searchTerm);
         filteredRows = allRows.filter(row => {
-            const text = row.textContent.toLowerCase();
-            return text.includes(searchTerm);
+            return row.textContent.toLowerCase().includes(searchTerm);
         });
         currentPage = 1;
+        localStorage.setItem(`${PAGE_NAME}_currentPage`, currentPage);
         updatePagination();
     });
     
     // Sort functionality
     document.getElementById('sort-by').addEventListener('change', function() {
-        const sortBy = this.value;
-        sortRows(sortBy);
+        localStorage.setItem(`${PAGE_NAME}_sortBy`, this.value);
+        sortRows(this.value);
         currentPage = 1;
+        localStorage.setItem(`${PAGE_NAME}_currentPage`, currentPage);
         updatePagination();
     });
     
     document.getElementById('items-per-page').addEventListener('change', function() {
         itemsPerPage = parseInt(this.value);
+        localStorage.setItem(`${PAGE_NAME}_itemsPerPage`, itemsPerPage);
         currentPage = 1;
+        localStorage.setItem(`${PAGE_NAME}_currentPage`, currentPage);
         updatePagination();
     });
     
@@ -246,6 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         if (currentPage > 1) {
             currentPage--;
+            localStorage.setItem(`${PAGE_NAME}_currentPage`, currentPage);
             updatePagination();
         }
     });
@@ -255,6 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
         if (currentPage < totalPages) {
             currentPage++;
+            localStorage.setItem(`${PAGE_NAME}_currentPage`, currentPage);
             updatePagination();
         }
     });
@@ -274,9 +292,9 @@ function sortRows(sortBy) {
                 bVal = b.cells[1].textContent.trim().toLowerCase();
                 return aVal.localeCompare(bVal);
             case 'price':
-                aVal = parseInt(a.cells[2].textContent.replace(/,/g, ''));
-                bVal = parseInt(b.cells[2].textContent.replace(/,/g, ''));
-                return bVal - aVal; // Descending
+                aVal = parseInt(a.cells[2].textContent.replace(/,/g, '').replace(/\D/g, ''));
+                bVal = parseInt(b.cells[2].textContent.replace(/,/g, '').replace(/\D/g, ''));
+                return bVal - aVal; // Descending (highest first)
             case 'category':
                 aVal = a.cells[3].textContent.trim().toLowerCase();
                 bVal = b.cells[3].textContent.trim().toLowerCase();
@@ -292,25 +310,34 @@ function sortRows(sortBy) {
 function updatePagination() {
     const totalItems = filteredRows.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
+    
+    // Adjust current page if needed
+    if (currentPage > totalPages && totalPages > 0) {
+        currentPage = totalPages;
+        localStorage.setItem(`${PAGE_NAME}_currentPage`, currentPage);
+    }
+    
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
     
-    // Hide all rows
+    // Hide all rows first
     allRows.forEach(row => row.style.display = 'none');
     
-    // Show only filtered and paginated rows
+    // Show only the filtered and paginated rows
     for (let i = startIndex; i < endIndex; i++) {
         if (filteredRows[i]) {
             filteredRows[i].style.display = '';
         }
     }
     
+    // Update counter displays
     document.getElementById('showing-start').textContent = totalItems > 0 ? startIndex + 1 : 0;
     document.getElementById('showing-end').textContent = endIndex;
     document.getElementById('showing-total').textContent = totalItems;
     document.getElementById('total-items').textContent = totalItems;
     document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages || 1}`;
     
+    // Update button states
     const prevItem = document.getElementById('prev-page-item');
     const nextItem = document.getElementById('next-page-item');
     
@@ -326,7 +353,11 @@ function updatePagination() {
         nextItem.classList.remove('disabled');
     }
     
-    document.getElementById('items-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Smooth scroll to table
+    const table = document.getElementById('items-table');
+    if (table) {
+        table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 </script>
 {% endblock %}
