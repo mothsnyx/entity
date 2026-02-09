@@ -47,16 +47,34 @@
 </div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Shop Items (<span id="total-items">{{ items|length }}</span>)</span>
-        <div>
-            <span class="text-muted me-3">Show per page:</span>
-            <select id="items-per-page" class="form-select form-select-sm d-inline-block w-auto">
-                <option value="10">10</option>
-                <option value="25" selected>25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <span>Shop Items (<span id="total-items">{{ items|length }}</span>)</span>
+            </div>
+            <div class="col-md-8">
+                <div class="d-flex gap-2 justify-content-end">
+                    <div class="flex-grow-1" style="max-width: 300px;">
+                        <input type="text" id="search-box" class="form-control form-control-sm" placeholder="🔍 Search items...">
+                    </div>
+                    <div>
+                        <select id="sort-by" class="form-select form-select-sm">
+                            <option value="id">Sort: ID</option>
+                            <option value="name">Sort: Name</option>
+                            <option value="price">Sort: Price</option>
+                            <option value="category">Sort: Category</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="items-per-page" class="form-select form-select-sm">
+                            <option value="10">10/page</option>
+                            <option value="25" selected>25/page</option>
+                            <option value="50">50/page</option>
+                            <option value="100">100/page</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <div class="card-body">
@@ -188,14 +206,35 @@
 </div>
 
 <script>
-// Pagination
+// Pagination, Sorting, and Search
 let currentPage = 1;
 let itemsPerPage = 25;
 let allRows = [];
+let filteredRows = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     allRows = Array.from(document.querySelectorAll('.item-row'));
+    filteredRows = [...allRows];
     updatePagination();
+    
+    // Search functionality
+    document.getElementById('search-box').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        filteredRows = allRows.filter(row => {
+            const text = row.textContent.toLowerCase();
+            return text.includes(searchTerm);
+        });
+        currentPage = 1;
+        updatePagination();
+    });
+    
+    // Sort functionality
+    document.getElementById('sort-by').addEventListener('change', function() {
+        const sortBy = this.value;
+        sortRows(sortBy);
+        currentPage = 1;
+        updatePagination();
+    });
     
     document.getElementById('items-per-page').addEventListener('change', function() {
         itemsPerPage = parseInt(this.value);
@@ -213,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.getElementById('next-page').addEventListener('click', function(e) {
         e.preventDefault();
-        const totalPages = Math.ceil(allRows.length / itemsPerPage);
+        const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
         if (currentPage < totalPages) {
             currentPage++;
             updatePagination();
@@ -221,20 +260,55 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+function sortRows(sortBy) {
+    filteredRows.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(sortBy) {
+            case 'id':
+                aVal = parseInt(a.cells[0].textContent);
+                bVal = parseInt(b.cells[0].textContent);
+                return aVal - bVal;
+            case 'name':
+                aVal = a.cells[1].textContent.trim().toLowerCase();
+                bVal = b.cells[1].textContent.trim().toLowerCase();
+                return aVal.localeCompare(bVal);
+            case 'price':
+                aVal = parseInt(a.cells[2].textContent.replace(/,/g, ''));
+                bVal = parseInt(b.cells[2].textContent.replace(/,/g, ''));
+                return bVal - aVal; // Descending
+            case 'category':
+                aVal = a.cells[3].textContent.trim().toLowerCase();
+                bVal = b.cells[3].textContent.trim().toLowerCase();
+                return aVal.localeCompare(bVal);
+        }
+    });
+    
+    // Reorder rows in DOM
+    const tbody = document.getElementById('items-tbody');
+    filteredRows.forEach(row => tbody.appendChild(row));
+}
+
 function updatePagination() {
-    const totalItems = allRows.length;
+    const totalItems = filteredRows.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
     
+    // Hide all rows
     allRows.forEach(row => row.style.display = 'none');
+    
+    // Show only filtered and paginated rows
     for (let i = startIndex; i < endIndex; i++) {
-        allRows[i].style.display = '';
+        if (filteredRows[i]) {
+            filteredRows[i].style.display = '';
+        }
     }
     
     document.getElementById('showing-start').textContent = totalItems > 0 ? startIndex + 1 : 0;
     document.getElementById('showing-end').textContent = endIndex;
     document.getElementById('showing-total').textContent = totalItems;
+    document.getElementById('total-items').textContent = totalItems;
     document.getElementById('page-info').textContent = `Page ${currentPage} of ${totalPages || 1}`;
     
     const prevItem = document.getElementById('prev-page-item');
