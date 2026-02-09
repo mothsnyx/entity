@@ -48,16 +48,27 @@
 </div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Scavenging Outcomes (<span id="total-items">{{ items|length }}</span>)</span>
-        <div>
-            <span class="text-muted me-3">Show per page:</span>
-            <select id="items-per-page" class="form-select form-select-sm d-inline-block w-auto">
-                <option value="10">10</option>
-                <option value="25" selected>25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-            </select>
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-md-3">
+                <span>Scavenging Outcomes (<span id="total-items">{{ items|length }}</span>)</span>
+            </div>
+            <div class="col-md-9">
+                <div class="d-flex gap-2 justify-content-end align-items-center">
+                    <input type="text" id="search-box" class="form-control form-control-sm" placeholder="🔍 Search..." style="max-width: 250px;">
+                    <select id="sort-by" class="form-select form-select-sm" style="width: auto;">
+                        <option value="id">Sort: ID</option>
+                        <option value="name">Sort: Name</option>
+                        <option value="category">Sort: Category</option>
+                    </select>
+                    <select id="items-per-page" class="form-select form-select-sm" style="width: auto;">
+                        <option value="10">10/page</option>
+                        <option value="25" selected>25/page</option>
+                        <option value="50">50/page</option>
+                        <option value="100">100/page</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
     <div class="card-body">
