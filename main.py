@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import random
 import re
-from database import Database
+from database import Database, ADMIN_IDS
 import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
@@ -32,11 +32,11 @@ api = Flask(__name__)
     app_commands.Choice(name="Survivor", value="Survivor")
 ])
 async def create_profile(interaction: discord.Interaction, name: str, role: app_commands.Choice[str]):
-    success, message = db.create_profile(name, role.value)
+    success, message = db.create_profile(name, role.value, interaction.user.id)
     if success:
         embed = discord.Embed(
             title="<a:check:1467157700831088773> ┃ Profile Created!",
-            description=f"Successfully created profile for **{name}** as **{role.value}**!",
+            description=f"Successfully created profile for **{name}** as **{role.value}**!\n\n✅ You are the owner of this character.",
             color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
@@ -96,6 +96,17 @@ async def edit_profile_role(interaction: discord.Interaction, name: str, new_rol
 @bot.tree.command(name="deleteprofile", description="Delete a character profile")
 @app_commands.describe(name="Character name to delete")
 async def delete_profile(interaction: discord.Interaction, name: str):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
     success, message = db.delete_profile(name)
     if success:
         embed = discord.Embed(
@@ -228,6 +239,17 @@ async def show_profile(interaction: discord.Interaction, name: str):
     app_commands.Choice(name="Auric Cells", value="auric_cells")
 ])
 async def add_currency(interaction: discord.Interaction, name: str, currency: app_commands.Choice[str], amount: int):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
     success, message = db.add_currency(name, currency.value, amount)
     if success:
         embed = discord.Embed(
@@ -254,6 +276,17 @@ async def add_currency(interaction: discord.Interaction, name: str, currency: ap
     app_commands.Choice(name="Auric Cells", value="auric_cells")
 ])
 async def remove_currency(interaction: discord.Interaction, name: str, currency: app_commands.Choice[str], amount: int):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
     success, message = db.remove_currency(name, currency.value, amount)
     if success:
         embed = discord.Embed(
@@ -354,6 +387,17 @@ async def buy_item(interaction: discord.Interaction, name: str, item: str):
     item="Item name"
 )
 async def add_item(interaction: discord.Interaction, name: str, item: str):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
     success, message = db.add_item(name, item)
     if success:
         embed = discord.Embed(
@@ -375,6 +419,17 @@ async def add_item(interaction: discord.Interaction, name: str, item: str):
     item="Item name"
 )
 async def remove_item(interaction: discord.Interaction, name: str, item: str):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
     success, message = db.remove_item(name, item)
     if success:
         embed = discord.Embed(
@@ -394,10 +449,21 @@ async def remove_item(interaction: discord.Interaction, name: str, item: str):
 @bot.tree.command(name="trial", description="Complete a trial and earn rewards")
 @app_commands.describe(name="Character name")
 async def trial(interaction: discord.Interaction, name: str):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
     result = db.complete_trial(name)
     if result:
         embed = discord.Embed(
-            title=f"<a:loading:1467153150015180800> ┃ {name}'s {result['role']} Trial",
+            title=f"<a:loading:1467153150015180800> ┃ {result['role']} Trial",
             description=result['message'],
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
@@ -1258,6 +1324,58 @@ def api_upload_image():
             
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# New Ownership Commands
+@bot.tree.command(name="claim", description="Claim an unowned (legacy) character")
+@app_commands.describe(name="Character name to claim")
+async def claim_character(interaction: discord.Interaction, name: str):
+    success, message = db.claim_character(name, interaction.user.id)
+    
+    if success:
+        embed = discord.Embed(
+            title="<a:check:1467157700831088773> ┃ Character claimed!",
+            description=message,
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="assignowner", description="[ADMIN] Manually assign character ownership")
+@app_commands.describe(
+    character="Character name",
+    user="User to assign ownership to"
+)
+async def assign_owner(interaction: discord.Interaction, character: str, user: discord.User):
+    # CHECK IF USER IS ADMIN
+    if interaction.user.id not in ADMIN_IDS:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description="❌ Only admins can use this command!",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
+    success, message = db.assign_owner(character, user.id)
+    
+    if success:
+        embed = discord.Embed(
+            title="<a:check:1467157700831088773> ┃ Owner assigned!",
+            description=f"**{character}** is now owned by {user.mention}\n\n{message}",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+    await interaction.response.send_message(embed=embed)
 
 def run_api():
     api.run(host='0.0.0.0', port=5002, debug=False)
