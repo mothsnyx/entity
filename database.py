@@ -1,6 +1,16 @@
 import sqlite3
 import random
 
+# ADMIN USER IDS - These users can edit ANY character
+# Replace with YOUR Discord user ID
+ADMIN_IDS = [
+    790588177240555561,  # Replace this with your actual Discord ID
+    210551397278679050, #Joker
+    724281461053849641, #Zem
+    200759921912840193, #Rhythm
+    # Add more admin IDs here if needed
+]
+
 class Database:
     def __init__(self, db_name="game_database.db"):
         self.db_name = db_name
@@ -24,6 +34,13 @@ class Database:
                 auric_cells INTEGER DEFAULT 0
             )
         ''')
+        
+        # Add user_id column if it doesn't exist (migration for ownership)
+        cursor.execute("PRAGMA table_info(profiles)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'user_id' not in columns:
+            cursor.execute("ALTER TABLE profiles ADD COLUMN user_id TEXT")
+            print("✓ Added user_id column to profiles table for character ownership")
         
         # Inventory table
         cursor.execute('''
@@ -234,16 +251,96 @@ class Database:
         conn.close()
     
     # Profile Methods
-    def create_profile(self, name, role):
+    def create_profile(self, name, role, user_id):
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO profiles (name, role) VALUES (?, ?)", (name, role))
+            cursor.execute("INSERT INTO profiles (name, role, user_id) VALUES (?, ?, ?)", 
+                         (name, role, str(user_id)))
             conn.commit()
             conn.close()
             return True, f"Profile created for {name}"
         except sqlite3.IntegrityError:
             return False, f"Profile {name} already exists!"
+        except Exception as e:
+            return False, f"Error: {str(e)}"
+    
+    def check_ownership(self, name, user_id):
+        """Check if user owns the character. Returns (is_owner, message)"""
+        try:
+            # ADMIN BYPASS - Admins can edit everything
+            if int(user_id) in ADMIN_IDS:
+                return True, "Admin access"
+            
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT user_id FROM profiles WHERE name = ?", (name,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                return False, f"Character **{name}** not found!"
+            
+            owner_id = result[0]
+            
+            # If user_id is NULL (legacy character created before ownership), anyone can edit
+            if owner_id is None:
+                return True, "Legacy character (no owner)"
+            
+            # Check if user is the owner
+            if str(owner_id) == str(user_id):
+                return True, "You own this character"
+            
+            return False, f"❌ You don't own **{name}**! Only the creator can edit this character."
+            
+        except Exception as e:
+            return False, f"Error: {str(e)}"
+    
+    def claim_character(self, name, user_id):
+        """Claim an unowned (legacy) character"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT user_id FROM profiles WHERE name = ?", (name,))
+            result = cursor.fetchone()
+            
+            if not result:
+                conn.close()
+                return False, f"Character **{name}** not found!"
+            
+            owner_id = result[0]
+            
+            if owner_id is not None:
+                conn.close()
+                return False, f"**{name}** is already owned by someone!"
+            
+            # Claim it
+            cursor.execute("UPDATE profiles SET user_id = ? WHERE name = ?", (str(user_id), name))
+            conn.commit()
+            conn.close()
+            return True, f"✅ You now own **{name}**!"
+            
+        except Exception as e:
+            return False, f"Error: {str(e)}"
+    
+    def assign_owner(self, character_name, new_owner_id):
+        """Manually assign ownership of a character (admin only)"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT name FROM profiles WHERE name = ?", (character_name,))
+            if not cursor.fetchone():
+                conn.close()
+                return False, f"Character **{character_name}** not found!"
+            
+            cursor.execute("UPDATE profiles SET user_id = ? WHERE name = ?", 
+                          (str(new_owner_id), character_name))
+            conn.commit()
+            conn.close()
+            return True, f"✅ Assigned **{character_name}** to user ID {new_owner_id}"
+            
         except Exception as e:
             return False, f"Error: {str(e)}"
     
