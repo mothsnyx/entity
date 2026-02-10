@@ -463,7 +463,7 @@ async def trial(interaction: discord.Interaction, name: str):
     result = db.complete_trial(name)
     if result:
         embed = discord.Embed(
-            title=f"<a:loading:1467153150015180800> ┃ {result['role']} Trial",
+            title=f"<a:loading:1467153150015180800> ┃ {name}'s {result['role']} Trial",
             description=result['message'],
             color=discord.Color.from_rgb(116, 7, 14)  # #74070E
         )
