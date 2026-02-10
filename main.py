@@ -36,7 +36,7 @@ async def create_profile(interaction: discord.Interaction, name: str, role: app_
     if success:
         embed = discord.Embed(
             title="<a:check:1467157700831088773> ┃ Profile Created!",
-            description=f"Successfully created profile for **{name}** as **{role.value}**!\n\n✅ You are the owner of this character.",
+            description=f"Successfully created profile for **{name}** as **{role.value}**!",
             color=discord.Color.from_rgb(0, 0, 0) 
         )
     else:
