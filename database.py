@@ -579,6 +579,130 @@ class Database:
         except Exception as e:
             return False, f"Error: {str(e)}", 0, None
     
+    def buy_items_bulk(self, name, item_names):
+        """Buy multiple items at once. Returns (success, message, total_price, currency_type, items_purchased)"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Check if profile exists and get both currencies
+            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE name = ?", (name,))
+            result = cursor.fetchone()
+            if not result:
+                conn.close()
+                return False, f"Profile {name} not found!", 0, None, []
+            
+            bloodpoints, auric_cells = result[0], result[1]
+            
+            # Get all items and calculate total per currency type
+            items_to_buy = []
+            bp_total = 0
+            ac_total = 0
+            
+            for item_name in item_names:
+                cursor.execute("SELECT price, currency_type FROM shop_items WHERE item_name = ?", (item_name,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    conn.close()
+                    return False, f"Item **{item_name}** not found in shop!", 0, None, []
+                
+                price = result[0]
+                currency_type = result[1] if result[1] else 'bloodpoints'
+                
+                items_to_buy.append({
+                    'name': item_name,
+                    'price': price,
+                    'currency_type': currency_type
+                })
+                
+                if currency_type == 'auric_cells':
+                    ac_total += price
+                else:
+                    bp_total += price
+            
+            # Check if mixing currencies
+            if bp_total > 0 and ac_total > 0:
+                conn.close()
+                return False, "❌ Cannot mix Bloodpoints and Auric Cells items in one purchase! Please buy them separately.", 0, None, []
+            
+            # Determine which currency we're using
+            if ac_total > 0:
+                total_price = ac_total
+                currency_type = 'auric_cells'
+                current_balance = auric_cells
+                currency_name = "Auric Cells"
+                currency_column = "auric_cells"
+            else:
+                total_price = bp_total
+                currency_type = 'bloodpoints'
+                current_balance = bloodpoints
+                currency_name = "Bloodpoints"
+                currency_column = "bloodpoints"
+            
+            # Check if enough currency
+            if current_balance < total_price:
+                conn.close()
+                return False, f"Insufficient {currency_name}! Total cost is **{total_price:,}**, you have **{current_balance:,}**.", total_price, currency_type, []
+            
+            # Deduct currency and add all items
+            cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (total_price, name))
+            
+            for item in items_to_buy:
+                cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item['name']))
+            
+            conn.commit()
+            conn.close()
+            
+            item_names_list = [item['name'] for item in items_to_buy]
+            return True, f"Purchased {len(items_to_buy)} items", total_price, currency_type, item_names_list
+            
+        except Exception as e:
+            return False, f"Error: {str(e)}", 0, None, []
+    
+    def use_items(self, name, item_names):
+        """Use (remove) multiple items from inventory. Returns (success, message, items_used)"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Check if profile exists
+            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            if not cursor.fetchone():
+                conn.close()
+                return False, f"Profile **{name}** not found!", []
+            
+            items_used = []
+            items_not_found = []
+            
+            for item_name in item_names:
+                # Check if item exists in inventory
+                cursor.execute("SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT 1", 
+                             (name, item_name))
+                result = cursor.fetchone()
+                
+                if result:
+                    # Remove one instance of the item
+                    cursor.execute("DELETE FROM inventory WHERE id = ?", (result[0],))
+                    items_used.append(item_name)
+                else:
+                    items_not_found.append(item_name)
+            
+            conn.commit()
+            conn.close()
+            
+            if not items_used:
+                return False, f"None of the items were found in **{name}**'s inventory!", []
+            
+            if items_not_found:
+                message = f"Some items not found: **{', '.join(items_not_found)}**"
+                return True, message, items_used
+            
+            return True, "Items used successfully", items_used
+            
+        except Exception as e:
+            return False, f"Error: {str(e)}", []
+    
     # Trial Methods
     def complete_trial(self, name):
         # Get the character's profile to check their role
