@@ -62,6 +62,16 @@ class Database:
             )
         ''')
         
+        # Add category and currency_type columns if they don't exist (migration)
+        cursor.execute("PRAGMA table_info(shop_items)")
+        shop_columns = [column[1] for column in cursor.fetchall()]
+        if 'category' not in shop_columns:
+            cursor.execute("ALTER TABLE shop_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
+            print("✓ Added category column to shop_items table")
+        if 'currency_type' not in shop_columns:
+            cursor.execute("ALTER TABLE shop_items ADD COLUMN currency_type TEXT DEFAULT 'bloodpoints'")
+            print("✓ Added currency_type column to shop_items table")
+        
         # Trial messages table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS trial_messages (
@@ -514,6 +524,7 @@ class Database:
             'Consumables': [],
             'Tools': [],
             'Collectibles': [],
+            'NSFW': [],
             'Miscellaneous': []
         }
         
