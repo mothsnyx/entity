@@ -524,8 +524,8 @@ class Database:
             'Consumables': [],
             'Tools': [],
             'Collectibles': [],
-            'NSFW': [],
             'Miscellaneous': []
+            'NSFW': [],
         }
         
         for item_name, quantity, category in results:
