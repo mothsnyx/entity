@@ -129,6 +129,7 @@ class ProfileView(discord.ui.View):
         self.profile_data = profile_data
         self.inventory_data = inventory_data
         self.current_page = 0
+        self.show_nsfw = False  # NSFW hidden by default
         
     @discord.ui.button(label="Main Info", style=discord.ButtonStyle.danger, custom_id="main_info")
     async def main_info_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -139,6 +140,21 @@ class ProfileView(discord.ui.View):
     @discord.ui.button(label="Inventory", style=discord.ButtonStyle.secondary, custom_id="inventory")
     async def inventory_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = 1
+        embed = self.create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+    
+    @discord.ui.button(label="🔞 Show NSFW", style=discord.ButtonStyle.secondary, custom_id="toggle_nsfw")
+    async def toggle_nsfw_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.show_nsfw = not self.show_nsfw
+        
+        # Update button label and style
+        if self.show_nsfw:
+            button.label = "👁️ Hide NSFW"
+            button.style = discord.ButtonStyle.danger
+        else:
+            button.label = "🔞 Show NSFW"
+            button.style = discord.ButtonStyle.secondary
+        
         embed = self.create_embed()
         await interaction.response.edit_message(embed=embed, view=self)
     
@@ -183,25 +199,50 @@ class ProfileView(discord.ui.View):
             # Check if inventory has any items
             total_items = 0
             has_items = False
+            has_nsfw_items = False
             
             for category, items in self.inventory_data.items():
                 if items:
                     has_items = True
                     total_items += sum(item['quantity'] for item in items)
+                    if category == 'NSFW':
+                        has_nsfw_items = True
             
             if has_items:
-                # Add each category as a field (NO EMOJIS)
+                # Add each category as a field
                 for category, items in self.inventory_data.items():
                     if items:  # Only show categories with items
-                        items_list = "\n".join([
-                            f"{item['item_name']} ― `{item['quantity']}`"
-                            for item in items
-                        ])
-                        embed.add_field(
-                            name=f"·········•✦ {category}",  # No emoji prefix
-                            value=items_list,
-                            inline=False
-                        )
+                        # Handle NSFW category specially
+                        if category == 'NSFW':
+                            if self.show_nsfw:
+                                # Show NSFW items with spoiler tags
+                                items_list = "\n".join([
+                                    f"||{item['item_name']}|| ― `{item['quantity']}`"
+                                    for item in items
+                                ])
+                                embed.add_field(
+                                    name=f"·········•✦ 🔞 {category}",
+                                    value=items_list,
+                                    inline=False
+                                )
+                            else:
+                                # Show hidden message
+                                embed.add_field(
+                                    name=f"·········•✦ 🔞 {category}",
+                                    value=f"*{len(items)} NSFW item(s) hidden. Click '🔞 Show NSFW' to reveal.*",
+                                    inline=False
+                                )
+                        else:
+                            # Regular categories (no spoiler tags)
+                            items_list = "\n".join([
+                                f"{item['item_name']} ― `{item['quantity']}`"
+                                for item in items
+                            ])
+                            embed.add_field(
+                                name=f"·········•✦ {category}",
+                                value=items_list,
+                                inline=False
+                            )
                 
                 # Add total count (removed unique items)
                 embed.set_footer(text=f"Total: {total_items} items")
