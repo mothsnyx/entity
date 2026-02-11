@@ -221,14 +221,14 @@ class ProfileView(discord.ui.View):
                                     for item in items
                                 ])
                                 embed.add_field(
-                                    name=f"·········•✦ 🔞 {category}",
+                                    name=f"·········•✦ {category}",
                                     value=items_list,
                                     inline=False
                                 )
                             else:
                                 # Show hidden message
                                 embed.add_field(
-                                    name=f"·········•✦ 🔞 {category}",
+                                    name=f"·········•✦ {category}",
                                     value=f"*{len(items)} NSFW item(s) hidden. Click '🔞 Show NSFW' to reveal.*",
                                     inline=False
                                 )
