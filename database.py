@@ -524,7 +524,7 @@ class Database:
             'Consumables': [],
             'Tools': [],
             'Collectibles': [],
-            'Miscellaneous': []
+            'Miscellaneous': [],
             'NSFW': [],
         }
         
