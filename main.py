@@ -349,34 +349,76 @@ async def shop(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 # Buy Command
-@bot.tree.command(name="buy", description="Purchase an item from the shop")
+@bot.tree.command(name="buy", description="Purchase items from the shop")
 @app_commands.describe(
     name="Character name",
-    item="Item name"
+    items="Item names separated by commas (e.g., Medkit, Flashlight, Toolbox)"
 )
-async def buy_item(interaction: discord.Interaction, name: str, item: str):
-    success, message, price, currency_type = db.buy_item(name, item)
+async def buy_item(interaction: discord.Interaction, name: str, items: str):
+    # Parse items - split by comma and strip whitespace
+    item_list = [item.strip() for item in items.split(',')]
     
-    if success:
-        # Determine currency display
-        if currency_type == 'auric_cells':
-            currency_name = "Auric Cells"
-            currency_abbr = "AC"
-        else:
-            currency_name = "Bloodpoints"
-            currency_abbr = "BP"
+    # If only one item, use the old single buy function
+    if len(item_list) == 1:
+        success, message, price, currency_type = db.buy_item(name, item_list[0])
         
-        embed = discord.Embed(
-            title="<a:check:1467157700831088773> ┃ Purchase successful!",
-            description=f"**{name}** purchased **{item}** for **{price:,}** {currency_name}!",
-            color=discord.Color.from_rgb(0, 0, 0)
-        )
+        if success:
+            # Determine currency display
+            if currency_type == 'auric_cells':
+                currency_name = "Auric Cells"
+                currency_abbr = "AC"
+            else:
+                currency_name = "Bloodpoints"
+                currency_abbr = "BP"
+            
+            embed = discord.Embed(
+                title="<a:check:1467157700831088773> ┃ Purchase successful!",
+                description=f"**{name}** purchased **{item_list[0]}** for **{price:,}** {currency_name}!",
+                color=discord.Color.from_rgb(0, 0, 0)
+            )
+        else:
+            embed = discord.Embed(
+                title="<a:error:1467157734817398946> ┃ Error!",
+                description=message,
+                color=discord.Color.from_rgb(116, 7, 14)
+            )
     else:
-        embed = discord.Embed(
-            title="<a:error:1467157734817398946> ┃ Error!",
-            description=message,
-            color=discord.Color.from_rgb(116, 7, 14)
-        )
+        # Multiple items - use bulk buy
+        success, message, total_price, currency_type, items_purchased = db.buy_items_bulk(name, item_list)
+        
+        if success:
+            # Determine currency display
+            if currency_type == 'auric_cells':
+                currency_name = "Auric Cells"
+                currency_abbr = "AC"
+            else:
+                currency_name = "Bloodpoints"
+                currency_abbr = "BP"
+            
+            # Format items list
+            items_display = "**, **".join(items_purchased)
+            
+            embed = discord.Embed(
+                title="<a:check:1467157700831088773> ┃ Purchase successful!",
+                description=f"**{name}** purchased **{items_display}** for **{total_price:,}** {currency_name}!",
+                color=discord.Color.from_rgb(0, 0, 0)
+            )
+            embed.add_field(
+                name="Items Purchased",
+                value=f"{len(items_purchased)} items",
+                inline=True
+            )
+            embed.add_field(
+                name="Total Cost",
+                value=f"{total_price:,} {currency_abbr}",
+                inline=True
+            )
+        else:
+            embed = discord.Embed(
+                title="<a:error:1467157734817398946> ┃ Error!",
+                description=message,
+                color=discord.Color.from_rgb(116, 7, 14)
+            )
     
     await interaction.response.send_message(embed=embed)
 
@@ -443,6 +485,65 @@ async def remove_item(interaction: discord.Interaction, name: str, item: str):
             description=message,
             color=discord.Color.from_rgba(230, 1, 18)
         )
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="use", description="Use items from your character's inventory")
+@app_commands.describe(
+    name="Character name",
+    items="Item names separated by commas (e.g., Medkit, Flashlight, Toolbox)"
+)
+async def use_items(interaction: discord.Interaction, name: str, items: str):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
+    # Parse items - split by comma and strip whitespace
+    item_list = [item.strip() for item in items.split(',')]
+    
+    success, message, items_used = db.use_items(name, item_list)
+    
+    if success:
+        # Format items list
+        if len(items_used) == 1:
+            items_display = f"**{items_used[0]}**"
+        else:
+            items_display = "**, **".join(items_used)
+            items_display = f"**{items_display}**"
+        
+        embed = discord.Embed(
+            title="<a:check:1467157700831088773> ┃ Items used!",
+            description=f"**{name}** used {items_display}!",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+        
+        if len(items_used) > 1:
+            embed.add_field(
+                name="Items Used",
+                value=f"{len(items_used)} items",
+                inline=True
+            )
+        
+        # If there was a partial failure, add warning
+        if "not found" in message.lower():
+            embed.add_field(
+                name="⚠️ Warning",
+                value=message,
+                inline=False
+            )
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgba(230, 1, 18)
+        )
+    
     await interaction.response.send_message(embed=embed)
 
 #  Command
