@@ -39,9 +39,13 @@
                 </div>
             </div>
             <div class="row g-3">
-                <div class="col-md-12">
+                <div class="col-md-10">
                     <textarea name="description" class="form-control" placeholder="Description (what players see in Discord)..." rows="2"></textarea>
                     <small class="text-muted">This is what appears in the embed description</small>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" name="sell_value" class="form-control" placeholder="Sell Value (BP)" min="0" value="0">
+                    <small class="text-muted">Bloodpoints value</small>
                 </div>
             </div>
         </form>
@@ -80,6 +84,7 @@
                         <th>ID</th>
                         <th>Item Name</th>
                         <th>Category</th>
+                        <th>Sell Value</th>
                         <th>Message</th>
                         <th>Description</th>
                         <th class="text-end">Actions</th>
@@ -101,6 +106,13 @@
                                 <span class="badge bg-info">{{ item[4] }}</span>
                             {% else %}
                                 <span class="badge bg-secondary">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item[5] and item[5] > 0 %}
+                                <span class="badge bg-warning text-dark">{{ item[5] }} BP</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Not sellable</span>
                             {% endif %}
                         </td>
                         <td>{{ item[2] }}</td>
@@ -149,6 +161,11 @@
                                             <label class="form-label">Description (shown in Discord)</label>
                                             <textarea name="description" class="form-control" rows="3">{{ item[3] or '' }}</textarea>
                                             <small class="text-muted">This is what appears in the embed</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Sell Value (Bloodpoints)</label>
+                                            <input type="number" name="sell_value" class="form-control" value="{{ item[5] or 0 }}" min="0">
+                                            <small class="text-muted">How many BP this item sells for (0 = not sellable)</small>
                                         </div>
                                     </div>
                                     <div class="modal-footer">
