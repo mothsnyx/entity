@@ -126,6 +126,9 @@ class Database:
         if 'sell_value' not in hunting_columns:
             cursor.execute("ALTER TABLE hunting_items ADD COLUMN sell_value INTEGER DEFAULT 0")
             print("✓ Added sell_value column to hunting_items table")
+        if 'weight' not in hunting_columns:
+            cursor.execute("ALTER TABLE hunting_items ADD COLUMN weight INTEGER DEFAULT 10")
+            print("✓ Added weight column to hunting_items table")
         
         cursor.execute("PRAGMA table_info(fishing_items)")
         fishing_columns = [column[1] for column in cursor.fetchall()]
@@ -135,6 +138,9 @@ class Database:
         if 'sell_value' not in fishing_columns:
             cursor.execute("ALTER TABLE fishing_items ADD COLUMN sell_value INTEGER DEFAULT 0")
             print("✓ Added sell_value column to fishing_items table")
+        if 'weight' not in fishing_columns:
+            cursor.execute("ALTER TABLE fishing_items ADD COLUMN weight INTEGER DEFAULT 10")
+            print("✓ Added weight column to fishing_items table")
         
         cursor.execute("PRAGMA table_info(scavenging_items)")
         scavenging_columns = [column[1] for column in cursor.fetchall()]
@@ -144,6 +150,9 @@ class Database:
         if 'sell_value' not in scavenging_columns:
             cursor.execute("ALTER TABLE scavenging_items ADD COLUMN sell_value INTEGER DEFAULT 0")
             print("✓ Added sell_value column to scavenging_items table")
+        if 'weight' not in scavenging_columns:
+            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN weight INTEGER DEFAULT 10")
+            print("✓ Added weight column to scavenging_items table")
         
         conn.commit()
         conn.close()
@@ -1001,12 +1010,28 @@ class Database:
         
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT item_name, message, description FROM hunting_items ORDER BY RANDOM() LIMIT 1")
-        result = cursor.fetchone()
         
-        item_name = result[0]
-        message = result[1]
-        description = result[2] if len(result) > 2 else message  # Fallback to message if no description
+        # Get all hunting items with their weights
+        cursor.execute("SELECT item_name, message, description, weight FROM hunting_items")
+        items = cursor.fetchall()
+        
+        if not items:
+            conn.close()
+            return None
+        
+        # Weighted random selection
+        items_list = []
+        weights = []
+        for item in items:
+            items_list.append(item)
+            weights.append(item[3] if item[3] and item[3] > 0 else 10)  # Default weight 10
+        
+        # Use random.choices for weighted selection
+        selected = random.choices(items_list, weights=weights, k=1)[0]
+        
+        item_name = selected[0]
+        message = selected[1]
+        description = selected[2] if len(selected) > 2 and selected[2] else message
         
         # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
         if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
@@ -1028,12 +1053,28 @@ class Database:
         
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT item_name, message, description FROM fishing_items ORDER BY RANDOM() LIMIT 1")
-        result = cursor.fetchone()
         
-        item_name = result[0]
-        message = result[1]
-        description = result[2] if len(result) > 2 else message  # Fallback to message if no description
+        # Get all fishing items with their weights
+        cursor.execute("SELECT item_name, message, description, weight FROM fishing_items")
+        items = cursor.fetchall()
+        
+        if not items:
+            conn.close()
+            return None
+        
+        # Weighted random selection
+        items_list = []
+        weights = []
+        for item in items:
+            items_list.append(item)
+            weights.append(item[3] if item[3] and item[3] > 0 else 10)  # Default weight 10
+        
+        # Use random.choices for weighted selection
+        selected = random.choices(items_list, weights=weights, k=1)[0]
+        
+        item_name = selected[0]
+        message = selected[1]
+        description = selected[2] if len(selected) > 2 and selected[2] else message
         
         # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
         if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
@@ -1055,12 +1096,28 @@ class Database:
         
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT item_name, message, description FROM scavenging_items ORDER BY RANDOM() LIMIT 1")
-        result = cursor.fetchone()
         
-        item_name = result[0]
-        message = result[1]
-        description = result[2] if len(result) > 2 else message  # Fallback to message if no description
+        # Get all scavenging items with their weights
+        cursor.execute("SELECT item_name, message, description, weight FROM scavenging_items")
+        items = cursor.fetchall()
+        
+        if not items:
+            conn.close()
+            return None
+        
+        # Weighted random selection
+        items_list = []
+        weights = []
+        for item in items:
+            items_list.append(item)
+            weights.append(item[3] if item[3] and item[3] > 0 else 10)  # Default weight 10
+        
+        # Use random.choices for weighted selection
+        selected = random.choices(items_list, weights=weights, k=1)[0]
+        
+        item_name = selected[0]
+        message = selected[1]
+        description = selected[2] if len(selected) > 2 and selected[2] else message
         
         # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
         if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
