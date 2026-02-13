@@ -1519,6 +1519,146 @@ async def assign_owner(interaction: discord.Interaction, character: str, user: d
         )
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command(name="value", description="Check the sell value of items from your inventory")
+@app_commands.describe(
+    name="Character name",
+    items="Item names separated by commas (e.g., Fresh Meat, Animal Hide, Old Map)"
+)
+async def value_items(interaction: discord.Interaction, name: str, items: str):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
+    # Parse items - split by comma and strip whitespace
+    item_list = [item.strip() for item in items.split(',')]
+    
+    success, message, items_info, total_value = db.get_item_values(name, item_list)
+    
+    if success:
+        # Create value display
+        if len(items_info) == 0:
+            embed = discord.Embed(
+                title="<a:error:1467157734817398946> ┃ No Items!",
+                description="No items found to value!",
+                color=discord.Color.from_rgb(116, 7, 14)
+            )
+        else:
+            embed = discord.Embed(
+                title="<:bp:1467159740797681716> ┃ Item Values",
+                description=f"**{name}**'s sellable items:",
+                color=discord.Color.from_rgb(0, 0, 0)
+            )
+            
+            # Add each item as a field
+            for item_info in items_info:
+                item_name = item_info['name']
+                quantity = item_info['quantity']
+                sell_value = item_info['sell_value']
+                item_total = item_info['total']
+                
+                if sell_value == 0:
+                    value_text = "❌ Not sellable"
+                else:
+                    value_text = f"<:bp:1467159740797681716> {sell_value:,} BP each\n**Total:** {item_total:,} BP ({quantity}x)"
+                
+                embed.add_field(
+                    name=f"• {item_name}",
+                    value=value_text,
+                    inline=False
+                )
+            
+            # Add total value
+            embed.add_field(
+                name="━━━━━━━━━━━━━━",
+                value=f"**Total Value:** <:bp:1467159740797681716> {total_value:,} BP",
+                inline=False
+            )
+            
+            # Warning if any items not found
+            if "not found" in message.lower():
+                embed.set_footer(text=f"⚠️ {message}")
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgba(230, 1, 18)
+        )
+    
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="sell", description="Sell items from your inventory for Bloodpoints")
+@app_commands.describe(
+    name="Character name",
+    items="Item names separated by commas (e.g., Fresh Meat, Animal Hide, Old Map)"
+)
+async def sell_items(interaction: discord.Interaction, name: str, items: str):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    
+    # Parse items - split by comma and strip whitespace
+    item_list = [item.strip() for item in items.split(',')]
+    
+    success, message, items_sold, total_earned = db.sell_items(name, item_list)
+    
+    if success:
+        # Format items list
+        if len(items_sold) == 1:
+            items_display = f"**{items_sold[0]['name']}**"
+        else:
+            items_display = "**, **".join([item['name'] for item in items_sold])
+            items_display = f"**{items_display}**"
+        
+        embed = discord.Embed(
+            title="<a:check:1467157700831088773> ┃ Items sold!",
+            description=f"**{name}** sold {items_display} for **{total_earned:,}** <:bp:1467159740797681716> Bloodpoints!",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+        
+        # Add breakdown
+        items_text = "\n".join([
+            f"• {item['name']} → {item['sell_value']:,} BP"
+            for item in items_sold
+        ])
+        
+        embed.add_field(
+            name="Items Sold",
+            value=items_text,
+            inline=False
+        )
+        
+        embed.add_field(
+            name="Total Earned",
+            value=f"<:bp:1467159740797681716> {total_earned:,} BP",
+            inline=False
+        )
+        
+        # Warning if any items not sold
+        if "not found" in message.lower() or "no value" in message.lower():
+            embed.set_footer(text=f"⚠️ {message}")
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgba(230, 1, 18)
+        )
+    
+    await interaction.response.send_message(embed=embed)
+
 def run_api():
     api.run(host='0.0.0.0', port=5002, debug=False)
 
