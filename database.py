@@ -117,6 +117,25 @@ class Database:
             )
         ''')
         
+        # Add category column to minigame tables if missing (migration)
+        cursor.execute("PRAGMA table_info(hunting_items)")
+        hunting_columns = [column[1] for column in cursor.fetchall()]
+        if 'category' not in hunting_columns:
+            cursor.execute("ALTER TABLE hunting_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
+            print("✓ Added category column to hunting_items table")
+        
+        cursor.execute("PRAGMA table_info(fishing_items)")
+        fishing_columns = [column[1] for column in cursor.fetchall()]
+        if 'category' not in fishing_columns:
+            cursor.execute("ALTER TABLE fishing_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
+            print("✓ Added category column to fishing_items table")
+        
+        cursor.execute("PRAGMA table_info(scavenging_items)")
+        scavenging_columns = [column[1] for column in cursor.fetchall()]
+        if 'category' not in scavenging_columns:
+            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
+            print("✓ Added category column to scavenging_items table")
+        
         conn.commit()
         conn.close()
     
