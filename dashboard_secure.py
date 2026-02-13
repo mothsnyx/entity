@@ -288,13 +288,14 @@ def add_hunting_item():
     category = request.form.get('category', 'Miscellaneous')
     description = request.form.get('description')
     sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO hunting_items (item_name, message, category, description, sell_value) VALUES (?, ?, ?, ?, ?)",
-                         (item_name if item_name else None, message, category if item_name else None, description, sell_value))
+            cursor.execute("INSERT INTO hunting_items (item_name, message, category, description, sell_value, weight) VALUES (?, ?, ?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight))
             conn.commit()
             conn.close()
             flash('Hunting item added!', 'success')
@@ -324,13 +325,14 @@ def edit_hunting_item(item_id):
     category = request.form.get('category', 'Miscellaneous')
     description = request.form.get('description')
     sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE hunting_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ? WHERE id = ?",
-                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, item_id))
+            cursor.execute("UPDATE hunting_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, item_id))
             conn.commit()
             conn.close()
             flash('Hunting item updated successfully!', 'success')
@@ -358,13 +360,14 @@ def add_fishing_item():
     category = request.form.get('category', 'Miscellaneous')
     description = request.form.get('description')
     sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO fishing_items (item_name, message, category, description, sell_value) VALUES (?, ?, ?, ?, ?)",
-                         (item_name if item_name else None, message, category if item_name else None, description, sell_value))
+            cursor.execute("INSERT INTO fishing_items (item_name, message, category, description, sell_value, weight) VALUES (?, ?, ?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight))
             conn.commit()
             conn.close()
             flash('Fishing item added!', 'success')
@@ -394,13 +397,14 @@ def edit_fishing_item(item_id):
     category = request.form.get('category', 'Miscellaneous')
     description = request.form.get('description')
     sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE fishing_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ? WHERE id = ?",
-                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, item_id))
+            cursor.execute("UPDATE fishing_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, item_id))
             conn.commit()
             conn.close()
             flash('Fishing item updated successfully!', 'success')
@@ -428,13 +432,14 @@ def add_scavenging_item():
     category = request.form.get('category', 'Miscellaneous')
     description = request.form.get('description')
     sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO scavenging_items (item_name, message, category, description, sell_value) VALUES (?, ?, ?, ?, ?)",
-                         (item_name if item_name else None, message, category if item_name else None, description, sell_value))
+            cursor.execute("INSERT INTO scavenging_items (item_name, message, category, description, sell_value, weight) VALUES (?, ?, ?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight))
             conn.commit()
             conn.close()
             flash('Scavenging item added!', 'success')
@@ -464,13 +469,14 @@ def edit_scavenging_item(item_id):
     category = request.form.get('category', 'Miscellaneous')
     description = request.form.get('description')
     sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
     
     if message:
         try:
             conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("UPDATE scavenging_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ? WHERE id = ?",
-                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, item_id))
+            cursor.execute("UPDATE scavenging_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, item_id))
             conn.commit()
             conn.close()
             flash('Scavenging item updated successfully!', 'success')
