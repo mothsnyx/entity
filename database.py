@@ -123,18 +123,27 @@ class Database:
         if 'category' not in hunting_columns:
             cursor.execute("ALTER TABLE hunting_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
             print("✓ Added category column to hunting_items table")
+        if 'sell_value' not in hunting_columns:
+            cursor.execute("ALTER TABLE hunting_items ADD COLUMN sell_value INTEGER DEFAULT 0")
+            print("✓ Added sell_value column to hunting_items table")
         
         cursor.execute("PRAGMA table_info(fishing_items)")
         fishing_columns = [column[1] for column in cursor.fetchall()]
         if 'category' not in fishing_columns:
             cursor.execute("ALTER TABLE fishing_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
             print("✓ Added category column to fishing_items table")
+        if 'sell_value' not in fishing_columns:
+            cursor.execute("ALTER TABLE fishing_items ADD COLUMN sell_value INTEGER DEFAULT 0")
+            print("✓ Added sell_value column to fishing_items table")
         
         cursor.execute("PRAGMA table_info(scavenging_items)")
         scavenging_columns = [column[1] for column in cursor.fetchall()]
         if 'category' not in scavenging_columns:
             cursor.execute("ALTER TABLE scavenging_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
             print("✓ Added category column to scavenging_items table")
+        if 'sell_value' not in scavenging_columns:
+            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN sell_value INTEGER DEFAULT 0")
+            print("✓ Added sell_value column to scavenging_items table")
         
         conn.commit()
         conn.close()
@@ -733,6 +742,168 @@ class Database:
             
         except Exception as e:
             return False, f"Error: {str(e)}", []
+    
+    def get_item_values(self, name, item_names):
+        """Get sell values for items. Returns (success, message, items_with_values, total_value)"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Check if profile exists
+            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            if not cursor.fetchone():
+                conn.close()
+                return False, f"Profile **{name}** not found!", [], 0
+            
+            items_info = []
+            total_value = 0
+            items_not_found = []
+            
+            for item_name in item_names:
+                # Check if item exists in inventory
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?", 
+                             (name, item_name))
+                quantity = cursor.fetchone()[0]
+                
+                if quantity == 0:
+                    items_not_found.append(item_name)
+                    continue
+                
+                # Get sell value from minigame tables
+                sell_value = 0
+                
+                # Check hunting_items
+                cursor.execute("SELECT sell_value FROM hunting_items WHERE item_name = ?", (item_name,))
+                result = cursor.fetchone()
+                if result:
+                    sell_value = result[0] or 0
+                
+                # Check fishing_items if not found
+                if sell_value == 0:
+                    cursor.execute("SELECT sell_value FROM fishing_items WHERE item_name = ?", (item_name,))
+                    result = cursor.fetchone()
+                    if result:
+                        sell_value = result[0] or 0
+                
+                # Check scavenging_items if not found
+                if sell_value == 0:
+                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE item_name = ?", (item_name,))
+                    result = cursor.fetchone()
+                    if result:
+                        sell_value = result[0] or 0
+                
+                items_info.append({
+                    'name': item_name,
+                    'quantity': quantity,
+                    'sell_value': sell_value,
+                    'total': sell_value * quantity
+                })
+                total_value += sell_value * quantity
+            
+            conn.close()
+            
+            if not items_info:
+                return False, f"None of the items were found in **{name}**'s inventory!", [], 0
+            
+            if items_not_found:
+                message = f"Some items not found: **{', '.join(items_not_found)}**"
+                return True, message, items_info, total_value
+            
+            return True, "Items valued successfully", items_info, total_value
+            
+        except Exception as e:
+            return False, f"Error: {str(e)}", [], 0
+    
+    def sell_items(self, name, item_names):
+        """Sell items and add bloodpoints. Returns (success, message, items_sold, total_earned)"""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Check if profile exists
+            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            if not cursor.fetchone():
+                conn.close()
+                return False, f"Profile **{name}** not found!", [], 0
+            
+            items_sold = []
+            total_earned = 0
+            items_not_found = []
+            items_no_value = []
+            
+            for item_name in item_names:
+                # Check if item exists in inventory
+                cursor.execute("SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT 1", 
+                             (name, item_name))
+                result = cursor.fetchone()
+                
+                if not result:
+                    items_not_found.append(item_name)
+                    continue
+                
+                inventory_id = result[0]
+                
+                # Get sell value from minigame tables
+                sell_value = 0
+                
+                # Check hunting_items
+                cursor.execute("SELECT sell_value FROM hunting_items WHERE item_name = ?", (item_name,))
+                result = cursor.fetchone()
+                if result:
+                    sell_value = result[0] or 0
+                
+                # Check fishing_items if not found
+                if sell_value == 0:
+                    cursor.execute("SELECT sell_value FROM fishing_items WHERE item_name = ?", (item_name,))
+                    result = cursor.fetchone()
+                    if result:
+                        sell_value = result[0] or 0
+                
+                # Check scavenging_items if not found
+                if sell_value == 0:
+                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE item_name = ?", (item_name,))
+                    result = cursor.fetchone()
+                    if result:
+                        sell_value = result[0] or 0
+                
+                if sell_value == 0:
+                    items_no_value.append(item_name)
+                    continue
+                
+                # Remove item from inventory
+                cursor.execute("DELETE FROM inventory WHERE id = ?", (inventory_id,))
+                
+                # Add bloodpoints
+                cursor.execute("UPDATE profiles SET bloodpoints = bloodpoints + ? WHERE name = ?", 
+                             (sell_value, name))
+                
+                items_sold.append({
+                    'name': item_name,
+                    'sell_value': sell_value
+                })
+                total_earned += sell_value
+            
+            conn.commit()
+            conn.close()
+            
+            if not items_sold:
+                if items_not_found:
+                    return False, f"Items not found in inventory: **{', '.join(items_not_found)}**", [], 0
+                elif items_no_value:
+                    return False, f"Items have no sell value: **{', '.join(items_no_value)}**", [], 0
+                else:
+                    return False, "No items could be sold!", [], 0
+            
+            message = "Items sold successfully"
+            if items_not_found:
+                message += f" (Not found: {', '.join(items_not_found)})"
+            if items_no_value:
+                message += f" (No value: {', '.join(items_no_value)})"
+            
+            return True, message, items_sold, total_earned
+            
+        except Exception as e:
+            return False, f"Error: {str(e)}", [], 0
     
     # Trial Methods
     def complete_trial(self, name):
