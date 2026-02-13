@@ -26,6 +26,7 @@
                         <option value="Tools">Tools</option>
                         <option value="Collectibles">Collectibles</option>
                         <option value="Miscellaneous" selected>Miscellaneous</option>
+                        <option value="Cosmetics">Cosmetics</option>
                     </select>
                 </div>
                 <div class="col-md-5">
@@ -137,6 +138,7 @@
                                                 <option value="Tools" {% if item[4] == 'Tools' %}selected{% endif %}>Tools</option>
                                                 <option value="Collectibles" {% if item[4] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
                                                 <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
+                                                <option value="Cosmetics" {% if item[4] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
                                             </select>
                                         </div>
                                         <div class="mb-3">
