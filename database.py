@@ -525,6 +525,7 @@ class Database:
             'Tools': [],
             'Collectibles': [],
             'Miscellaneous': [],
+            'Cosmetics': [],
             'NSFW': [],
         }
         
