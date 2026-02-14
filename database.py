@@ -544,14 +544,24 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Get inventory with categories from shop_items
+        # Get inventory with categories from shop_items AND minigame tables
         cursor.execute("""
-            SELECT i.item_name, COUNT(*) as quantity, COALESCE(s.category, 'Miscellaneous') as category
+            SELECT i.item_name, COUNT(*) as quantity, 
+                   COALESCE(
+                       s.category,
+                       h.category,
+                       f.category,
+                       sc.category,
+                       'Miscellaneous'
+                   ) as category
             FROM inventory i
             LEFT JOIN shop_items s ON i.item_name = s.item_name
+            LEFT JOIN hunting_items h ON i.item_name = h.item_name
+            LEFT JOIN fishing_items f ON i.item_name = f.item_name
+            LEFT JOIN scavenging_items sc ON i.item_name = sc.item_name
             WHERE i.character_name = ?
-            GROUP BY i.item_name, s.category
-            ORDER BY s.category, i.item_name
+            GROUP BY i.item_name
+            ORDER BY category, i.item_name
         """, (name,))
         results = cursor.fetchall()
         conn.close()
@@ -569,7 +579,7 @@ class Database:
         for item_name, quantity, category in results:
             item_data = {'item_name': item_name, 'quantity': quantity}
             
-            # Use the category from shop_items
+            # Use the category from any of the tables
             if category in categorized:
                 categorized[category].append(item_data)
             else:
