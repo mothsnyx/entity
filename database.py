@@ -544,23 +544,27 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Get inventory with categories from shop_items AND minigame tables
+        # First, get inventory counts (accurate count from inventory table only)
         cursor.execute("""
-            SELECT i.item_name, COUNT(*) as quantity, 
+            SELECT item_name, COUNT(*) as quantity
+            FROM inventory
+            WHERE character_name = ?
+            GROUP BY item_name
+        """, (name,))
+        inventory_counts = {row[0]: row[1] for row in cursor.fetchall()}
+        
+        # Then get categories for each item (using DISTINCT to avoid duplicates from multiple scenarios)
+        cursor.execute("""
+            SELECT DISTINCT i.item_name,
                    COALESCE(
-                       s.category,
-                       h.category,
-                       f.category,
-                       sc.category,
+                       (SELECT category FROM shop_items WHERE item_name = i.item_name LIMIT 1),
+                       (SELECT category FROM hunting_items WHERE item_name = i.item_name LIMIT 1),
+                       (SELECT category FROM fishing_items WHERE item_name = i.item_name LIMIT 1),
+                       (SELECT category FROM scavenging_items WHERE item_name = i.item_name LIMIT 1),
                        'Miscellaneous'
                    ) as category
             FROM inventory i
-            LEFT JOIN shop_items s ON i.item_name = s.item_name
-            LEFT JOIN hunting_items h ON i.item_name = h.item_name
-            LEFT JOIN fishing_items f ON i.item_name = f.item_name
-            LEFT JOIN scavenging_items sc ON i.item_name = sc.item_name
             WHERE i.character_name = ?
-            GROUP BY i.item_name
             ORDER BY category, i.item_name
         """, (name,))
         results = cursor.fetchall()
@@ -577,8 +581,11 @@ class Database:
             'NSFW': [],
         }
         
-        for item_name, quantity, category in results:
-            item_data = {'item_name': item_name, 'quantity': quantity}
+        for item_name, category in results:
+            item_data = {
+                'item_name': item_name, 
+                'quantity': inventory_counts.get(item_name, 0)  # Get actual count from inventory
+            }
             
             # Use the category from any of the tables
             if category in categorized:
