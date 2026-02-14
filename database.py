@@ -573,6 +573,7 @@ class Database:
             'Collectibles': [],
             'Miscellaneous': [],
             'Cosmetics': [],
+            'Pets': [],
             'NSFW': [],
         }
         
