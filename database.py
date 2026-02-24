@@ -958,21 +958,23 @@ class Database:
         # Use the random message, or fallback if none found
         message = result[0] if result else f"You completed a trial as {role}."
         
-        # Bloodpoints: 5,000 per escape/kill (0 for total failure)
-        # 0 = 0 BP
-        # 1 = 5,000 BP
-        # 2 = 10,000 BP
-        # 3 = 15,000 BP
-        # 4 = 20,000 BP
-        bloodpoints = performance * 5000
+       bp_rewards = {
+           0: 0,
+           1: 3000,
+           2: 6000,
+           3: 9000,
+           4: 12000
+       }
+        bloodpoints = bp_rewards[performance]
         
-        # Auric Cells: 1 per escape/kill (0 for total failure)
-        # 0 = 0 AC
-        # 1 = 1 AC
-        # 2 = 2 AC
-        # 3 = 3 AC
-        # 4 = 4 AC
-        auric_cells = performance
+        ac_rewards = {
+           0: 0,
+           1: 0,
+           2: 0,
+           3: 1,
+           4: 2
+       }
+        auric_cells = ac_rewards[performance]
         
         # Performance description
         if role == "Killer":
