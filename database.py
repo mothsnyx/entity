@@ -958,22 +958,22 @@ class Database:
         # Use the random message, or fallback if none found
         message = result[0] if result else f"You completed a trial as {role}."
         
-       bp_rewards = {
-           0: 0,
-           1: 3000,
-           2: 6000,
-           3: 9000,
-           4: 12000
-       }
+        bp_rewards = {
+            0: 0,
+            1: 3000,
+            2: 6000,
+            3: 9000,
+            4: 12000
+        }
         bloodpoints = bp_rewards[performance]
         
         ac_rewards = {
-           0: 0,
-           1: 0,
-           2: 0,
-           3: 1,
-           4: 2
-       }
+            0: 0,
+            1: 0,
+            2: 0,
+            3: 1,
+            4: 2
+        }
         auric_cells = ac_rewards[performance]
         
         # Performance description
