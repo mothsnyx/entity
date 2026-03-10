@@ -551,7 +551,7 @@ def create_embed():
         if image_file and image_file.filename:
             try:
                 import requests
-                bot_url = "http://localhost:5000/upload_image"
+                bot_url = "http://localhost:5002/upload_image"
                 files = {'file': (image_file.filename, image_file.stream, image_file.mimetype)}
                 response = requests.post(bot_url, files=files, timeout=10)
                 
@@ -569,7 +569,7 @@ def create_embed():
         if thumbnail_file and thumbnail_file.filename:
             try:
                 import requests
-                bot_url = "http://localhost:5000/upload_image"
+                bot_url = "http://localhost:5002/upload_image"
                 files = {'file': (thumbnail_file.filename, thumbnail_file.stream, thumbnail_file.mimetype)}
                 response = requests.post(bot_url, files=files, timeout=10)
                 
@@ -658,7 +658,7 @@ def send_embed(embed_id):
             return redirect(url_for('embeds'))
         
         import requests
-        bot_url = "http://localhost:5000/send_embed"
+        bot_url = "http://localhost:5002/send_embed"
         
         payload = {
             'channel_id': channel_id,
@@ -707,7 +707,7 @@ def update_embed_message(embed_id):
         
         # Send update request to bot API
         import requests
-        bot_url = "http://localhost:5000/update_embed"
+        bot_url = "http://localhost:5002/update_embed"
         
         payload = {
             'channel_id': embed_data[8],
@@ -807,7 +807,7 @@ def create_reaction_role():
         
         # Send to bot
         import requests
-        bot_url = "http://localhost:5000/send_embed"
+        bot_url = "http://localhost:5002/send_embed"
         
         payload = {
             'channel_id': channel_id,
