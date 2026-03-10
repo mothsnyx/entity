@@ -1660,7 +1660,7 @@ async def sell_items(interaction: discord.Interaction, name: str, items: str):
     await interaction.response.send_message(embed=embed)
 
 def run_api():
-    api.run(host='0.0.0.0', port=5000, debug=False)
+    api.run(host='0.0.0.0', port=5002, debug=False)
 
 # Run the bot
 load_dotenv()
@@ -1672,7 +1672,7 @@ else:
     # Start Flask API in separate thread
     api_thread = threading.Thread(target=run_api, daemon=True)
     api_thread.start()
-    print("🌐 API server started on port 5000")
+    print("🌐 API server started on port 5002")
     
     # Start Discord bot
     bot.run(TOKEN)
