@@ -275,25 +275,32 @@
 .nav-tabs { border-bottom-color: #2c2c2c; }
 </style>
 <script>
-let fishPage = 0;
+const FISH_PAGE_KEY = 'fishPage';
+const FISH_SIZE_KEY = 'fishPageSize';
+let fishPage = parseInt(sessionStorage.getItem(FISH_PAGE_KEY) || '0');
 let fishFilteredRows = [];
 
 function fishGetPageSize() { return parseInt(document.getElementById('fishPageSize').value); }
 
 function fishRender() {
     const pageSize = fishGetPageSize();
-    const start = fishPage * pageSize;
-    const end = start + pageSize;
     const allRows = Array.from(document.querySelectorAll('#fishingBody tr'));
     const q = document.getElementById('fishSearch').value.toLowerCase();
     fishFilteredRows = allRows.filter(r => !q || r.innerText.toLowerCase().includes(q));
+
+    const maxPage = Math.max(0, Math.ceil(fishFilteredRows.length / pageSize) - 1);
+    if (fishPage > maxPage) { fishPage = maxPage; sessionStorage.setItem(FISH_PAGE_KEY, fishPage); }
+
+    const start = fishPage * pageSize;
+    const end = start + pageSize;
     allRows.forEach(r => r.style.display = 'none');
     fishFilteredRows.slice(start, end).forEach(r => r.style.display = '');
     const total = fishFilteredRows.length;
-    const showing = Math.min(end, total);
-    document.getElementById('fishPageInfo').textContent = total === 0 ? 'No results' : `Showing ${start + 1}–${showing} of ${total}`;
+    document.getElementById('fishPageInfo').textContent = total === 0 ? 'No results' : `Showing ${start + 1}–${Math.min(end, total)} of ${total}`;
     document.getElementById('fishPrevBtn').disabled = fishPage === 0;
     document.getElementById('fishNextBtn').disabled = end >= total;
+    sessionStorage.setItem(FISH_PAGE_KEY, fishPage);
+    sessionStorage.setItem(FISH_SIZE_KEY, pageSize);
 }
 
 function fishChangePage(dir) {
@@ -305,6 +312,9 @@ function fishChangePage(dir) {
 
 document.getElementById('fishPageSize').addEventListener('change', () => { fishPage = 0; fishRender(); });
 document.getElementById('fishSearch').addEventListener('input', () => { fishPage = 0; fishRender(); });
+
+const savedFishSize = sessionStorage.getItem(FISH_SIZE_KEY);
+if (savedFishSize) document.getElementById('fishPageSize').value = savedFishSize;
 
 const fishSort = {};
 document.querySelectorAll('#fishingTable th.sortable').forEach(th => {
