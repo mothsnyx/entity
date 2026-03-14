@@ -1,81 +1,209 @@
 {% extends "base.html" %}
 
-{% block title %}View Profiles{% endblock %}
+{% block title %}Character Profiles{% endblock %}
 
 {% block content %}
-<h1>Character Profiles</h1>
-<p class="lead">View all created character profiles</p>
-
-<div class="card">
-    <div class="card-header">
-        All Profiles ({{ profiles|length }})
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="mb-1"><i class="bi bi-people-fill"></i> Character Profiles</h1>
+        <p class="text-muted mb-0">View and manage all character profiles</p>
     </div>
-    <div class="card-body">
-        {% if profiles %}
+    <span class="badge bg-secondary fs-6">{{ profiles|length }} profiles</span>
+</div>
+
+{% if profiles %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="bi bi-list-ul"></i> All Profiles</span>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <label class="text-muted small mb-0">Show</label>
+            <select id="profPageSize" class="form-select form-select-sm" style="width:75px;">
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="999999">All</option>
+            </select>
+            <input type="text" id="profSearch" class="form-control form-control-sm" placeholder="Search..." style="width:180px;">
+            <span class="badge bg-secondary">{{ profiles|length }} total</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-dark table-striped table-hover">
+            <table class="table table-dark table-hover table-sm mb-0" id="profTable">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Role</th>
-                        <th>Bloodpoints</th>
-                        <th>Auric Cells</th>
+                        <th class="sortable" data-col="0" style="cursor:pointer;width:6%;">ID <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable" data-col="1" style="cursor:pointer;width:18%;">Name <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable" data-col="2" style="cursor:pointer;width:10%;">Role <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-end" data-col="3" style="cursor:pointer;width:13%;">Bloodpoints <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-end" data-col="4" style="cursor:pointer;width:11%;">Auric Cells <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="5" style="cursor:pointer;width:8%;">Hunt Lv <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="6" style="cursor:pointer;width:8%;">Fish Lv <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="7" style="cursor:pointer;width:8%;">Scav Lv <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th style="width:8%;">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="profBody">
                     {% for profile in profiles %}
                     <tr>
-                        <td>{{ profile[0] }}</td>
+                        <td class="text-muted">{{ profile[0] }}</td>
                         <td><strong>{{ profile[1] }}</strong></td>
                         <td>
                             {% if profile[2] == 'Killer' %}
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-knife"></i> Killer
-                                </span>
+                                <span class="badge bg-danger"><i class="bi bi-knife"></i> Killer</span>
                             {% else %}
-                                <span class="badge bg-success">
-                                    <i class="bi bi-person"></i> Survivor
-                                </span>
+                                <span class="badge bg-success"><i class="bi bi-person"></i> Survivor</span>
                             {% endif %}
                         </td>
+                        <td class="text-end"><small><i class="bi bi-droplet-fill text-danger"></i> {{ "{:,}".format(profile[3]) }}</small></td>
+                        <td class="text-end"><small><i class="bi bi-gem text-info"></i> {{ "{:,}".format(profile[4]) }}</small></td>
+                        <td class="text-center"><span class="badge bg-secondary">{{ profile[6] if profile[6] else 1 }}</span></td>
+                        <td class="text-center"><span class="badge bg-secondary">{{ profile[8] if profile[8] else 1 }}</span></td>
+                        <td class="text-center"><span class="badge bg-secondary">{{ profile[10] if profile[10] else 1 }}</span></td>
                         <td>
-                            <i class="bi bi-droplet-fill text-danger"></i> 
-                            {{ "{:,}".format(profile[3]) }}
-                        </td>
-                        <td>
-                            <i class="bi bi-gem text-info"></i> 
-                            {{ "{:,}".format(profile[4]) }}
+                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ profile[0] }}" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-inbox" style="font-size: 4rem; opacity: 0.5;"></i>
-            <p class="mt-3 text-muted">No profiles created yet. Use the Discord bot to create profiles!</p>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center py-2">
+        <small class="text-muted" id="profPageInfo"></small>
+        <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" id="profPrevBtn" onclick="profChangePage(-1)">&#8249; Prev</button>
+            <button class="btn btn-sm btn-outline-secondary" id="profNextBtn" onclick="profChangePage(1)">Next &#8250;</button>
         </div>
-        {% endif %}
     </div>
 </div>
 
-<div class="card mt-4">
-    <div class="card-header bg-info">
-        Profile Management
-    </div>
-    <div class="card-body">
-        <h5>How to Manage Profiles</h5>
-        <p>Profiles are created and managed through Discord slash commands:</p>
-        <ul>
-            <li><code>/create [name] [role]</code> - Create a new profile</li>
-            <li><code>/editname [name] [new_name]</code> - Change profile name</li>
-            <li><code>/editrole [name] [new_role]</code> - Change profile role</li>
-            <li><code>/deleteprofile [name]</code> - Delete a profile</li>
-            <li><code>/profile [name]</code> - View profile details</li>
-        </ul>
-        <p class="mb-0"><strong>Note:</strong> This page is read-only. Use the Discord bot to modify profiles.</p>
+<!-- Delete Confirmation Modals -->
+{% for profile in profiles %}
+<div class="modal fade" id="deleteModal{{ profile[0] }}" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle"></i> Delete Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Permanently delete <strong>{{ profile[1] }}</strong>?</p>
+                <p class="text-muted small mb-0">This also deletes their entire inventory and cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="/profiles/delete/{{ profile[0] }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i> Delete</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
+{% endfor %}
+
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox" style="font-size:4rem;opacity:0.5;"></i>
+        <p class="mt-3 text-muted">No profiles yet. Use the Discord bot to create profiles!</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="card mt-4">
+    <div class="card-header"><i class="bi bi-terminal"></i> Discord Commands</div>
+    <div class="card-body">
+        <div class="row g-1">
+            <div class="col-md-6">
+                <small class="text-muted d-block"><code>/create [name] [role]</code> — Create a profile</small>
+                <small class="text-muted d-block"><code>/editname [name] [new_name]</code> — Rename</small>
+                <small class="text-muted d-block"><code>/editrole [name] [new_role]</code> — Change role</small>
+            </div>
+            <div class="col-md-6">
+                <small class="text-muted d-block"><code>/deleteprofile [name]</code> — Delete via Discord</small>
+                <small class="text-muted d-block"><code>/profile [name]</code> — View profile</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.nav-tabs .nav-link, .nav-pills .nav-link { color: #adb5bd; background: transparent; border-color: transparent; }
+.nav-tabs .nav-link.active { color: #fff !important; background-color: #b71c1c !important; border-color: #b71c1c !important; }
+.nav-pills .nav-link.active { color: #fff !important; background-color: #b71c1c !important; }
+.nav-tabs { border-bottom-color: #2c2c2c; }
+</style>
+<script>
+const PROF_PAGE_KEY = 'profPage';
+const PROF_SIZE_KEY = 'profPageSize';
+let profPage = parseInt(sessionStorage.getItem(PROF_PAGE_KEY) || '0');
+let profFilteredRows = [];
+
+function profGetPageSize() { return parseInt(document.getElementById('profPageSize').value); }
+
+function profRender() {
+    const pageSize = profGetPageSize();
+    const allRows = Array.from(document.querySelectorAll('#profBody tr'));
+    const q = document.getElementById('profSearch').value.toLowerCase();
+    profFilteredRows = allRows.filter(r => !q || r.innerText.toLowerCase().includes(q));
+
+    const maxPage = Math.max(0, Math.ceil(profFilteredRows.length / pageSize) - 1);
+    if (profPage > maxPage) profPage = maxPage;
+
+    const start = profPage * pageSize;
+    const end = start + pageSize;
+    allRows.forEach(r => r.style.display = 'none');
+    profFilteredRows.slice(start, end).forEach(r => r.style.display = '');
+
+    const total = profFilteredRows.length;
+    document.getElementById('profPageInfo').textContent =
+        total === 0 ? 'No results' : 'Showing ' + (start + 1) + '\u2013' + Math.min(end, total) + ' of ' + total;
+    document.getElementById('profPrevBtn').disabled = profPage === 0;
+    document.getElementById('profNextBtn').disabled = end >= total;
+    sessionStorage.setItem(PROF_PAGE_KEY, profPage);
+    sessionStorage.setItem(PROF_SIZE_KEY, pageSize);
+}
+
+function profChangePage(dir) {
+    const pageSize = profGetPageSize();
+    const maxPage = Math.ceil(profFilteredRows.length / pageSize) - 1;
+    profPage = Math.max(0, Math.min(profPage + dir, maxPage));
+    profRender();
+}
+
+document.getElementById('profPageSize').addEventListener('change', () => { profPage = 0; profRender(); });
+document.getElementById('profSearch').addEventListener('input', () => { profPage = 0; profRender(); });
+
+const savedProfSize = sessionStorage.getItem(PROF_SIZE_KEY);
+if (savedProfSize) document.getElementById('profPageSize').value = savedProfSize;
+
+const profSort = {};
+document.querySelectorAll('#profTable th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        profSort[col] = !profSort[col];
+        const tbody = document.getElementById('profBody');
+        Array.from(tbody.querySelectorAll('tr'))
+            .sort((a, b) => {
+                const av = a.cells[col].innerText.trim().replace(/[^0-9a-zA-Z.]/g, '');
+                const bv = b.cells[col].innerText.trim().replace(/[^0-9a-zA-Z.]/g, '');
+                const an = parseFloat(av), bn = parseFloat(bv);
+                if (!isNaN(an) && !isNaN(bn)) return profSort[col] ? an - bn : bn - an;
+                return profSort[col] ? av.localeCompare(bv) : bv.localeCompare(av);
+            })
+            .forEach(r => tbody.appendChild(r));
+        document.querySelectorAll('#profTable th.sortable i').forEach(i => i.className = 'bi bi-arrow-down-up text-muted small');
+        th.querySelector('i').className = profSort[col] ? 'bi bi-arrow-up small text-light' : 'bi bi-arrow-down small text-light';
+        profPage = 0;
+        profRender();
+    });
+});
+
+profRender();
+</script>
 {% endblock %}
