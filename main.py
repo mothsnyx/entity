@@ -177,6 +177,32 @@ class ProfileView(discord.ui.View):
                 inline=True
             )
             
+            # Minigame Levels (compact, all 3 in one field)
+            hunting_lvl = self.profile_data.get('hunting_level', 1)
+            hunting_xp = self.profile_data.get('hunting_xp', 0)
+            fishing_lvl = self.profile_data.get('fishing_level', 1)
+            fishing_xp = self.profile_data.get('fishing_xp', 0)
+            scav_lvl = self.profile_data.get('scavenging_level', 1)
+            scav_xp = self.profile_data.get('scavenging_xp', 0)
+            
+            # Create compact progress bars for each
+            def make_bar(level, xp):
+                xp_needed = level * 100
+                percent = int((xp / xp_needed) * 100) if xp_needed > 0 else 0
+                filled = min(10, int(percent / 10))
+                return "█" * filled + "░" * (10 - filled)
+            
+            levels_text = (
+                f"<:DailyRitualIcon_hunter:1467234763495571477> **Lv.{hunting_lvl}** {make_bar(hunting_lvl, hunting_xp)}\n"
+                f"<:DailyRitualIcon_sacrifice:1467234766053970055> **Lv.{fishing_lvl}** {make_bar(fishing_lvl, fishing_xp)}\n"
+                f"<:DailyRitualIcon_objectives:1467234764795809842> **Lv.{scav_lvl}** {make_bar(scav_lvl, scav_xp)}"
+            )
+            embed.add_field(
+                name=".✦ Levels:", 
+                value=levels_text, 
+                inline=True
+            )
+            
             # Currency
             currency_text = (
                 f"<:bp:1467159740797681716> {self.profile_data['bloodpoints']:,} bp\n"
@@ -796,7 +822,7 @@ async def hunting(interaction: discord.Interaction, name: str):
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
-            embed.add_field(name="You found:", value=f"**{result['item']}**", inline=False)
+            embed.add_field(name=f"**{name}** found:", value=f"**{result['item']}**", inline=False)
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
@@ -818,7 +844,7 @@ async def fishing(interaction: discord.Interaction, name: str):
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
-            embed.add_field(name="You caught:", value=f"**{result['item']}**", inline=False)
+            embed.add_field(name=f"**{name}** caught:", value=f"**{result['item']}**", inline=False)
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
@@ -840,7 +866,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
             color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
         )
         if result['item']:
-            embed.add_field(name="You found:", value=f"**{result['item']}**", inline=False)
+            embed.add_field(name=f"**{name}** found:", value=f"**{result['item']}**", inline=False)
         await interaction.response.send_message(embed=embed)
     else:
         embed = discord.Embed(
@@ -1468,7 +1494,7 @@ def api_upload_image():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # New Ownership Commands
-@bot.tree.command(name="claim", description="Claim an unowned (legacy) character")
+@bot.tree.command(name="claim", description="Claim an unowned character")
 @app_commands.describe(name="Character name to claim")
 async def claim_character(interaction: discord.Interaction, name: str):
     success, message = db.claim_character(name, interaction.user.id)
