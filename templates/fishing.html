@@ -148,13 +148,13 @@
                     <tr>
                         <td>{% if item[1] %}<strong>{{ item[1] }}</strong>{% else %}<em class="text-muted">Nothing</em>{% endif %}</td>
                         <td><small class="text-muted">{{ item[2][:65] }}{% if item[2]|length > 65 %}…{% endif %}</small></td>
-                        <td><span class="badge bg-secondary">{{ item[4] or 'Misc' }}</span></td>
+                        <td><span class="badge bg-secondary">{{ item[3] or 'Misc' }}</span></td>
                         <td class="text-center">
-                            {% if item[7] and item[7] > 0 %}<span class="badge bg-success">{{ item[7] }} BP</span>
+                            {% if item[4] and item[4] > 0 %}<span class="badge bg-success">{{ item[4] }} BP</span>
                             {% else %}<span class="badge" style="background:#333;">—</span>{% endif %}
                         </td>
-                        <td class="text-center"><span class="badge bg-info">{{ item[8] or 10 }}</span></td>
-                        <td class="text-center"><span class="badge bg-warning text-dark">{{ item[9] or 10 }}</span></td>
+                        <td class="text-center"><span class="badge bg-info">{{ item[5] or 10 }}</span></td>
+                        <td class="text-center"><span class="badge bg-warning text-dark">{{ item[6] or 10 }}</span></td>
                         <td>
                             <button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editModal{{ item[0] }}" title="Edit"><i class="bi bi-pencil"></i></button>
                             <form method="POST" action="/fishing/delete/{{ item[0] }}" style="display:inline;">
@@ -201,17 +201,17 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Category</label>
                                 <select name="category" class="form-select">
-                                    <option value="Consumables" {% if item[4] == 'Consumables' %}selected{% endif %}>Consumables</option>
-                                    <option value="Tools" {% if item[4] == 'Tools' %}selected{% endif %}>Tools</option>
-                                    <option value="Collectibles" {% if item[4] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
-                                    <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
-                                    <option value="Cosmetics" {% if item[4] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
+                                    <option value="Consumables" {% if item[3] == 'Consumables' %}selected{% endif %}>Consumables</option>
+                                    <option value="Tools" {% if item[3] == 'Tools' %}selected{% endif %}>Tools</option>
+                                    <option value="Collectibles" {% if item[3] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
+                                    <option value="Miscellaneous" {% if item[3] == 'Miscellaneous' or not item[3] %}selected{% endif %}>Miscellaneous</option>
+                                    <option value="Cosmetics" {% if item[3] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Sell Value</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control" name="sell_value" value="{{ item[7] or 0 }}" min="0">
+                                    <input type="number" class="form-control" name="sell_value" value="{{ item[4] or 0 }}" min="0">
                                     <span class="input-group-text">BP</span>
                                 </div>
                             </div>
@@ -223,18 +223,18 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Description (Discord Embed)</label>
-                                <textarea class="form-control" name="description" rows="3">{{ item[3] or '' }}</textarea>
+                                <textarea class="form-control" name="description" rows="3">{{ item[9] or '' }}</textarea>
                                 <small class="text-muted">Optional — uses Catch Message if empty</small>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Release Message</label>
-                                    <textarea class="form-control" name="flee_message" rows="2">{{ item[10] or '' }}</textarea>
+                                    <textarea class="form-control" name="flee_message" rows="2">{{ item[7] or '' }}</textarea>
                                     <small class="text-muted">Shown when player chooses "Release It"</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Failed Catch Message</label>
-                                    <textarea class="form-control" name="fail_message" rows="2">{{ item[11] or '' }}</textarea>
+                                    <textarea class="form-control" name="fail_message" rows="2">{{ item[8] or '' }}</textarea>
                                     <small class="text-muted">Shown when the roll fails</small>
                                 </div>
                             </div>
@@ -243,12 +243,12 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Weight (Spawn Chance)</label>
-                                    <input type="number" class="form-control" name="weight" value="{{ item[8] or 10 }}" min="0" required>
+                                    <input type="number" class="form-control" name="weight" value="{{ item[5] or 10 }}" min="0" required>
                                     <small class="text-muted">Higher = more common</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
-                                    <input type="number" class="form-control" name="difficulty" value="{{ item[9] or 10 }}" min="1" max="20" required>
+                                    <input type="number" class="form-control" name="difficulty" value="{{ item[6] or 10 }}" min="1" max="20" required>
                                     <small class="text-muted">Player must roll this or higher</small>
                                 </div>
                             </div>
