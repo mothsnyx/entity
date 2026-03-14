@@ -294,7 +294,9 @@
 </style>
 <script>
 // ── Pagination state ──────────────────────────────
-let huntPage = 0;
+const HUNT_PAGE_KEY = 'huntPage';
+const HUNT_SIZE_KEY = 'huntPageSize';
+let huntPage = parseInt(sessionStorage.getItem(HUNT_PAGE_KEY) || '0');
 let huntFilteredRows = [];
 
 function huntGetPageSize() {
@@ -307,25 +309,32 @@ function huntRender() {
     const end = start + pageSize;
     const allRows = Array.from(document.querySelectorAll('#huntingBody tr'));
 
-    // Apply search filter
     const q = document.getElementById('huntSearch').value.toLowerCase();
     huntFilteredRows = allRows.filter(r => !q || r.innerText.toLowerCase().includes(q));
 
-    // Show/hide rows
+    // Clamp page in case rows were deleted
+    const maxPage = Math.max(0, Math.ceil(huntFilteredRows.length / pageSize) - 1);
+    if (huntPage > maxPage) { huntPage = maxPage; sessionStorage.setItem(HUNT_PAGE_KEY, huntPage); }
+
+    const clampedStart = huntPage * pageSize;
+    const clampedEnd = clampedStart + pageSize;
+
     allRows.forEach(r => r.style.display = 'none');
-    huntFilteredRows.slice(start, end).forEach(r => r.style.display = '');
+    huntFilteredRows.slice(clampedStart, clampedEnd).forEach(r => r.style.display = '');
 
-    // Update page info
     const total = huntFilteredRows.length;
-    const showing = Math.min(end, total);
+    const showing = Math.min(clampedEnd, total);
     document.getElementById('huntPageInfo').textContent =
-        total === 0 ? 'No results' : `Showing ${start + 1}–${showing} of ${total}`;
+        total === 0 ? 'No results' : `Showing ${clampedStart + 1}–${showing} of ${total}`;
     document.getElementById('huntPrevBtn').disabled = huntPage === 0;
-    document.getElementById('huntNextBtn').disabled = end >= total;
+    document.getElementById('huntNextBtn').disabled = clampedEnd >= total;
 
-    // Hide footer if everything fits
-    const footer = document.getElementById('huntPagination') || document.querySelector('.card-footer');
+    const footer = document.querySelector('.card-footer');
     if (footer) footer.style.display = (pageSize >= total && !q) ? 'none' : 'flex';
+
+    // Save state
+    sessionStorage.setItem(HUNT_PAGE_KEY, huntPage);
+    sessionStorage.setItem(HUNT_SIZE_KEY, pageSize);
 }
 
 function huntChangePage(dir) {
@@ -335,8 +344,16 @@ function huntChangePage(dir) {
     huntRender();
 }
 
-document.getElementById('huntPageSize').addEventListener('change', () => { huntPage = 0; huntRender(); });
+document.getElementById('huntPageSize').addEventListener('change', () => {
+    // Restore saved size on load
+    huntPage = 0;
+    huntRender();
+});
 document.getElementById('huntSearch').addEventListener('input', () => { huntPage = 0; huntRender(); });
+
+// Restore saved page size
+const savedSize = sessionStorage.getItem(HUNT_SIZE_KEY);
+if (savedSize) document.getElementById('huntPageSize').value = savedSize;
 
 // ── Sortable columns ──────────────────────────────
 const huntSort = {};
