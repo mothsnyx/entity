@@ -1,1300 +1,905 @@
-import sqlite3
-import random
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+from database import Database
+import os
+import secrets
+from dotenv import load_dotenv
+load_dotenv()
 
-# ADMIN USER IDS - These users can edit ANY character
-# Replace with YOUR Discord user ID
-ADMIN_IDS = [
-    790588177240555561,  # Replace this with your actual Discord ID
-    210551397278679050, #Joker
-    724281461053849641, #Zem
-    200759921912840193, #Rhythm
-    # Add more admin IDs here if needed
-]
+app = Flask(__name__)
+app.secret_key = secrets.token_hex(32)
 
-class Database:
-    def __init__(self, db_name="game_database.db"):
-        self.db_name = db_name
-        self.init_database()
-        self.populate_initial_data()
+# ==================== SECURITY OPTIONS ====================
+auth = HTTPBasicAuth()
+
+users = {
+    "admin": generate_password_hash("sNbt1404."),
+    "mod": generate_password_hash("hkp35e."),
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and check_password_hash(users.get(username), password):
+        return username
+    return None
+
+LOGIN_ENABLED = True
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not LOGIN_ENABLED:
+            return f(*args, **kwargs)
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ==================== LOGIN ROUTES ====================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if not LOGIN_ENABLED:
+        return redirect(url_for('index'))
     
-    def get_connection(self):
-        return sqlite3.connect(self.db_name)
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username in users and check_password_hash(users.get(username), password):
+            session['logged_in'] = True
+            session['username'] = username
+            flash('Successfully logged in!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid username or password!', 'danger')
     
-    def init_database(self):
-        conn = self.get_connection()
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Successfully logged out!', 'info')
+    return redirect(url_for('login'))
+
+# ==================== DATABASE ====================
+db = Database()
+
+# ==================== DASHBOARD ROUTES ====================
+
+@app.route('/')
+@login_required
+def index():
+    return render_template('index.html')
+
+# ==================== REALMS ROUTES ====================
+
+@app.route('/realms')
+@login_required
+def realms():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM realms ORDER BY name")
+    realms_list = cursor.fetchall()
+    conn.close()
+    return render_template('realms.html', realms=realms_list)
+
+@app.route('/realms/add', methods=['POST'])
+@login_required
+def add_realm():
+    realm_name = request.form.get('name')
+    if realm_name:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO realms (name) VALUES (?)", (realm_name,))
+            conn.commit()
+            conn.close()
+            flash(f'Realm "{realm_name}" added successfully!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('realms'))
+
+@app.route('/realms/delete/<int:realm_id>', methods=['POST'])
+@login_required
+def delete_realm(realm_id):
+    try:
+        conn = db.get_connection()
         cursor = conn.cursor()
-        
-        # Profiles table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS profiles (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
-                role TEXT NOT NULL,
-                bloodpoints INTEGER DEFAULT 0,
-                auric_cells INTEGER DEFAULT 0
-            )
-        ''')
-        
-        # Add user_id column if it doesn't exist (migration for ownership)
-        cursor.execute("PRAGMA table_info(profiles)")
-        columns = [column[1] for column in cursor.fetchall()]
-        if 'user_id' not in columns:
-            cursor.execute("ALTER TABLE profiles ADD COLUMN user_id TEXT")
-            print("✓ Added user_id column to profiles table for character ownership")
-        
-        # Separate levels for each minigame
-        if 'hunting_level' not in columns:
-            cursor.execute("ALTER TABLE profiles ADD COLUMN hunting_level INTEGER DEFAULT 1")
-            print("✓ Added hunting_level column to profiles table")
-        if 'hunting_xp' not in columns:
-            cursor.execute("ALTER TABLE profiles ADD COLUMN hunting_xp INTEGER DEFAULT 0")
-            print("✓ Added hunting_xp column to profiles table")
-        
-        if 'fishing_level' not in columns:
-            cursor.execute("ALTER TABLE profiles ADD COLUMN fishing_level INTEGER DEFAULT 1")
-            print("✓ Added fishing_level column to profiles table")
-        if 'fishing_xp' not in columns:
-            cursor.execute("ALTER TABLE profiles ADD COLUMN fishing_xp INTEGER DEFAULT 0")
-            print("✓ Added fishing_xp column to profiles table")
-        
-        if 'scavenging_level' not in columns:
-            cursor.execute("ALTER TABLE profiles ADD COLUMN scavenging_level INTEGER DEFAULT 1")
-            print("✓ Added scavenging_level column to profiles table")
-        if 'scavenging_xp' not in columns:
-            cursor.execute("ALTER TABLE profiles ADD COLUMN scavenging_xp INTEGER DEFAULT 0")
-            print("✓ Added scavenging_xp column to profiles table")
-        
-        # Inventory table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS inventory (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                character_name TEXT NOT NULL,
-                item_name TEXT NOT NULL,
-                FOREIGN KEY (character_name) REFERENCES profiles(name) ON DELETE CASCADE
-            )
-        ''')
-        
-        # Shop items table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS shop_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_name TEXT UNIQUE NOT NULL,
-                price INTEGER NOT NULL,
-                description TEXT
-            )
-        ''')
-        
-        # Add category and currency_type columns if they don't exist (migration)
-        cursor.execute("PRAGMA table_info(shop_items)")
-        shop_columns = [column[1] for column in cursor.fetchall()]
-        if 'category' not in shop_columns:
-            cursor.execute("ALTER TABLE shop_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
-            print("✓ Added category column to shop_items table")
-        if 'currency_type' not in shop_columns:
-            cursor.execute("ALTER TABLE shop_items ADD COLUMN currency_type TEXT DEFAULT 'bloodpoints'")
-            print("✓ Added currency_type column to shop_items table")
-        
-        # Trial messages table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS trial_messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                role TEXT NOT NULL,
-                performance_level INTEGER NOT NULL,
-                message TEXT NOT NULL
-            )
-        ''')
-        
-        # Realms table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS realms (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL
-            )
-        ''')
-        
-        # Hunting items table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS hunting_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_name TEXT,
-                message TEXT NOT NULL
-            )
-        ''')
-        
-        # Fishing items table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS fishing_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_name TEXT,
-                message TEXT NOT NULL
-            )
-        ''')
-        
-        # Scavenging items table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS scavenging_items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_name TEXT,
-                message TEXT NOT NULL
-            )
-        ''')
-        
-        # Add category column to minigame tables if missing (migration)
-        cursor.execute("PRAGMA table_info(hunting_items)")
-        hunting_columns = [column[1] for column in cursor.fetchall()]
-        if 'category' not in hunting_columns:
-            cursor.execute("ALTER TABLE hunting_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
-            print("✓ Added category column to hunting_items table")
-        if 'sell_value' not in hunting_columns:
-            cursor.execute("ALTER TABLE hunting_items ADD COLUMN sell_value INTEGER DEFAULT 0")
-            print("✓ Added sell_value column to hunting_items table")
-        if 'weight' not in hunting_columns:
-            cursor.execute("ALTER TABLE hunting_items ADD COLUMN weight INTEGER DEFAULT 10")
-            print("✓ Added weight column to hunting_items table")
-        if 'difficulty' not in hunting_columns:
-            cursor.execute("ALTER TABLE hunting_items ADD COLUMN difficulty INTEGER DEFAULT 10")
-            print("✓ Added difficulty column to hunting_items table")
-        if 'flee_message' not in hunting_columns:
-            cursor.execute("ALTER TABLE hunting_items ADD COLUMN flee_message TEXT")
-            print("✓ Added flee_message column to hunting_items table")
-        if 'fail_message' not in hunting_columns:
-            cursor.execute("ALTER TABLE hunting_items ADD COLUMN fail_message TEXT")
-            print("✓ Added fail_message column to hunting_items table")
-        
-        cursor.execute("PRAGMA table_info(fishing_items)")
-        fishing_columns = [column[1] for column in cursor.fetchall()]
-        if 'category' not in fishing_columns:
-            cursor.execute("ALTER TABLE fishing_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
-            print("✓ Added category column to fishing_items table")
-        if 'sell_value' not in fishing_columns:
-            cursor.execute("ALTER TABLE fishing_items ADD COLUMN sell_value INTEGER DEFAULT 0")
-            print("✓ Added sell_value column to fishing_items table")
-        if 'weight' not in fishing_columns:
-            cursor.execute("ALTER TABLE fishing_items ADD COLUMN weight INTEGER DEFAULT 10")
-            print("✓ Added weight column to fishing_items table")
-        if 'difficulty' not in fishing_columns:
-            cursor.execute("ALTER TABLE fishing_items ADD COLUMN difficulty INTEGER DEFAULT 10")
-            print("✓ Added difficulty column to fishing_items table")
-        if 'flee_message' not in fishing_columns:
-            cursor.execute("ALTER TABLE fishing_items ADD COLUMN flee_message TEXT")
-            print("✓ Added flee_message column to fishing_items table")
-        if 'fail_message' not in fishing_columns:
-            cursor.execute("ALTER TABLE fishing_items ADD COLUMN fail_message TEXT")
-            print("✓ Added fail_message column to fishing_items table")
-        
-        cursor.execute("PRAGMA table_info(scavenging_items)")
-        scavenging_columns = [column[1] for column in cursor.fetchall()]
-        if 'category' not in scavenging_columns:
-            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN category TEXT DEFAULT 'Miscellaneous'")
-            print("✓ Added category column to scavenging_items table")
-        if 'sell_value' not in scavenging_columns:
-            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN sell_value INTEGER DEFAULT 0")
-            print("✓ Added sell_value column to scavenging_items table")
-        if 'weight' not in scavenging_columns:
-            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN weight INTEGER DEFAULT 10")
-            print("✓ Added weight column to scavenging_items table")
-        if 'difficulty' not in scavenging_columns:
-            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN difficulty INTEGER DEFAULT 10")
-            print("✓ Added difficulty column to scavenging_items table")
-        if 'flee_message' not in scavenging_columns:
-            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN flee_message TEXT")
-            print("✓ Added flee_message column to scavenging_items table")
-        if 'fail_message' not in scavenging_columns:
-            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN fail_message TEXT")
-            print("✓ Added fail_message column to scavenging_items table")
-        
+        cursor.execute("DELETE FROM realms WHERE id = ?", (realm_id,))
         conn.commit()
         conn.close()
+        flash('Realm deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('realms'))
+
+@app.route('/realms/edit/<int:realm_id>', methods=['POST'])
+@login_required
+def edit_realm(realm_id):
+    new_name = request.form.get('name')
+    if new_name:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE realms SET name = ? WHERE id = ?", (new_name, realm_id))
+            conn.commit()
+            conn.close()
+            flash('Realm updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('realms'))
+
+# ==================== SHOP ROUTES ====================
+
+@app.route('/shop')
+@login_required
+def shop():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM shop_items ORDER BY price")
+    items = cursor.fetchall()
+    conn.close()
+    return render_template('shop.html', items=items)
+
+@app.route('/shop/add', methods=['POST'])
+@login_required
+def add_shop_item():
+    item_name = request.form.get('name')
+    price = request.form.get('price')
+    description = request.form.get('description')
+    category = request.form.get('category', 'Miscellaneous')
+    currency_type = request.form.get('currency_type', 'bloodpoints')
     
-    def populate_initial_data(self):
-        conn = self.get_connection()
+    if item_name and price:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO shop_items (item_name, price, description, category, currency_type) VALUES (?, ?, ?, ?, ?)",
+                         (item_name, int(price), description, category, currency_type))
+            conn.commit()
+            conn.close()
+            flash(f'Item "{item_name}" added to shop!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('shop'))
+
+@app.route('/shop/delete/<int:item_id>', methods=['POST'])
+@login_required
+def delete_shop_item(item_id):
+    try:
+        conn = db.get_connection()
         cursor = conn.cursor()
-        
-        # Check if data already exists
-        cursor.execute("SELECT COUNT(*) FROM shop_items")
-        if cursor.fetchone()[0] == 0:
-            # Add shop items
-            shop_items = [
-                ("Medkit", 3000, "Heal yourself or others"),
-                ("Toolbox", 4000, "Repair generators faster"),
-                ("Flashlight", 2500, "Blind the killer"),
-                ("Map", 3500, "Track objectives"),
-                ("Key", 5000, "Open the hatch"),
-                ("First Aid Kit", 2000, "Basic healing item"),
-                ("Engineer's Toolbox", 6000, "Advanced repair tool"),
-                ("Sport Flashlight", 4500, "High-quality flashlight")
-            ]
-            cursor.executemany("INSERT INTO shop_items (item_name, price, description) VALUES (?, ?, ?)", shop_items)
-        
-        # Check and add trial messages
-        cursor.execute("SELECT COUNT(*) FROM trial_messages")
-        if cursor.fetchone()[0] == 0:
-            trial_messages = [
-                # Killer messages - Performance 0 (0 Kills - Total Failure)
-                ("Killer", 0, "A complete failure. All survivors escaped. The Entity is furious with your incompetence."),
-                ("Killer", 0, "Humiliating defeat. Not a single survivor fell to your blade. Shame fills the fog."),
-                ("Killer", 0, "The survivors toyed with you. All four escaped unscathed. You have disappointed The Entity."),
-                
-                # Killer messages - Performance 1 (1 Kill - Poor)
-                ("Killer", 1, "The survivors proved elusive. You managed one sacrifice, but three escaped into the fog."),
-                ("Killer", 1, "Your hunt was challenging. Only one survivor fell to your blade tonight."),
-                ("Killer", 1, "The Entity whispers its disappointment. Most survivors escaped your grasp."),
-                
-                # Killer messages - Performance 2 (2 Kills - Average)
-                ("Killer", 2, "A decent hunt. Two survivors sacrificed, but two escaped through the gates."),
-                ("Killer", 2, "You stalked through the fog with moderate success. Half the survivors fell."),
-                ("Killer", 2, "The trial ended in balance. Two hooks, two escapes."),
-                
-                # Killer messages - Performance 3 (3 Kills - Good)
-                ("Killer", 3, "An impressive display of power! Three survivors sacrificed, only one escaped."),
-                ("Killer", 3, "Your brutal efficiency earned a strong victory. Three fell to The Entity."),
-                ("Killer", 3, "You dominated the trial. Three survivors on hooks, one narrowly escaped."),
-                
-                # Killer messages - Performance 4 (4 Kills - Perfect)
-                ("Killer", 4, "FLAWLESS VICTORY! All survivors sacrificed. The Entity is greatly pleased."),
-                ("Killer", 4, "The trial ended with all survivors on hooks. A perfect sacrifice to The Entity."),
-                ("Killer", 4, "Total domination! No one survived. The fog consumes all."),
-                
-                # Survivor messages - Performance 0 (0 Escapes - Total Failure)
-                ("Survivor", 0, "Total annihilation. All four survivors were sacrificed. The killer was unstoppable."),
-                ("Survivor", 0, "A massacre. No one escaped. The Entity claims all four souls tonight."),
-                ("Survivor", 0, "Complete defeat. The killer showed no mercy. All survivors fell to the hooks."),
-                
-                # Survivor messages - Performance 1 (1 Escape - Poor)
-                ("Survivor", 1, "You barely made it out alive. Three teammates fell, but you escaped alone."),
-                ("Survivor", 1, "A desperate escape. The killer claimed your teammates, but you found the hatch."),
-                ("Survivor", 1, "Survival came at a cost. Only you made it through the gates."),
-                
-                # Survivor messages - Performance 2 (2 Escapes - Average)
-                ("Survivor", 2, "A difficult trial. You and one teammate escaped, but two were sacrificed."),
-                ("Survivor", 2, "Half the team made it out. A bittersweet escape through the fog."),
-                ("Survivor", 2, "Two escaped, two sacrificed. The killer fought well tonight."),
-                
-                # Survivor messages - Performance 3 (3 Escapes - Good)
-                ("Survivor", 3, "Excellent teamwork! Three survivors escaped, though one fell to the killer."),
-                ("Survivor", 3, "You unhooked your teammates and healed the wounded. Three made it out!"),
-                ("Survivor", 3, "An impressive trial. Three survivors through the gates, one sacrificed."),
-                
-                # Survivor messages - Performance 4 (4 Escapes - Perfect)
-                ("Survivor", 4, "PERFECT ESCAPE! All four survivors made it out. The killer stands defeated!"),
-                ("Survivor", 4, "Working together, you managed to repair all generators and escape with your team."),
-                ("Survivor", 4, "You looped the killer for five generators. All four survivors escaped to safety!")
-            ]
-            cursor.executemany("INSERT INTO trial_messages (role, performance_level, message) VALUES (?, ?, ?)", trial_messages)
-        
-        # Check and add realms
-        cursor.execute("SELECT COUNT(*) FROM realms")
-        if cursor.fetchone()[0] == 0:
-            realms = [
-                ("MacMillan Estate",),
-                ("Autohaven Wreckers",),
-                ("Coldwind Farm",),
-                ("Crotus Prenn Asylum",),
-                ("Haddonfield",),
-                ("Backwater Swamp",),
-                ("Léry's Memorial Institute",),
-                ("Red Forest",),
-                ("Springwood",),
-                ("Gideon Meat Plant",),
-                ("Yamaoka Estate",),
-                ("Ormond",),
-                ("Hawkins National Laboratory",),
-                ("Grave of Glenvale",),
-                ("Silent Hill",),
-                ("Raccoon City",),
-                ("Forsaken Boneyard",)
-            ]
-            cursor.executemany("INSERT INTO realms (name) VALUES (?)", realms)
-        
-        # Check and add hunting items
-        cursor.execute("SELECT COUNT(*) FROM hunting_items")
-        if cursor.fetchone()[0] == 0:
-            hunting_items = [
-                ("Fresh Meat", "You tracked and hunted a wild animal. Fresh meat acquired!"),
-                ("Animal Hide", "You successfully hunted down prey and collected its hide."),
-                ("Bone Fragment", "Your hunt was successful. You collected bone fragments."),
-                (None, "Your hunt was unsuccessful. The prey escaped into the fog."),
-                (None, "You searched the woods but found nothing. Better luck next time.")
-            ]
-            cursor.executemany("INSERT INTO hunting_items (item_name, message) VALUES (?, ?)", hunting_items)
-        
-        # Check and add fishing items
-        cursor.execute("SELECT COUNT(*) FROM fishing_items")
-        if cursor.fetchone()[0] == 0:
-            fishing_items = [
-                ("Fresh Fish", "You caught a fresh fish from the murky waters!"),
-                ("Old Boot", "You reeled in... an old boot. At least it's something."),
-                ("Strange Relic", "Something ancient surfaced. A strange relic from the depths."),
-                (None, "The fish weren't biting today. You caught nothing."),
-                (None, "Your line got tangled. No catch this time.")
-            ]
-            cursor.executemany("INSERT INTO fishing_items (item_name, message) VALUES (?, ?)", fishing_items)
-        
-        # Check and add scavenging items
-        cursor.execute("SELECT COUNT(*) FROM scavenging_items")
-        if cursor.fetchone()[0] == 0:
-            scavenging_items = [
-                ("Scrap Metal", "You found some useful scrap metal among the debris."),
-                ("Old Coins", "You discovered a stash of old coins hidden away."),
-                ("Medical Supplies", "You scavenged some medical supplies from an abandoned building."),
-                ("Mysterious Map", "You found a mysterious map with strange markings."),
-                (None, "Your search turned up empty. Nothing of value here."),
-                (None, "You combed through the area but found nothing useful.")
-            ]
-            cursor.executemany("INSERT INTO scavenging_items (item_name, message) VALUES (?, ?)", scavenging_items)
-        
+        cursor.execute("DELETE FROM shop_items WHERE id = ?", (item_id,))
         conn.commit()
         conn.close()
+        flash('Shop item deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('shop'))
+
+@app.route('/shop/edit/<int:item_id>', methods=['POST'])
+@login_required
+def edit_shop_item(item_id):
+    item_name = request.form.get('name')
+    price = request.form.get('price')
+    description = request.form.get('description')
+    category = request.form.get('category', 'Miscellaneous')
+    currency_type = request.form.get('currency_type', 'bloodpoints')
     
-    # Profile Methods
-    def create_profile(self, name, role, user_id):
+    if item_name and price:
         try:
-            conn = self.get_connection()
+            conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO profiles (name, role, user_id) VALUES (?, ?, ?)", 
-                         (name, role, str(user_id)))
+            cursor.execute("UPDATE shop_items SET item_name = ?, price = ?, description = ?, category = ?, currency_type = ? WHERE id = ?",
+                         (item_name, int(price), description, category, currency_type, item_id))
             conn.commit()
             conn.close()
-            return True, f"Profile created for {name}"
-        except sqlite3.IntegrityError:
-            return False, f"Profile {name} already exists!"
+            flash('Shop item updated successfully!', 'success')
         except Exception as e:
-            return False, f"Error: {str(e)}"
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('shop'))
+
+# ==================== TRIALS ROUTES ====================
+
+@app.route('/trials')
+@login_required
+def trials():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM trial_messages ORDER BY performance_level, role, id")
+    messages = cursor.fetchall()
+    conn.close()
+    return render_template('trials.html', messages=messages)
+
+@app.route('/trials/add', methods=['POST'])
+@login_required
+def add_trial_message():
+    role = request.form.get('role')
+    performance_level = request.form.get('performance_level')
+    message = request.form.get('message')
     
-    def check_ownership(self, name, user_id):
-        """Check if user owns the character. Returns (is_owner, message)"""
+    if role and performance_level is not None and message:
         try:
-            # ADMIN BYPASS - Admins can edit everything
-            if int(user_id) in ADMIN_IDS:
-                return True, "Admin access"
-            
-            conn = self.get_connection()
+            conn = db.get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT user_id FROM profiles WHERE name = ?", (name,))
-            result = cursor.fetchone()
-            conn.close()
-            
-            if not result:
-                return False, f"Character **{name}** not found!"
-            
-            owner_id = result[0]
-            
-            # If user_id is NULL (legacy character created before ownership), anyone can edit
-            if owner_id is None:
-                return True, "Legacy character (no owner)"
-            
-            # Check if user is the owner
-            if str(owner_id) == str(user_id):
-                return True, "You own this character"
-            
-            return False, f"❌ You don't own **{name}**! Only the creator can edit this character."
-            
-        except Exception as e:
-            return False, f"Error: {str(e)}"
-    
-    def claim_character(self, name, user_id):
-        """Claim an unowned (legacy) character"""
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT user_id FROM profiles WHERE name = ?", (name,))
-            result = cursor.fetchone()
-            
-            if not result:
-                conn.close()
-                return False, f"Character **{name}** not found!"
-            
-            owner_id = result[0]
-            
-            if owner_id is not None:
-                conn.close()
-                return False, f"**{name}** is already owned by someone!"
-            
-            # Claim it
-            cursor.execute("UPDATE profiles SET user_id = ? WHERE name = ?", (str(user_id), name))
+            cursor.execute("INSERT INTO trial_messages (role, performance_level, message) VALUES (?, ?, ?)", 
+                         (role, int(performance_level), message))
             conn.commit()
             conn.close()
-            return True, f"✅ You now own **{name}**!"
-            
+            flash(f'Trial message for {role} (Level {performance_level}) added!', 'success')
         except Exception as e:
-            return False, f"Error: {str(e)}"
-    
-    def assign_owner(self, character_name, new_owner_id):
-        """Manually assign ownership of a character (admin only)"""
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (character_name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Character **{character_name}** not found!"
-            
-            cursor.execute("UPDATE profiles SET user_id = ? WHERE name = ?", 
-                          (str(new_owner_id), character_name))
-            conn.commit()
-            conn.close()
-            return True, f"✅ Assigned **{character_name}** to user ID {new_owner_id}"
-            
-        except Exception as e:
-            return False, f"Error: {str(e)}"
-    
-    def edit_profile_name(self, old_name, new_name):
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (old_name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Profile {old_name} not found!"
-            
-            cursor.execute("UPDATE profiles SET name = ? WHERE name = ?", (new_name, old_name))
-            cursor.execute("UPDATE inventory SET character_name = ? WHERE character_name = ?", (new_name, old_name))
-            conn.commit()
-            conn.close()
-            return True, f"Profile renamed to {new_name}"
-        except sqlite3.IntegrityError:
-            return False, f"Profile {new_name} already exists!"
-        except Exception as e:
-            return False, f"Error: {str(e)}"
-    
-    def edit_profile_role(self, name, new_role):
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Profile {name} not found!"
-            
-            cursor.execute("UPDATE profiles SET role = ? WHERE name = ?", (new_role, name))
-            conn.commit()
-            conn.close()
-            return True, f"Role updated to {new_role}"
-        except Exception as e:
-            return False, f"Error: {str(e)}"
-    
-    def delete_profile(self, name):
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Profile {name} not found!"
-            
-            cursor.execute("DELETE FROM profiles WHERE name = ?", (name,))
-            cursor.execute("DELETE FROM inventory WHERE character_name = ?", (name,))
-            conn.commit()
-            conn.close()
-            return True, f"Profile {name} deleted"
-        except Exception as e:
-            return False, f"Error: {str(e)}"
-    
-    def get_profile(self, name):
-        conn = self.get_connection()
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('trials'))
+
+@app.route('/trials/delete/<int:message_id>', methods=['POST'])
+@login_required
+def delete_trial_message(message_id):
+    try:
+        conn = db.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
-        result = cursor.fetchone()
+        cursor.execute("DELETE FROM trial_messages WHERE id = ?", (message_id,))
+        conn.commit()
         conn.close()
-        
-        if result:
-            return {
-                'id': result[0],
-                'name': result[1],
-                'role': result[2],
-                'bloodpoints': result[3],
-                'auric_cells': result[4],
-                'user_id': result[5] if len(result) > 5 else None,
-                'hunting_level': result[6] if len(result) > 6 else 1,
-                'hunting_xp': result[7] if len(result) > 7 else 0,
-                'fishing_level': result[8] if len(result) > 8 else 1,
-                'fishing_xp': result[9] if len(result) > 9 else 0,
-                'scavenging_level': result[10] if len(result) > 10 else 1,
-                'scavenging_xp': result[11] if len(result) > 11 else 0,
-            }
-        return None
+        flash('Trial message deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('trials'))
+
+@app.route('/trials/edit/<int:message_id>', methods=['POST'])
+@login_required
+def edit_trial_message(message_id):
+    role = request.form.get('role')
+    performance_level = request.form.get('performance_level')
+    message = request.form.get('message')
     
-    # Currency Methods
-    def add_currency(self, name, currency_type, amount):
+    if role and performance_level is not None and message:
         try:
-            conn = self.get_connection()
+            conn = db.get_connection()
             cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Profile {name} not found!"
-            
-            cursor.execute(f"UPDATE profiles SET {currency_type} = {currency_type} + ? WHERE name = ?", (amount, name))
+            cursor.execute("UPDATE trial_messages SET role = ?, performance_level = ?, message = ? WHERE id = ?",
+                         (role, int(performance_level), message, message_id))
             conn.commit()
             conn.close()
-            return True, f"Added {amount} {currency_type}"
+            flash('Trial message updated successfully!', 'success')
         except Exception as e:
-            return False, f"Error: {str(e)}"
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('trials'))
+
+# ==================== HUNTING ROUTES ====================
+
+@app.route('/hunting')
+@login_required
+def hunting():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM hunting_items")
+    items = cursor.fetchall()
+    conn.close()
+    return render_template('hunting.html', items=items)
+
+@app.route('/hunting/add', methods=['POST'])
+@login_required
+def add_hunting_item():
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
+    difficulty = request.form.get('difficulty', 10)
+    flee_message = request.form.get('flee_message', '')
+    fail_message = request.form.get('fail_message', '')
     
-    def remove_currency(self, name, currency_type, amount):
+    if message:
         try:
-            conn = self.get_connection()
+            conn = db.get_connection()
             cursor = conn.cursor()
-            
-            cursor.execute(f"SELECT {currency_type} FROM profiles WHERE name = ?", (name,))
-            result = cursor.fetchone()
-            
-            if not result:
-                conn.close()
-                return False, f"Profile {name} not found!"
-            
-            current_amount = result[0]
-            if current_amount < amount:
-                conn.close()
-                return False, f"Insufficient {currency_type}! Current: {current_amount}"
-            
-            cursor.execute(f"UPDATE profiles SET {currency_type} = {currency_type} - ? WHERE name = ?", (amount, name))
+            cursor.execute("INSERT INTO hunting_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, difficulty, flee_message, fail_message))
             conn.commit()
             conn.close()
-            return True, f"Removed {amount} {currency_type}"
+            flash('Hunting item added!', 'success')
         except Exception as e:
-            return False, f"Error: {str(e)}"
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('hunting'))
+
+@app.route('/hunting/delete/<int:item_id>', methods=['POST'])
+@login_required
+def delete_hunting_item(item_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM hunting_items WHERE id = ?", (item_id,))
+        conn.commit()
+        conn.close()
+        flash('Hunting item deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('hunting'))
+
+@app.route('/hunting/edit/<int:item_id>', methods=['POST'])
+@login_required
+def edit_hunting_item(item_id):
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
+    difficulty = request.form.get('difficulty', 10)
+    flee_message = request.form.get('flee_message', '')
+    fail_message = request.form.get('fail_message', '')
     
-    # Inventory Methods
-    def add_item(self, name, item_name):
+    if message:
         try:
-            conn = self.get_connection()
+            conn = db.get_connection()
             cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Profile {name} not found!"
-            
-            cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
+            cursor.execute("UPDATE hunting_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ?, difficulty = ?, flee_message = ?, fail_message = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, difficulty, flee_message, fail_message, item_id))
             conn.commit()
             conn.close()
-            return True, f"Added {item_name} to inventory"
+            flash('Hunting item updated successfully!', 'success')
         except Exception as e:
-            return False, f"Error: {str(e)}"
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('hunting'))
+
+# ==================== FISHING ROUTES ====================
+
+@app.route('/fishing')
+@login_required
+def fishing():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM fishing_items")
+    items = cursor.fetchall()
+    conn.close()
+    return render_template('fishing.html', items=items)
+
+@app.route('/fishing/add', methods=['POST'])
+@login_required
+def add_fishing_item():
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
+    difficulty = request.form.get('difficulty', 10)
+    flee_message = request.form.get('flee_message', '')
+    fail_message = request.form.get('fail_message', '')
     
-    def remove_item(self, name, item_name):
+    if message:
         try:
-            conn = self.get_connection()
+            conn = db.get_connection()
             cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM inventory WHERE character_name = ? AND item_name = ?", (name, item_name))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"{item_name} not found in {name}'s inventory!"
-            
-            cursor.execute("DELETE FROM inventory WHERE character_name = ? AND item_name = ? LIMIT 1", (name, item_name))
+            cursor.execute("INSERT INTO fishing_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, difficulty, flee_message, fail_message))
             conn.commit()
             conn.close()
-            return True, f"Removed {item_name} from inventory"
+            flash('Fishing item added!', 'success')
         except Exception as e:
-            return False, f"Error: {str(e)}"
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('fishing'))
+
+@app.route('/fishing/delete/<int:item_id>', methods=['POST'])
+@login_required
+def delete_fishing_item(item_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM fishing_items WHERE id = ?", (item_id,))
+        conn.commit()
+        conn.close()
+        flash('Fishing item deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('fishing'))
+
+@app.route('/fishing/edit/<int:item_id>', methods=['POST'])
+@login_required
+def edit_fishing_item(item_id):
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
+    difficulty = request.form.get('difficulty', 10)
+    flee_message = request.form.get('flee_message', '')
+    fail_message = request.form.get('fail_message', '')
     
-    def get_inventory(self, name):
-        conn = self.get_connection()
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE fishing_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ?, difficulty = ?, flee_message = ?, fail_message = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, difficulty, flee_message, fail_message, item_id))
+            conn.commit()
+            conn.close()
+            flash('Fishing item updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('fishing'))
+
+# ==================== SCAVENGING ROUTES ====================
+
+@app.route('/scavenging')
+@login_required
+def scavenging():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM scavenging_items")
+    items = cursor.fetchall()
+    conn.close()
+    return render_template('scavenging.html', items=items)
+
+@app.route('/scavenging/add', methods=['POST'])
+@login_required
+def add_scavenging_item():
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
+    difficulty = request.form.get('difficulty', 10)
+    flee_message = request.form.get('flee_message', '')
+    fail_message = request.form.get('fail_message', '')
+    
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO scavenging_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, difficulty, flee_message, fail_message))
+            conn.commit()
+            conn.close()
+            flash('Scavenging item added!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('scavenging'))
+
+@app.route('/scavenging/delete/<int:item_id>', methods=['POST'])
+@login_required
+def delete_scavenging_item(item_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM scavenging_items WHERE id = ?", (item_id,))
+        conn.commit()
+        conn.close()
+        flash('Scavenging item deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('scavenging'))
+
+@app.route('/scavenging/edit/<int:item_id>', methods=['POST'])
+@login_required
+def edit_scavenging_item(item_id):
+    item_name = request.form.get('item_name')
+    message = request.form.get('message')
+    category = request.form.get('category', 'Miscellaneous')
+    description = request.form.get('description')
+    sell_value = request.form.get('sell_value', 0)
+    weight = request.form.get('weight', 10)
+    difficulty = request.form.get('difficulty', 10)
+    flee_message = request.form.get('flee_message', '')
+    fail_message = request.form.get('fail_message', '')
+    
+    if message:
+        try:
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE scavenging_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ?, difficulty = ?, flee_message = ?, fail_message = ? WHERE id = ?",
+                         (item_name if item_name else None, message, category if item_name else None, description, sell_value, weight, difficulty, flee_message, fail_message, item_id))
+            conn.commit()
+            conn.close()
+            flash('Scavenging item updated successfully!', 'success')
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('scavenging'))
+
+# ==================== PROFILES ROUTES ====================
+
+@app.route('/profiles')
+@login_required
+def profiles():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM profiles ORDER BY name")
+    profiles_list = cursor.fetchall()
+    conn.close()
+    return render_template('profiles.html', profiles=profiles_list)
+
+# ==================== EMBEDS ROUTES (Separated from Reaction Roles) ====================
+
+@app.route('/embeds')
+@login_required
+def embeds():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM embeds ORDER BY id DESC")
+    embeds_list = cursor.fetchall()
+    
+    # Get welcome message settings
+    cursor.execute("SELECT * FROM welcome_settings WHERE id = 1")
+    welcome_settings = cursor.fetchone()
+    
+    conn.close()
+    return render_template('embeds.html', embeds=embeds_list, welcome_settings=welcome_settings)
+
+@app.route('/embeds/welcome/settings', methods=['POST'])
+@login_required
+def update_welcome_settings():
+    enabled = request.form.get('enabled') == '1'
+    embed_id = request.form.get('embed_id')
+    channel_id = request.form.get('channel_id')
+    
+    try:
+        conn = db.get_connection()
         cursor = conn.cursor()
         
-        # First, get inventory counts (accurate count from inventory table only)
-        cursor.execute("""
-            SELECT item_name, COUNT(*) as quantity
-            FROM inventory
-            WHERE character_name = ?
-            GROUP BY item_name
-        """, (name,))
-        inventory_counts = {row[0]: row[1] for row in cursor.fetchall()}
-        
-        # Then get categories for each item (using DISTINCT to avoid duplicates from multiple scenarios)
-        cursor.execute("""
-            SELECT DISTINCT i.item_name,
-                   COALESCE(
-                       (SELECT category FROM shop_items WHERE item_name = i.item_name LIMIT 1),
-                       (SELECT category FROM hunting_items WHERE item_name = i.item_name LIMIT 1),
-                       (SELECT category FROM fishing_items WHERE item_name = i.item_name LIMIT 1),
-                       (SELECT category FROM scavenging_items WHERE item_name = i.item_name LIMIT 1),
-                       'Miscellaneous'
-                   ) as category
-            FROM inventory i
-            WHERE i.character_name = ?
-            ORDER BY category, i.item_name
-        """, (name,))
-        results = cursor.fetchall()
+        cursor.execute("""INSERT OR REPLACE INTO welcome_settings (id, enabled, embed_id, channel_id)
+                         VALUES (1, ?, ?, ?)""", (enabled, embed_id if embed_id else None, channel_id))
+        conn.commit()
         conn.close()
-        
-        # Categorize items
-        categorized = {
-            'Consumables': [],
-            'Tools': [],
-            'Collectibles': [],
-            'Miscellaneous': [],
-            'Cosmetics': [],
-            'Pets': [],
-            'NSFW': [],
-        }
-        
-        for item_name, category in results:
-            item_data = {
-                'item_name': item_name, 
-                'quantity': inventory_counts.get(item_name, 0)  # Get actual count from inventory
-            }
-            
-            # Use the category from any of the tables
-            if category in categorized:
-                categorized[category].append(item_data)
-            else:
-                # If category doesn't exist in our dict, add to Miscellaneous
-                categorized['Miscellaneous'].append(item_data)
-        
-        return categorized
+        flash('Welcome settings updated!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
     
-    # Shop Methods
-    def buy_item(self, name, item_name):
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            # Check if profile exists and get both currencies
-            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE name = ?", (name,))
-            result = cursor.fetchone()
-            if not result:
-                conn.close()
-                return False, f"Profile {name} not found!", 0, None
-            
-            bloodpoints, auric_cells = result[0], result[1]
-            
-            # Check if item exists in shop and get its currency type
-            cursor.execute("SELECT price, currency_type FROM shop_items WHERE item_name = ?", (item_name,))
-            result = cursor.fetchone()
-            if not result:
-                conn.close()
-                return False, f"Item {item_name} not found in shop!", 0, None
-            
-            price = result[0]
-            currency_type = result[1] if result[1] else 'bloodpoints'  # Default to bloodpoints if NULL
-            
-            # Check currency and balance based on type
-            if currency_type == 'auric_cells':
-                current_balance = auric_cells
-                currency_name = "Auric Cells"
-                currency_column = "auric_cells"
-            else:
-                current_balance = bloodpoints
-                currency_name = "Bloodpoints"
-                currency_column = "bloodpoints"
-            
-            # Check if enough currency
-            if current_balance < price:
-                conn.close()
-                return False, f"Insufficient {currency_name}! This item costs **{price:,}**, you have **{current_balance:,}**.", price, currency_type
-            
-            # Deduct currency and add item
-            cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (price, name))
-            cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
-            
-            conn.commit()
-            conn.close()
-            return True, f"Purchased {item_name}", price, currency_type
-        except Exception as e:
-            return False, f"Error: {str(e)}", 0, None
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/create', methods=['POST'])
+@login_required
+def create_embed():
+    name = request.form.get('name')
+    title = request.form.get('title')
+    description = request.form.get('description')
+    color = request.form.get('color', '#000000').lstrip('#')
+    footer_text = request.form.get('footer_text')
+    image_url = request.form.get('image_url')
+    thumbnail_url = request.form.get('thumbnail_url')
     
-    def buy_items_bulk(self, name, item_names):
-        """Buy multiple items at once. Returns (success, message, total_price, currency_type, items_purchased)"""
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            # Check if profile exists and get both currencies
-            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE name = ?", (name,))
-            result = cursor.fetchone()
-            if not result:
-                conn.close()
-                return False, f"Profile {name} not found!", 0, None, []
-            
-            bloodpoints, auric_cells = result[0], result[1]
-            
-            # Get all items and calculate total per currency type
-            items_to_buy = []
-            bp_total = 0
-            ac_total = 0
-            
-            for item_name in item_names:
-                cursor.execute("SELECT price, currency_type FROM shop_items WHERE item_name = ?", (item_name,))
-                result = cursor.fetchone()
+    # Handle file uploads
+    if 'image_file' in request.files:
+        image_file = request.files['image_file']
+        if image_file and image_file.filename:
+            try:
+                import requests
+                bot_url = "http://localhost:5002/upload_image"
+                files = {'file': (image_file.filename, image_file.stream, image_file.mimetype)}
+                response = requests.post(bot_url, files=files, timeout=10)
                 
-                if not result:
-                    conn.close()
-                    return False, f"Item **{item_name}** not found in shop!", 0, None, []
-                
-                price = result[0]
-                currency_type = result[1] if result[1] else 'bloodpoints'
-                
-                items_to_buy.append({
-                    'name': item_name,
-                    'price': price,
-                    'currency_type': currency_type
-                })
-                
-                if currency_type == 'auric_cells':
-                    ac_total += price
+                if response.status_code == 200:
+                    result = response.json()
+                    image_url = result.get('url')
+                    flash('Image uploaded successfully!', 'success')
                 else:
-                    bp_total += price
-            
-            # Check if mixing currencies
-            if bp_total > 0 and ac_total > 0:
-                conn.close()
-                return False, "❌ Cannot mix Bloodpoints and Auric Cells items in one purchase! Please buy them separately.", 0, None, []
-            
-            # Determine which currency we're using
-            if ac_total > 0:
-                total_price = ac_total
-                currency_type = 'auric_cells'
-                current_balance = auric_cells
-                currency_name = "Auric Cells"
-                currency_column = "auric_cells"
-            else:
-                total_price = bp_total
-                currency_type = 'bloodpoints'
-                current_balance = bloodpoints
-                currency_name = "Bloodpoints"
-                currency_column = "bloodpoints"
-            
-            # Check if enough currency
-            if current_balance < total_price:
-                conn.close()
-                return False, f"Insufficient {currency_name}! Total cost is **{total_price:,}**, you have **{current_balance:,}**.", total_price, currency_type, []
-            
-            # Deduct currency and add all items
-            cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (total_price, name))
-            
-            for item in items_to_buy:
-                cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item['name']))
-            
-            conn.commit()
-            conn.close()
-            
-            item_names_list = [item['name'] for item in items_to_buy]
-            return True, f"Purchased {len(items_to_buy)} items", total_price, currency_type, item_names_list
-            
-        except Exception as e:
-            return False, f"Error: {str(e)}", 0, None, []
+                    flash(f'Failed to upload image: {response.text}', 'danger')
+            except Exception as e:
+                flash(f'Error uploading image: {str(e)}', 'danger')
     
-    def use_items(self, name, item_names):
-        """Use (remove) multiple items from inventory. Returns (success, message, items_used)"""
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor()
-            
-            # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Profile **{name}** not found!", []
-            
-            items_used = []
-            items_not_found = []
-            
-            for item_name in item_names:
-                # Check if item exists in inventory
-                cursor.execute("SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT 1", 
-                             (name, item_name))
-                result = cursor.fetchone()
+    if 'thumbnail_file' in request.files:
+        thumbnail_file = request.files['thumbnail_file']
+        if thumbnail_file and thumbnail_file.filename:
+            try:
+                import requests
+                bot_url = "http://localhost:5002/upload_image"
+                files = {'file': (thumbnail_file.filename, thumbnail_file.stream, thumbnail_file.mimetype)}
+                response = requests.post(bot_url, files=files, timeout=10)
                 
-                if result:
-                    # Remove one instance of the item
-                    cursor.execute("DELETE FROM inventory WHERE id = ?", (result[0],))
-                    items_used.append(item_name)
+                if response.status_code == 200:
+                    result = response.json()
+                    thumbnail_url = result.get('url')
+                    flash('Thumbnail uploaded successfully!', 'success')
                 else:
-                    items_not_found.append(item_name)
-            
-            conn.commit()
-            conn.close()
-            
-            if not items_used:
-                return False, f"None of the items were found in **{name}**'s inventory!", []
-            
-            if items_not_found:
-                message = f"Some items not found: **{', '.join(items_not_found)}**"
-                return True, message, items_used
-            
-            return True, "Items used successfully", items_used
-            
-        except Exception as e:
-            return False, f"Error: {str(e)}", []
+                    flash(f'Failed to upload thumbnail: {response.text}', 'danger')
+            except Exception as e:
+                flash(f'Error uploading thumbnail: {str(e)}', 'danger')
     
-    def get_item_values(self, name, item_names):
-        """Get sell values for items. Returns (success, message, items_with_values, total_value)"""
+    if name:
         try:
-            conn = self.get_connection()
+            conn = db.get_connection()
             cursor = conn.cursor()
-            
-            # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Profile **{name}** not found!", [], 0
-            
-            items_info = []
-            total_value = 0
-            items_not_found = []
-            
-            for item_name in item_names:
-                # Check if item exists in inventory
-                cursor.execute("SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?", 
-                             (name, item_name))
-                quantity = cursor.fetchone()[0]
-                
-                if quantity == 0:
-                    items_not_found.append(item_name)
-                    continue
-                
-                # Get sell value from minigame tables
-                sell_value = 0
-                
-                # Check hunting_items
-                cursor.execute("SELECT sell_value FROM hunting_items WHERE item_name = ?", (item_name,))
-                result = cursor.fetchone()
-                if result:
-                    sell_value = result[0] or 0
-                
-                # Check fishing_items if not found
-                if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM fishing_items WHERE item_name = ?", (item_name,))
-                    result = cursor.fetchone()
-                    if result:
-                        sell_value = result[0] or 0
-                
-                # Check scavenging_items if not found
-                if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE item_name = ?", (item_name,))
-                    result = cursor.fetchone()
-                    if result:
-                        sell_value = result[0] or 0
-                
-                items_info.append({
-                    'name': item_name,
-                    'quantity': quantity,
-                    'sell_value': sell_value,
-                    'total': sell_value * quantity
-                })
-                total_value += sell_value * quantity
-            
+            cursor.execute("""INSERT INTO embeds 
+                            (name, title, description, color, footer_text, image_url, thumbnail_url) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                         (name, title, description, color, footer_text, image_url, thumbnail_url))
+            conn.commit()
             conn.close()
-            
-            if not items_info:
-                return False, f"None of the items were found in **{name}**'s inventory!", [], 0
-            
-            if items_not_found:
-                message = f"Some items not found: **{', '.join(items_not_found)}**"
-                return True, message, items_info, total_value
-            
-            return True, "Items valued successfully", items_info, total_value
-            
+            flash(f'Embed "{name}" created!', 'success')
         except Exception as e:
-            return False, f"Error: {str(e)}", [], 0
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/edit/<int:embed_id>', methods=['POST'])
+@login_required
+def edit_embed(embed_id):
+    name = request.form.get('name')
+    title = request.form.get('title')
+    description = request.form.get('description')
+    color = request.form.get('color', '#000000').lstrip('#')
+    footer_text = request.form.get('footer_text')
+    image_url = request.form.get('image_url')
+    thumbnail_url = request.form.get('thumbnail_url')
     
-    def sell_items(self, name, item_names):
-        """Sell items and add bloodpoints. Returns (success, message, items_sold, total_earned)"""
+    if name:
         try:
-            conn = self.get_connection()
+            conn = db.get_connection()
             cursor = conn.cursor()
-            
-            # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
-            if not cursor.fetchone():
-                conn.close()
-                return False, f"Profile **{name}** not found!", [], 0
-            
-            items_sold = []
-            total_earned = 0
-            items_not_found = []
-            items_no_value = []
-            
-            for item_name in item_names:
-                # Check if item exists in inventory
-                cursor.execute("SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT 1", 
-                             (name, item_name))
-                result = cursor.fetchone()
-                
-                if not result:
-                    items_not_found.append(item_name)
-                    continue
-                
-                inventory_id = result[0]
-                
-                # Get sell value from minigame tables
-                sell_value = 0
-                
-                # Check hunting_items
-                cursor.execute("SELECT sell_value FROM hunting_items WHERE item_name = ?", (item_name,))
-                result = cursor.fetchone()
-                if result:
-                    sell_value = result[0] or 0
-                
-                # Check fishing_items if not found
-                if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM fishing_items WHERE item_name = ?", (item_name,))
-                    result = cursor.fetchone()
-                    if result:
-                        sell_value = result[0] or 0
-                
-                # Check scavenging_items if not found
-                if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE item_name = ?", (item_name,))
-                    result = cursor.fetchone()
-                    if result:
-                        sell_value = result[0] or 0
-                
-                if sell_value == 0:
-                    items_no_value.append(item_name)
-                    continue
-                
-                # Remove item from inventory
-                cursor.execute("DELETE FROM inventory WHERE id = ?", (inventory_id,))
-                
-                # Add bloodpoints
-                cursor.execute("UPDATE profiles SET bloodpoints = bloodpoints + ? WHERE name = ?", 
-                             (sell_value, name))
-                
-                items_sold.append({
-                    'name': item_name,
-                    'sell_value': sell_value
-                })
-                total_earned += sell_value
-            
+            cursor.execute("""UPDATE embeds SET 
+                            name = ?, title = ?, description = ?, color = ?, 
+                            footer_text = ?, image_url = ?, thumbnail_url = ?
+                            WHERE id = ?""",
+                         (name, title, description, color, footer_text, image_url, thumbnail_url, embed_id))
             conn.commit()
             conn.close()
-            
-            if not items_sold:
-                if items_not_found:
-                    return False, f"Items not found in inventory: **{', '.join(items_not_found)}**", [], 0
-                elif items_no_value:
-                    return False, f"Items have no sell value: **{', '.join(items_no_value)}**", [], 0
-                else:
-                    return False, "No items could be sold!", [], 0
-            
-            message = "Items sold successfully"
-            if items_not_found:
-                message += f" (Not found: {', '.join(items_not_found)})"
-            if items_no_value:
-                message += f" (No value: {', '.join(items_no_value)})"
-            
-            return True, message, items_sold, total_earned
-            
+            flash('Embed updated!', 'success')
         except Exception as e:
-            return False, f"Error: {str(e)}", [], 0
-    
-    # Trial Methods
-    def complete_trial(self, name):
-        # Get the character's profile to check their role
-        profile = self.get_profile(name)
-        if not profile:
-            return None
-        
-        # Extract the role (either "Killer" or "Survivor")
-        role = profile['role']
-        
-        # Performance-based rewards
-        # Random performance: 0-4 escapes/kills
-        performance = random.randint(0, 4)
-        
-        # Get a RANDOM trial message for THIS SPECIFIC ROLE AND PERFORMANCE LEVEL
-        conn = self.get_connection()
+            flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/delete/<int:embed_id>', methods=['POST'])
+@login_required
+def delete_embed(embed_id):
+    try:
+        conn = db.get_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "SELECT message FROM trial_messages WHERE role = ? AND performance_level = ? ORDER BY RANDOM() LIMIT 1", 
-            (role, performance)
-        )
-        result = cursor.fetchone()
-        
-        # Use the random message, or fallback if none found
-        message = result[0] if result else f"You completed a trial as {role}."
-        
-        bp_rewards = {
-            0: 0,
-            1: 3000,
-            2: 6000,
-            3: 9000,
-            4: 12000
-        }
-        bloodpoints = bp_rewards[performance]
-        
-        ac_rewards = {
-            0: 0,
-            1: 0,
-            2: 0,
-            3: 1,
-            4: 2
-        }
-        auric_cells = ac_rewards[performance]
-        
-        # Performance description
-        if role == "Killer":
-            performance_text = {
-                0: "0 Kills (Total Failure)",
-                1: "1 Kill",
-                2: "2 Kills",
-                3: "3 Kills",
-                4: "4 Kills (Perfect!)"
-            }
-        else:  # Survivor
-            performance_text = {
-                0: "0 Survivors Escaped (Total Failure)",
-                1: "1 Survivor Escaped",
-                2: "2 Survivors Escaped",
-                3: "3 Survivors Escaped",
-                4: "4 Survivors Escaped (Perfect!)"
-            }
-        
-        # Add the rewards to the character's profile (only if performance > 0)
-        if performance > 0:
-            cursor.execute(
-                "UPDATE profiles SET bloodpoints = bloodpoints + ?, auric_cells = auric_cells + ? WHERE name = ?",
-                (bloodpoints, auric_cells, name)
-            )
-            conn.commit()
-        
-        conn.close()
-        
-        # Return all the information to display in Discord
-        return {
-            'role': role,                      # "Killer" or "Survivor"
-            'message': message,                # Random message from database matching performance
-            'bloodpoints': bloodpoints,        # 0 / 5,000 / 10,000 / 15,000 / 20,000
-            'auric_cells': auric_cells,       # 0 / 1 / 2 / 3 / 4
-            'performance': performance,        # 0 / 1 / 2 / 3 / 4
-            'performance_text': performance_text[performance]  # Display text
-        }
-    
-    # Other Methods
-    def get_random_realm(self):
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM realms ORDER BY RANDOM() LIMIT 1")
-        result = cursor.fetchone()
-        conn.close()
-        return result[0] if result else "Unknown Realm"
-    
-    def hunting_minigame(self, name):
-        profile = self.get_profile(name)
-        if not profile:
-            return None
-        
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Get all hunting items with their weights, difficulty, and messages
-        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message, fail_message FROM hunting_items")
-        items = cursor.fetchall()
-        
-        if not items:
-            conn.close()
-            return None
-        
-        # Weighted random selection
-        items_list = []
-        weights = []
-        for item in items:
-            items_list.append(item)
-            weights.append(item[3] if item[3] and item[3] > 0 else 10)  # Default weight 10
-        
-        # Use random.choices for weighted selection
-        selected = random.choices(items_list, weights=weights, k=1)[0]
-        
-        item_name = selected[0]
-        message = selected[1]
-        description = selected[2] if len(selected) > 2 and selected[2] else message
-        difficulty = selected[4] if len(selected) > 4 and selected[4] else 10  # Default difficulty 10
-        flee_message = selected[5] if len(selected) > 5 and selected[5] else None
-        fail_message = selected[6] if len(selected) > 6 and selected[6] else None
-        
-        conn.close()
-        
-        return {
-            'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
-            'message': message,
-            'description': description,
-            'difficulty': difficulty,
-            'flee_message': flee_message,
-            'fail_message': fail_message
-        }
-    
-    def fishing_minigame(self, name):
-        profile = self.get_profile(name)
-        if not profile:
-            return None
-        
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Get all fishing items with their weights and difficulty
-        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message, fail_message FROM fishing_items")
-        items = cursor.fetchall()
-        
-        if not items:
-            conn.close()
-            return None
-        
-        # Weighted random selection
-        items_list = []
-        weights = []
-        for item in items:
-            items_list.append(item)
-            weights.append(item[3] if item[3] and item[3] > 0 else 10)  # Default weight 10
-        
-        # Use random.choices for weighted selection
-        selected = random.choices(items_list, weights=weights, k=1)[0]
-        
-        item_name = selected[0]
-        message = selected[1]
-        description = selected[2] if len(selected) > 2 and selected[2] else message
-        difficulty = selected[4] if len(selected) > 4 and selected[4] else 10  # Default difficulty 10
-        
-        conn.close()
-        
-        flee_message = selected[5] if len(selected) > 5 and selected[5] else None
-        fail_message = selected[6] if len(selected) > 6 and selected[6] else None
-        
-        conn.close()
-        
-        return {
-            'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
-            'message': message,
-            'description': description,
-            'difficulty': difficulty,
-            'flee_message': flee_message,
-            'fail_message': fail_message
-        }
-    
-    def scavenging_minigame(self, name):
-        profile = self.get_profile(name)
-        if not profile:
-            return None
-        
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Get all scavenging items with their weights and difficulty
-        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message, fail_message FROM scavenging_items")
-        items = cursor.fetchall()
-        
-        if not items:
-            conn.close()
-            return None
-        
-        # Weighted random selection
-        items_list = []
-        weights = []
-        for item in items:
-            items_list.append(item)
-            weights.append(item[3] if item[3] and item[3] > 0 else 10)  # Default weight 10
-        
-        # Use random.choices for weighted selection
-        selected = random.choices(items_list, weights=weights, k=1)[0]
-        
-        item_name = selected[0]
-        message = selected[1]
-        description = selected[2] if len(selected) > 2 and selected[2] else message
-        difficulty = selected[4] if len(selected) > 4 and selected[4] else 10  # Default difficulty 10
-        
-        conn.close()
-        
-        flee_message = selected[5] if len(selected) > 5 and selected[5] else None
-        fail_message = selected[6] if len(selected) > 6 and selected[6] else None
-        
-        conn.close()
-        
-        return {
-            'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
-            'message': message,
-            'description': description,
-            'difficulty': difficulty,
-            'flee_message': flee_message,
-            'fail_message': fail_message
-        }
-    
-    def add_minigame_item(self, name, item_name):
-        """Add item to inventory after successful minigame roll"""
-        if not item_name or not item_name.strip() or item_name.lower() in ['none', 'nothing', 'null']:
-            return False
-        
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
+        cursor.execute("DELETE FROM embeds WHERE id = ?", (embed_id,))
         conn.commit()
         conn.close()
-        return True
+        flash('Embed deleted!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/send/<int:embed_id>', methods=['POST'])
+@login_required
+def send_embed(embed_id):
+    channel_id = request.form.get('channel_id')
     
-    def add_xp(self, name, xp_amount, minigame_type='hunting'):
-        """Add XP to character and handle level ups for specific minigame"""
-        conn = self.get_connection()
+    if not channel_id:
+        flash('Channel ID is required!', 'danger')
+        return redirect(url_for('embeds'))
+    
+    try:
+        conn = db.get_connection()
         cursor = conn.cursor()
+        cursor.execute("SELECT * FROM embeds WHERE id = ?", (embed_id,))
+        embed_data = cursor.fetchone()
         
-        # Determine which level/xp columns to use
-        level_col = f"{minigame_type}_level"
-        xp_col = f"{minigame_type}_xp"
+        if not embed_data:
+            flash('Embed not found!', 'danger')
+            return redirect(url_for('embeds'))
         
-        # Get current level and XP
-        cursor.execute(f"SELECT {level_col}, {xp_col} FROM profiles WHERE name = ?", (name,))
-        result = cursor.fetchone()
+        import requests
+        bot_url = "http://localhost:5002/send_embed"
         
-        if not result:
-            conn.close()
-            return None
+        payload = {
+            'channel_id': channel_id,
+            'embed_id': embed_id,
+            'title': embed_data[2],
+            'description': embed_data[3],
+            'color': embed_data[4],
+            'footer_text': embed_data[5],
+            'image_url': embed_data[6],
+            'thumbnail_url': embed_data[7],
+            'reaction_roles': []  # No reaction roles from embeds page
+        }
         
-        current_level = result[0] or 1
-        current_xp = result[1] or 0
+        response = requests.post(bot_url, json=payload, timeout=5)
         
-        # Add XP
-        new_xp = current_xp + xp_amount
+        if response.status_code == 200:
+            result = response.json()
+            message_id = result.get('message_id')
+            
+            cursor.execute("UPDATE embeds SET channel_id = ?, message_id = ? WHERE id = ?",
+                         (channel_id, message_id, embed_id))
+            conn.commit()
+            flash('Embed sent to channel!', 'success')
+        else:
+            flash(f'Failed to send embed: {response.text}', 'danger')
         
-        # Calculate level ups (XP needed = level * 100)
-        # Level 1->2 needs 100 XP, Level 2->3 needs 200 XP, etc.
-        leveled_up = False
-        new_level = current_level
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('embeds'))
+
+@app.route('/embeds/update/<int:embed_id>', methods=['POST'])
+@login_required
+def update_embed_message(embed_id):
+    try:
+        # Get embed data
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM embeds WHERE id = ?", (embed_id,))
+        embed_data = cursor.fetchone()
         
-        while new_xp >= new_level * 100:
-            new_xp -= new_level * 100
-            new_level += 1
-            leveled_up = True
+        if not embed_data or not embed_data[9]:  # Check if message_id exists
+            flash('Embed not sent yet or message ID not found!', 'danger')
+            return redirect(url_for('embeds'))
         
-        # Update database
-        cursor.execute(f"UPDATE profiles SET {level_col} = ?, {xp_col} = ? WHERE name = ?", (new_level, new_xp, name))
+        # Send update request to bot API
+        import requests
+        bot_url = "http://localhost:5002/update_embed"
+        
+        payload = {
+            'channel_id': embed_data[8],
+            'message_id': embed_data[9],
+            'title': embed_data[2],
+            'description': embed_data[3],
+            'color': embed_data[4],
+            'footer_text': embed_data[5],
+            'image_url': embed_data[6],
+            'thumbnail_url': embed_data[7]
+        }
+        
+        response = requests.post(bot_url, json=payload, timeout=5)
+        
+        if response.status_code == 200:
+            flash('Embed updated in channel!', 'success')
+        else:
+            flash(f'Failed to update embed: {response.text}', 'danger')
+        
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('embeds'))
+
+# ==================== REACTION ROLES ROUTES (Separate from Embeds) ====================
+
+@app.route('/reaction-roles')
+@login_required
+def reaction_roles():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    
+    # Get all embeds for selection
+    cursor.execute("SELECT * FROM embeds ORDER BY id DESC")
+    embeds_list = cursor.fetchall()
+    
+    # Get all reaction role messages with their details
+    cursor.execute("""
+        SELECT DISTINCT rr.message_id, e.name as embed_name
+        FROM reaction_roles rr
+        LEFT JOIN embeds e ON e.message_id = rr.message_id
+        GROUP BY rr.message_id
+    """)
+    messages = cursor.fetchall()
+    
+    # Build reaction messages list with roles
+    reaction_messages = []
+    for msg in messages:
+        message_id = msg[0]
+        embed_name = msg[1] or 'Unknown Embed'
+        
+        # Get all roles for this message
+        cursor.execute("SELECT emoji, role_id FROM reaction_roles WHERE message_id = ?", (message_id,))
+        roles = [{'emoji': r[0], 'role_id': r[1]} for r in cursor.fetchall()]
+        
+        reaction_messages.append({
+            'message_id': message_id,
+            'embed_name': embed_name,
+            'roles': roles
+        })
+    
+    conn.close()
+    return render_template('reaction_roles.html', embeds=embeds_list, reaction_messages=reaction_messages)
+
+@app.route('/reaction-roles/create', methods=['POST'])
+@login_required
+def create_reaction_role():
+    embed_id = request.form.get('embed_id')
+    channel_id = request.form.get('channel_id')
+    emojis = request.form.getlist('emoji[]')
+    role_ids = request.form.getlist('role_id[]')
+    
+    if not embed_id or not channel_id:
+        flash('Embed and Channel ID are required!', 'danger')
+        return redirect(url_for('reaction_roles'))
+    
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM embeds WHERE id = ?", (embed_id,))
+        embed_data = cursor.fetchone()
+        
+        if not embed_data:
+            flash('Embed not found!', 'danger')
+            return redirect(url_for('reaction_roles'))
+        
+        # Build reaction roles list
+        reaction_roles = []
+        for emoji, role_id in zip(emojis, role_ids):
+            if emoji and role_id:
+                reaction_roles.append({'emoji': emoji, 'role_id': role_id})
+        
+        if not reaction_roles:
+            flash('At least one reaction role mapping is required!', 'danger')
+            return redirect(url_for('reaction_roles'))
+        
+        # Send to bot
+        import requests
+        bot_url = "http://localhost:5002/send_embed"
+        
+        payload = {
+            'channel_id': channel_id,
+            'embed_id': embed_id,
+            'title': embed_data[2],
+            'description': embed_data[3],
+            'color': embed_data[4],
+            'footer_text': embed_data[5],
+            'image_url': embed_data[6],
+            'thumbnail_url': embed_data[7],
+            'reaction_roles': reaction_roles
+        }
+        
+        response = requests.post(bot_url, json=payload, timeout=5)
+        
+        if response.status_code == 200:
+            result = response.json()
+            message_id = result.get('message_id')
+            
+            # Update embed with channel and message ID
+            cursor.execute("UPDATE embeds SET channel_id = ?, message_id = ? WHERE id = ?",
+                         (channel_id, message_id, embed_id))
+            
+            # Save reaction roles to database
+            for rr in reaction_roles:
+                cursor.execute("INSERT OR REPLACE INTO reaction_roles (message_id, emoji, role_id) VALUES (?, ?, ?)",
+                             (message_id, rr['emoji'], rr['role_id']))
+            
+            conn.commit()
+            flash(f'Reaction role message created with {len(reaction_roles)} role(s)!', 'success')
+        else:
+            flash(f'Failed to send reaction role message: {response.text}', 'danger')
+        
+        conn.close()
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    
+    return redirect(url_for('reaction_roles'))
+
+@app.route('/reaction-roles/delete/<message_id>', methods=['POST'])
+@login_required
+def delete_reaction_role(message_id):
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM reaction_roles WHERE message_id = ?", (message_id,))
         conn.commit()
         conn.close()
-        
-        return {
-            'leveled_up': leveled_up,
-            'old_level': current_level,
-            'new_level': new_level,
-            'current_xp': new_xp,
-            'xp_for_next': new_level * 100,
-            'xp_gained': xp_amount
-        }
+        flash('Reaction roles deleted from message!', 'success')
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+    return redirect(url_for('reaction_roles'))
+
+# ==================== IP WHITELIST (Optional) ====================
+ENABLE_IP_WHITELIST = False
+ALLOWED_IPS = ['127.0.0.1', '192.168.1.100']
+
+@app.before_request
+def limit_remote_addr():
+    if ENABLE_IP_WHITELIST:
+        client_ip = request.remote_addr
+        if client_ip not in ALLOWED_IPS:
+            return "Access Denied", 403
+
+if __name__ == '__main__':
+    if not os.path.exists('templates'):
+        os.makedirs('templates')
     
-    def get_level_bonus(self, name, minigame_type='hunting'):
-        """Get roll bonus based on character level for specific minigame"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        level_col = f"{minigame_type}_level"
-        cursor.execute(f"SELECT {level_col} FROM profiles WHERE name = ?", (name,))
-        result = cursor.fetchone()
-        conn.close()
-        
-        if not result:
-            return 0
-        
-        level = result[0] or 1
-        
-        # +1 bonus every 5 levels
-        # Level 1-4: +0
-        # Level 5-9: +1
-        # Level 10-14: +2
-        # Level 15-19: +3
-        # etc.
-        return (level - 1) // 5
+    print("="*50)
+    print("🔒 SECURITY NOTES:")
+    print("="*50)
+    print(f"Login enabled: {LOGIN_ENABLED}")
+    print(f"Default user: admin")
+    print(f"⚠️  CHANGE PASSWORD in line 18!")
+    print("="*50)
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
