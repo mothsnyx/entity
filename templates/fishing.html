@@ -150,7 +150,7 @@
                         <td><small class="text-muted">{{ item[2][:65] }}{% if item[2]|length > 65 %}…{% endif %}</small></td>
                         <td><span class="badge bg-secondary">{{ item[3] or 'Misc' }}</span></td>
                         <td class="text-center">
-                            {% if item[4] and item[4] > 0 %}<span class="badge bg-success">{{ item[4] }} BP</span>
+                            {% if item[4] and item[4]|int > 0 %}<span class="badge bg-success">{{ item[4] }} BP</span>
                             {% else %}<span class="badge" style="background:#333;">—</span>{% endif %}
                         </td>
                         <td class="text-center"><span class="badge bg-info">{{ item[5] or 10 }}</span></td>
