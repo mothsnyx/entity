@@ -142,11 +142,11 @@
                         <td><small class="text-muted">{{ item[2][:60] }}{% if item[2]|length > 60 %}…{% endif %}</small></td>
                         <td><span class="badge bg-secondary">{{ item[4] or 'Misc' }}</span></td>
                         <td class="text-center">
-                            {% if item[7] and item[7]|int > 0 %}<span class="badge bg-success">{{ item[7] }} BP</span>
+                            {% if item[5] and item[5]|int > 0 %}<span class="badge bg-success">{{ item[5] }} BP</span>
                             {% else %}<span class="badge" style="background:#333;">—</span>{% endif %}
                         </td>
-                        <td class="text-center"><span class="badge bg-info">{{ item[8] or 10 }}</span></td>
-                        <td class="text-center"><span class="badge bg-warning text-dark">{{ item[9] or 10 }}</span></td>
+                        <td class="text-center"><span class="badge bg-info">{{ item[6] or 10 }}</span></td>
+                        <td class="text-center"><span class="badge bg-warning text-dark">{{ item[5] or 10 }}</span></td>
                         <td class="text-center">
                             <button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editModal{{ item[0] }}" title="Edit"><i class="bi bi-pencil"></i></button>
                             <form method="POST" action="/hunting/delete/{{ item[0] }}" style="display:inline;">
@@ -202,7 +202,7 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Sell Value</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control" name="sell_value" value="{{ item[7] or 0 }}" min="0">
+                                    <input type="number" class="form-control" name="sell_value" value="{{ item[5] or 0 }}" min="0">
                                     <span class="input-group-text">BP</span>
                                 </div>
                             </div>
@@ -220,12 +220,12 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Leave It Message</label>
-                                    <textarea class="form-control" name="flee_message" rows="2">{{ item[10] or '' }}</textarea>
+                                    <textarea class="form-control" name="flee_message" rows="2">{{ item[6] or '' }}</textarea>
                                     <small class="text-muted">Shown when player chooses "Leave It"</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Failed Kill Message</label>
-                                    <textarea class="form-control" name="fail_message" rows="2">{{ item[11] or '' }}</textarea>
+                                    <textarea class="form-control" name="fail_message" rows="2">{{ item[5] or '' }}</textarea>
                                     <small class="text-muted">Shown when the roll fails</small>
                                 </div>
                             </div>
@@ -234,12 +234,12 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Weight (Spawn Chance)</label>
-                                    <input type="number" class="form-control" name="weight" value="{{ item[8] or 10 }}" min="0" required>
+                                    <input type="number" class="form-control" name="weight" value="{{ item[6] or 10 }}" min="0" required>
                                     <small class="text-muted">Higher = more common</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
-                                    <input type="number" class="form-control" name="difficulty" value="{{ item[9] or 10 }}" min="1" max="20" required>
+                                    <input type="number" class="form-control" name="difficulty" value="{{ item[5] or 10 }}" min="1" max="20" required>
                                     <small class="text-muted">Player must roll this or higher</small>
                                 </div>
                             </div>
