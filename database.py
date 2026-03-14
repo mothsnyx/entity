@@ -42,6 +42,28 @@ class Database:
             cursor.execute("ALTER TABLE profiles ADD COLUMN user_id TEXT")
             print("✓ Added user_id column to profiles table for character ownership")
         
+        # Separate levels for each minigame
+        if 'hunting_level' not in columns:
+            cursor.execute("ALTER TABLE profiles ADD COLUMN hunting_level INTEGER DEFAULT 1")
+            print("✓ Added hunting_level column to profiles table")
+        if 'hunting_xp' not in columns:
+            cursor.execute("ALTER TABLE profiles ADD COLUMN hunting_xp INTEGER DEFAULT 0")
+            print("✓ Added hunting_xp column to profiles table")
+        
+        if 'fishing_level' not in columns:
+            cursor.execute("ALTER TABLE profiles ADD COLUMN fishing_level INTEGER DEFAULT 1")
+            print("✓ Added fishing_level column to profiles table")
+        if 'fishing_xp' not in columns:
+            cursor.execute("ALTER TABLE profiles ADD COLUMN fishing_xp INTEGER DEFAULT 0")
+            print("✓ Added fishing_xp column to profiles table")
+        
+        if 'scavenging_level' not in columns:
+            cursor.execute("ALTER TABLE profiles ADD COLUMN scavenging_level INTEGER DEFAULT 1")
+            print("✓ Added scavenging_level column to profiles table")
+        if 'scavenging_xp' not in columns:
+            cursor.execute("ALTER TABLE profiles ADD COLUMN scavenging_xp INTEGER DEFAULT 0")
+            print("✓ Added scavenging_xp column to profiles table")
+        
         # Inventory table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS inventory (
@@ -129,6 +151,12 @@ class Database:
         if 'weight' not in hunting_columns:
             cursor.execute("ALTER TABLE hunting_items ADD COLUMN weight INTEGER DEFAULT 10")
             print("✓ Added weight column to hunting_items table")
+        if 'difficulty' not in hunting_columns:
+            cursor.execute("ALTER TABLE hunting_items ADD COLUMN difficulty INTEGER DEFAULT 10")
+            print("✓ Added difficulty column to hunting_items table")
+        if 'flee_message' not in hunting_columns:
+            cursor.execute("ALTER TABLE hunting_items ADD COLUMN flee_message TEXT")
+            print("✓ Added flee_message column to hunting_items table")
         
         cursor.execute("PRAGMA table_info(fishing_items)")
         fishing_columns = [column[1] for column in cursor.fetchall()]
@@ -141,6 +169,12 @@ class Database:
         if 'weight' not in fishing_columns:
             cursor.execute("ALTER TABLE fishing_items ADD COLUMN weight INTEGER DEFAULT 10")
             print("✓ Added weight column to fishing_items table")
+        if 'difficulty' not in fishing_columns:
+            cursor.execute("ALTER TABLE fishing_items ADD COLUMN difficulty INTEGER DEFAULT 10")
+            print("✓ Added difficulty column to fishing_items table")
+        if 'flee_message' not in fishing_columns:
+            cursor.execute("ALTER TABLE fishing_items ADD COLUMN flee_message TEXT")
+            print("✓ Added flee_message column to fishing_items table")
         
         cursor.execute("PRAGMA table_info(scavenging_items)")
         scavenging_columns = [column[1] for column in cursor.fetchall()]
@@ -153,6 +187,12 @@ class Database:
         if 'weight' not in scavenging_columns:
             cursor.execute("ALTER TABLE scavenging_items ADD COLUMN weight INTEGER DEFAULT 10")
             print("✓ Added weight column to scavenging_items table")
+        if 'difficulty' not in scavenging_columns:
+            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN difficulty INTEGER DEFAULT 10")
+            print("✓ Added difficulty column to scavenging_items table")
+        if 'flee_message' not in scavenging_columns:
+            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN flee_message TEXT")
+            print("✓ Added flee_message column to scavenging_items table")
         
         conn.commit()
         conn.close()
@@ -1031,8 +1071,8 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Get all hunting items with their weights
-        cursor.execute("SELECT item_name, message, description, weight FROM hunting_items")
+        # Get all hunting items with their weights, difficulty, and flee_message
+        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message FROM hunting_items")
         items = cursor.fetchall()
         
         if not items:
@@ -1052,18 +1092,17 @@ class Database:
         item_name = selected[0]
         message = selected[1]
         description = selected[2] if len(selected) > 2 and selected[2] else message
-        
-        # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
-        if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
-            cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
-            conn.commit()
+        difficulty = selected[4] if len(selected) > 4 and selected[4] else 10  # Default difficulty 10
+        flee_message = selected[5] if len(selected) > 5 and selected[5] else None
         
         conn.close()
         
         return {
             'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
             'message': message,
-            'description': description
+            'description': description,
+            'difficulty': difficulty,
+            'flee_message': flee_message
         }
     
     def fishing_minigame(self, name):
@@ -1074,8 +1113,8 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Get all fishing items with their weights
-        cursor.execute("SELECT item_name, message, description, weight FROM fishing_items")
+        # Get all fishing items with their weights and difficulty
+        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message FROM fishing_items")
         items = cursor.fetchall()
         
         if not items:
@@ -1095,18 +1134,20 @@ class Database:
         item_name = selected[0]
         message = selected[1]
         description = selected[2] if len(selected) > 2 and selected[2] else message
+        difficulty = selected[4] if len(selected) > 4 and selected[4] else 10  # Default difficulty 10
         
-        # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
-        if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
-            cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
-            conn.commit()
+        conn.close()
+        
+        flee_message = selected[5] if len(selected) > 5 and selected[5] else None
         
         conn.close()
         
         return {
             'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
             'message': message,
-            'description': description
+            'description': description,
+            'difficulty': difficulty,
+            'flee_message': flee_message
         }
     
     def scavenging_minigame(self, name):
@@ -1117,8 +1158,8 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Get all scavenging items with their weights
-        cursor.execute("SELECT item_name, message, description, weight FROM scavenging_items")
+        # Get all scavenging items with their weights and difficulty
+        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message FROM scavenging_items")
         items = cursor.fetchall()
         
         if not items:
@@ -1138,16 +1179,100 @@ class Database:
         item_name = selected[0]
         message = selected[1]
         description = selected[2] if len(selected) > 2 and selected[2] else message
+        difficulty = selected[4] if len(selected) > 4 and selected[4] else 10  # Default difficulty 10
         
-        # Only add to inventory if item_name is valid (not None, empty, or 'none'/'nothing')
-        if item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']:
-            cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
-            conn.commit()
+        conn.close()
+        
+        flee_message = selected[5] if len(selected) > 5 and selected[5] else None
         
         conn.close()
         
         return {
             'item': item_name if (item_name and item_name.strip() and item_name.lower() not in ['none', 'nothing', 'null']) else None,
             'message': message,
-            'description': description
+            'description': description,
+            'difficulty': difficulty,
+            'flee_message': flee_message
         }
+    
+    def add_minigame_item(self, name, item_name):
+        """Add item to inventory after successful minigame roll"""
+        if not item_name or not item_name.strip() or item_name.lower() in ['none', 'nothing', 'null']:
+            return False
+        
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
+        conn.commit()
+        conn.close()
+        return True
+    
+    def add_xp(self, name, xp_amount, minigame_type='hunting'):
+        """Add XP to character and handle level ups for specific minigame"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Determine which level/xp columns to use
+        level_col = f"{minigame_type}_level"
+        xp_col = f"{minigame_type}_xp"
+        
+        # Get current level and XP
+        cursor.execute(f"SELECT {level_col}, {xp_col} FROM profiles WHERE name = ?", (name,))
+        result = cursor.fetchone()
+        
+        if not result:
+            conn.close()
+            return None
+        
+        current_level = result[0] or 1
+        current_xp = result[1] or 0
+        
+        # Add XP
+        new_xp = current_xp + xp_amount
+        
+        # Calculate level ups (XP needed = level * 100)
+        # Level 1->2 needs 100 XP, Level 2->3 needs 200 XP, etc.
+        leveled_up = False
+        new_level = current_level
+        
+        while new_xp >= new_level * 100:
+            new_xp -= new_level * 100
+            new_level += 1
+            leveled_up = True
+        
+        # Update database
+        cursor.execute(f"UPDATE profiles SET {level_col} = ?, {xp_col} = ? WHERE name = ?", (new_level, new_xp, name))
+        conn.commit()
+        conn.close()
+        
+        return {
+            'leveled_up': leveled_up,
+            'old_level': current_level,
+            'new_level': new_level,
+            'current_xp': new_xp,
+            'xp_for_next': new_level * 100,
+            'xp_gained': xp_amount
+        }
+    
+    def get_level_bonus(self, name, minigame_type='hunting'):
+        """Get roll bonus based on character level for specific minigame"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        level_col = f"{minigame_type}_level"
+        cursor.execute(f"SELECT {level_col} FROM profiles WHERE name = ?", (name,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return 0
+        
+        level = result[0] or 1
+        
+        # +1 bonus every 5 levels
+        # Level 1-4: +0
+        # Level 5-9: +1
+        # Level 10-14: +2
+        # Level 15-19: +3
+        # etc.
+        return (level - 1) // 5
