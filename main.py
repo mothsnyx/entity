@@ -1,7 +1,6 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from discord.ui import View, Button
 import random
 import re
 from database import Database, ADMIN_IDS
@@ -44,7 +43,7 @@ async def create_profile(interaction: discord.Interaction, name: str, role: app_
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -65,7 +64,7 @@ async def edit_profile_name(interaction: discord.Interaction, name: str, new_nam
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -90,7 +89,7 @@ async def edit_profile_role(interaction: discord.Interaction, name: str, new_rol
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -119,7 +118,7 @@ async def delete_profile(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -329,7 +328,7 @@ async def add_currency(interaction: discord.Interaction, name: str, currency: ap
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -366,7 +365,7 @@ async def remove_currency(interaction: discord.Interaction, name: str, currency:
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -519,7 +518,7 @@ async def add_item(interaction: discord.Interaction, name: str, item: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -551,7 +550,7 @@ async def remove_item(interaction: discord.Interaction, name: str, item: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
 
@@ -609,7 +608,7 @@ async def use_items(interaction: discord.Interaction, name: str, items: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     
     await interaction.response.send_message(embed=embed)
@@ -651,7 +650,7 @@ async def trial(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgb(116, 7, 14)  # #74070E
+            color=discord.Color.from_rgb(116, 7, 14) 
         )
         await interaction.response.send_message(embed=embed)
 
@@ -796,7 +795,7 @@ async def travel(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -820,7 +819,7 @@ async def hunting(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -847,9 +846,9 @@ async def hunting(interaction: discord.Interaction, name: str):
         description=result.get('description', result['message']),
         color=discord.Color.from_rgb(0, 0, 0)
     )
-    embed.add_field(name="Target", value=f"**{item_name}**", inline=True)
-    embed.add_field(name="Difficulty", value=f"**{difficulty}** (Roll d20{f'+{level_bonus}' if level_bonus > 0 else ''})", inline=True)
-    embed.set_footer(text=f"{name} (Level {char_level}) - Click 'Attempt' to roll")
+    embed.add_field(name="Animal", value=f"**{item_name}**", inline=True)
+    embed.add_field(name="Difficulty", value=f"**{difficulty}**)", inline=True)
+    embed.set_footer(text=f"{name} (Level {char_level})")
     
     class HuntingView(View):
         def __init__(self):
@@ -857,8 +856,8 @@ async def hunting(interaction: discord.Interaction, name: str):
             self.character_name = name
             self.item_name = item_name
             self.difficulty = difficulty
-            self.flee_message = result.get('flee_message', f"You decided to leave the {item_name} alone. It wandered off peacefully.")
-            self.fail_message = result.get('fail_message', f"The **{item_name}** managed to escape before you could kill it.")
+            self.flee_message = result.get('flee_message' or f"You decided to leave the {item_name} alone. It ran off into the Fog.")
+            self.fail_message = result.get('fail_message' or f"The **{item_name}** managed to escape before you could kill it.")
             
         @discord.ui.button(label="Attempt to Kill", style=discord.ButtonStyle.danger)
         async def attempt_button(self, interaction: discord.Interaction, button: Button):
@@ -876,7 +875,7 @@ async def hunting(interaction: discord.Interaction, name: str):
                 
                 result_embed = discord.Embed(
                     title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Successful Hunt",
-                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n Successfully caught **{self.item_name}**!",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''}\n\n Successfully killed **{self.item_name}**!",
                     color=discord.Color.from_rgb(0, 0, 0)
                 )
                 result_embed.add_field(name="Obtained", value=f"**{self.item_name}**", inline=True)
@@ -884,7 +883,7 @@ async def hunting(interaction: discord.Interaction, name: str):
                 
                 if xp_result and xp_result['leveled_up']:
                     result_embed.add_field(
-                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        name="<:lvlup:1482362825119633478> LEVEL UP!", 
                         value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                         inline=False
                     )
@@ -897,15 +896,15 @@ async def hunting(interaction: discord.Interaction, name: str):
                 
                 result_embed = discord.Embed(
                     title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Failed Hunt",
-                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n {self.fail_message}",
-                    color=discord.Color.from_rgba(230, 1, 18)
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''}\n\n {self.fail_message}",
+                    color=discord.Color.from_rgb(116, 7, 14)
                 )
                 result_embed.add_field(name="Result", value="The animal fled...", inline=True)
                 result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
                 
                 if xp_result and xp_result['leveled_up']:
                     result_embed.add_field(
-                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        name="<:lvlup:1482362825119633478> LEVEL UP!", 
                         value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                         inline=False
                     )
@@ -927,14 +926,14 @@ async def hunting(interaction: discord.Interaction, name: str):
             result_embed = discord.Embed(
                 title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Peaceful Choice",
                 description=f"**{self.character_name}** chose to leave the **{self.item_name}** alone.\n\n{self.flee_message}",
-                color=discord.Color.from_rgb(0, 0, 0)  # Gray for peaceful
+                color=discord.Color.from_rgb(0, 0, 0)
             )
             result_embed.add_field(name="Result", value="No item obtained", inline=True)
-            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP (peaceful)", inline=True)
+            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP", inline=True)
             
             if xp_result and xp_result['leveled_up']:
                 result_embed.add_field(
-                    name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                    name="<:lvlup:1482362825119633478> LEVEL UP!", 
                     value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                     inline=False
                 )
@@ -959,7 +958,7 @@ async def fishing(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -983,11 +982,11 @@ async def fishing(interaction: discord.Interaction, name: str):
     embed = discord.Embed(
         title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Fishing",
         description=result.get('description', result['message']),
-        color=discord.Color.from_rgb(30, 144, 255)
+        color=discord.Color.from_rgb(0, 0, 0)
     )
     embed.add_field(name="Catch", value=f"**{item_name}**", inline=True)
-    embed.add_field(name="Difficulty", value=f"**{difficulty}** (Roll d20{f'+{level_bonus}' if level_bonus > 0 else ''})", inline=True)
-    embed.set_footer(text=f"{name} (Level {char_level}) - Click 'Reel In' to roll")
+    embed.add_field(name="Difficulty", value=f"**{difficulty}**", inline=True)
+    embed.set_footer(text=f"{name} (Level {char_level})")
     
     class FishingView(View):
         def __init__(self):
@@ -995,8 +994,8 @@ async def fishing(interaction: discord.Interaction, name: str):
             self.character_name = name
             self.item_name = item_name
             self.difficulty = difficulty
-            self.flee_message = result.get('flee_message', f"You decided to let the {item_name} go. It swam away gracefully.")
-            self.fail_message = result.get('fail_message', f"The **{item_name}** got away before you could reel it in.")
+            self.flee_message = result.get('flee_message' or f"You decided to let the {item_name} go. It swims into the depths of the water.")
+            self.fail_message = result.get('fail_message' or f"The **{item_name}** got away before you could reel it in.")
             
         @discord.ui.button(label="Reel In", style=discord.ButtonStyle.danger)
         async def attempt_button(self, interaction: discord.Interaction, button: Button):
@@ -1013,7 +1012,7 @@ async def fishing(interaction: discord.Interaction, name: str):
                 
                 result_embed = discord.Embed(
                     title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Successful Catch!",
-                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n Successfully caught **{self.item_name}**!",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} \n\n Successfully caught **{self.item_name}**!",
                     color=discord.Color.from_rgb(0, 0, 0)
                 )
                 result_embed.add_field(name="Obtained", value=f"**{self.item_name}**", inline=True)
@@ -1021,7 +1020,7 @@ async def fishing(interaction: discord.Interaction, name: str):
                 
                 if xp_result and xp_result['leveled_up']:
                     result_embed.add_field(
-                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        name="<:lvlup:1482362825119633478> LEVEL UP!", 
                         value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                         inline=False
                     )
@@ -1034,15 +1033,15 @@ async def fishing(interaction: discord.Interaction, name: str):
                 
                 result_embed = discord.Embed(
                     title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Failed Catch!",
-                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n {self.fail_message}",
-                    color=discord.Color.from_rgba(230, 1, 18)
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} \n\n {self.fail_message}",
+                    color=discord.Color.from_rgb(116, 7, 14)
                 )
                 result_embed.add_field(name="Result", value="The line snapped!", inline=True)
                 result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
                 
                 if xp_result and xp_result['leveled_up']:
                     result_embed.add_field(
-                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        name="<:lvlup:1482362825119633478> LEVEL UP!", 
                         value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                         inline=False
                     )
@@ -1063,14 +1062,14 @@ async def fishing(interaction: discord.Interaction, name: str):
             result_embed = discord.Embed(
                 title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Released Catch",
                 description=f"**{self.character_name}** decided to release the **{self.item_name}**.\n\n {self.flee_message}",
-                color=discord.Color.from_rgb(128, 128, 128)
+                color=discord.Color.from_rgb(0, 0, 0)
             )
             result_embed.add_field(name="Result", value="No item obtained", inline=True)
             result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP (peaceful)", inline=True)
             
             if xp_result and xp_result['leveled_up']:
                 result_embed.add_field(
-                    name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                    name="<:lvlup:1482362825119633478> LEVEL UP!", 
                     value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                     inline=False
                 )
@@ -1094,7 +1093,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -1121,8 +1120,8 @@ async def scavenging(interaction: discord.Interaction, name: str):
         color=discord.Color.from_rgb(0, 0, 0)
     )
     embed.add_field(name="Found", value=f"**{item_name}**", inline=True)
-    embed.add_field(name="Difficulty", value=f"**{difficulty}** (Roll d20{f'+{level_bonus}' if level_bonus > 0 else ''})", inline=True)
-    embed.set_footer(text=f"{name} (Level {char_level}) - Click 'Retrieve' to roll")
+    embed.add_field(name="Difficulty", value=f"**{difficulty}**", inline=True)
+    embed.set_footer(text=f"{name} (Level {char_level})")
     
     class ScavengingView(View):
         def __init__(self):
@@ -1130,8 +1129,8 @@ async def scavenging(interaction: discord.Interaction, name: str):
             self.character_name = name
             self.item_name = item_name
             self.difficulty = difficulty
-            self.flee_message = result.get('flee_message', f"You decided to leave the {item_name} where it was. Perhaps someone else will find it.")
-            self.fail_message = result.get('fail_message', f"The **{item_name}** was too damaged or out of reach to retrieve.")
+            self.flee_message = result.get('flee_message' or f"You decided to leave the {item_name} where it was.")
+            self.fail_message = result.get('fail_message' or f"The **{item_name}** was too damaged or out of reach to retrieve.")
             
         @discord.ui.button(label="Retrieve Item", style=discord.ButtonStyle.danger)
         async def attempt_button(self, interaction: discord.Interaction, button: Button):
@@ -1148,7 +1147,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
                 
                 result_embed = discord.Embed(
                     title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Successful Retrieval!",
-                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n Successfully retrieved **{self.item_name}**!",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} \n\n Successfully retrieved **{self.item_name}**!",
                     color=discord.Color.from_rgb(0, 0, 0)
                 )
                 result_embed.add_field(name="Obtained", value=f"**{self.item_name}**", inline=True)
@@ -1156,7 +1155,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
                 
                 if xp_result and xp_result['leveled_up']:
                     result_embed.add_field(
-                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        name="<:lvlup:1482362825119633478> LEVEL UP!", 
                         value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                         inline=False
                     )
@@ -1169,15 +1168,15 @@ async def scavenging(interaction: discord.Interaction, name: str):
                 
                 result_embed = discord.Embed(
                     title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Failed Retrieval!",
-                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n {self.fail_message}",
-                    color=discord.Color.from_rgba(230, 1, 18)
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} \n\n {self.fail_message}",
+                    color=discord.Color.from_rgb(116, 7, 14)
                 )
                 result_embed.add_field(name="Result", value="Too damaged...", inline=True)
                 result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
                 
                 if xp_result and xp_result['leveled_up']:
                     result_embed.add_field(
-                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        name="<:lvlup:1482362825119633478> LEVEL UP!", 
                         value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                         inline=False
                     )
@@ -1190,22 +1189,22 @@ async def scavenging(interaction: discord.Interaction, name: str):
             
             await interaction.response.edit_message(embed=result_embed, view=self)
         
-        @discord.ui.button(label="📭 Leave It", style=discord.ButtonStyle.gray)
+        @discord.ui.button(label="Leave It", style=discord.ButtonStyle.gray)
         async def leave_button(self, interaction: discord.Interaction, button: Button):
             xp_reward_peaceful = 5
             xp_result = db.add_xp(self.character_name, xp_reward_peaceful, 'scavenging')
             
             result_embed = discord.Embed(
-                title="🔍 ┃ Left Behind",
+                title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Item Left Behind",
                 description=f"**{self.character_name}** decided to leave the **{self.item_name}** behind.\n\n{self.flee_message}",
-                color=discord.Color.from_rgb(128, 128, 128)
+                color=discord.Color.from_rgb(0, 0, 0)
             )
             result_embed.add_field(name="Result", value="No item obtained", inline=True)
             result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP (peaceful)", inline=True)
             
             if xp_result and xp_result['leveled_up']:
                 result_embed.add_field(
-                    name="🎉 LEVEL UP!", 
+                    name="<:lvlup:1482362825119633478> LEVEL UP!", 
                     value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
                     inline=False
                 )
@@ -1958,7 +1957,7 @@ async def value_items(interaction: discord.Interaction, name: str, items: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     
     await interaction.response.send_message(embed=embed)
@@ -2024,7 +2023,7 @@ async def sell_items(interaction: discord.Interaction, name: str, items: str):
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(116, 7, 14)
         )
     
     await interaction.response.send_message(embed=embed)
