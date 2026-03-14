@@ -157,6 +157,9 @@ class Database:
         if 'flee_message' not in hunting_columns:
             cursor.execute("ALTER TABLE hunting_items ADD COLUMN flee_message TEXT")
             print("✓ Added flee_message column to hunting_items table")
+        if 'fail_message' not in hunting_columns:
+            cursor.execute("ALTER TABLE hunting_items ADD COLUMN fail_message TEXT")
+            print("✓ Added fail_message column to hunting_items table")
         
         cursor.execute("PRAGMA table_info(fishing_items)")
         fishing_columns = [column[1] for column in cursor.fetchall()]
@@ -175,6 +178,9 @@ class Database:
         if 'flee_message' not in fishing_columns:
             cursor.execute("ALTER TABLE fishing_items ADD COLUMN flee_message TEXT")
             print("✓ Added flee_message column to fishing_items table")
+        if 'fail_message' not in fishing_columns:
+            cursor.execute("ALTER TABLE fishing_items ADD COLUMN fail_message TEXT")
+            print("✓ Added fail_message column to fishing_items table")
         
         cursor.execute("PRAGMA table_info(scavenging_items)")
         scavenging_columns = [column[1] for column in cursor.fetchall()]
@@ -193,6 +199,9 @@ class Database:
         if 'flee_message' not in scavenging_columns:
             cursor.execute("ALTER TABLE scavenging_items ADD COLUMN flee_message TEXT")
             print("✓ Added flee_message column to scavenging_items table")
+        if 'fail_message' not in scavenging_columns:
+            cursor.execute("ALTER TABLE scavenging_items ADD COLUMN fail_message TEXT")
+            print("✓ Added fail_message column to scavenging_items table")
         
         conn.commit()
         conn.close()
@@ -1071,8 +1080,8 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        # Get all hunting items with their weights, difficulty, and flee_message
-        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message FROM hunting_items")
+        # Get all hunting items with their weights, difficulty, and messages
+        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message, fail_message FROM hunting_items")
         items = cursor.fetchall()
         
         if not items:
@@ -1094,6 +1103,7 @@ class Database:
         description = selected[2] if len(selected) > 2 and selected[2] else message
         difficulty = selected[4] if len(selected) > 4 and selected[4] else 10  # Default difficulty 10
         flee_message = selected[5] if len(selected) > 5 and selected[5] else None
+        fail_message = selected[6] if len(selected) > 6 and selected[6] else None
         
         conn.close()
         
@@ -1102,7 +1112,8 @@ class Database:
             'message': message,
             'description': description,
             'difficulty': difficulty,
-            'flee_message': flee_message
+            'flee_message': flee_message,
+            'fail_message': fail_message
         }
     
     def fishing_minigame(self, name):
@@ -1114,7 +1125,7 @@ class Database:
         cursor = conn.cursor()
         
         # Get all fishing items with their weights and difficulty
-        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message FROM fishing_items")
+        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message, fail_message FROM fishing_items")
         items = cursor.fetchall()
         
         if not items:
@@ -1139,6 +1150,7 @@ class Database:
         conn.close()
         
         flee_message = selected[5] if len(selected) > 5 and selected[5] else None
+        fail_message = selected[6] if len(selected) > 6 and selected[6] else None
         
         conn.close()
         
@@ -1147,7 +1159,8 @@ class Database:
             'message': message,
             'description': description,
             'difficulty': difficulty,
-            'flee_message': flee_message
+            'flee_message': flee_message,
+            'fail_message': fail_message
         }
     
     def scavenging_minigame(self, name):
@@ -1159,7 +1172,7 @@ class Database:
         cursor = conn.cursor()
         
         # Get all scavenging items with their weights and difficulty
-        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message FROM scavenging_items")
+        cursor.execute("SELECT item_name, message, description, weight, difficulty, flee_message, fail_message FROM scavenging_items")
         items = cursor.fetchall()
         
         if not items:
@@ -1184,6 +1197,7 @@ class Database:
         conn.close()
         
         flee_message = selected[5] if len(selected) > 5 and selected[5] else None
+        fail_message = selected[6] if len(selected) > 6 and selected[6] else None
         
         conn.close()
         
@@ -1192,7 +1206,8 @@ class Database:
             'message': message,
             'description': description,
             'difficulty': difficulty,
-            'flee_message': flee_message
+            'flee_message': flee_message,
+            'fail_message': fail_message
         }
     
     def add_minigame_item(self, name, item_name):
