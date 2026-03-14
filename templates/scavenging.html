@@ -275,25 +275,32 @@
 .nav-tabs { border-bottom-color: #2c2c2c; }
 </style>
 <script>
-let scavPage = 0;
+const SCAV_PAGE_KEY = 'scavPage';
+const SCAV_SIZE_KEY = 'scavPageSize';
+let scavPage = parseInt(sessionStorage.getItem(SCAV_PAGE_KEY) || '0');
 let scavFilteredRows = [];
 
 function scavGetPageSize() { return parseInt(document.getElementById('scavPageSize').value); }
 
 function scavRender() {
     const pageSize = scavGetPageSize();
-    const start = scavPage * pageSize;
-    const end = start + pageSize;
     const allRows = Array.from(document.querySelectorAll('#scavBody tr'));
     const q = document.getElementById('scavSearch').value.toLowerCase();
     scavFilteredRows = allRows.filter(r => !q || r.innerText.toLowerCase().includes(q));
+
+    const maxPage = Math.max(0, Math.ceil(scavFilteredRows.length / pageSize) - 1);
+    if (scavPage > maxPage) { scavPage = maxPage; sessionStorage.setItem(SCAV_PAGE_KEY, scavPage); }
+
+    const start = scavPage * pageSize;
+    const end = start + pageSize;
     allRows.forEach(r => r.style.display = 'none');
     scavFilteredRows.slice(start, end).forEach(r => r.style.display = '');
     const total = scavFilteredRows.length;
-    const showing = Math.min(end, total);
-    document.getElementById('scavPageInfo').textContent = total === 0 ? 'No results' : `Showing ${start + 1}–${showing} of ${total}`;
+    document.getElementById('scavPageInfo').textContent = total === 0 ? 'No results' : `Showing ${start + 1}–${Math.min(end, total)} of ${total}`;
     document.getElementById('scavPrevBtn').disabled = scavPage === 0;
     document.getElementById('scavNextBtn').disabled = end >= total;
+    sessionStorage.setItem(SCAV_PAGE_KEY, scavPage);
+    sessionStorage.setItem(SCAV_SIZE_KEY, pageSize);
 }
 
 function scavChangePage(dir) {
@@ -305,6 +312,9 @@ function scavChangePage(dir) {
 
 document.getElementById('scavPageSize').addEventListener('change', () => { scavPage = 0; scavRender(); });
 document.getElementById('scavSearch').addEventListener('input', () => { scavPage = 0; scavRender(); });
+
+const savedScavSize = sessionStorage.getItem(SCAV_SIZE_KEY);
+if (savedScavSize) document.getElementById('scavPageSize').value = savedScavSize;
 
 const scavSort = {};
 document.querySelectorAll('#scavTable th.sortable').forEach(th => {
