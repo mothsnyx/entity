@@ -3,42 +3,32 @@
 {% block title %}Manage Hunting{% endblock %}
 
 {% block content %}
-<h1>Manage Hunting Loot</h1>
-<p class="lead">Configure items and messages for the hunting minigame</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="mb-1"><i class="bi bi-bullseye"></i> Manage Hunting Loot</h1>
+        <p class="text-muted mb-0">Configure items and messages for the hunting minigame</p>
+    </div>
+    <span class="badge bg-secondary fs-6">{{ items|length }} outcomes</span>
+</div>
 
 <div class="alert alert-info">
     <i class="bi bi-info-circle"></i> <strong>Tip:</strong> Leave "Item Name" empty to create a "nothing found" message.
 </div>
 
-<!-- ADD NEW ITEM CARD WITH TABS -->
+<!-- ADD NEW ITEM CARD -->
 <div class="card mb-4">
     <div class="card-header">
         <i class="bi bi-plus-circle"></i> Add New Hunting Outcome
     </div>
     <div class="card-body">
         <form method="POST" action="/hunting/add">
-            <!-- Nav tabs -->
             <ul class="nav nav-tabs mb-3" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
-                        <i class="bi bi-pencil"></i> Basic Info
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="messages-tab" data-bs-toggle="tab" data-bs-target="#messages" type="button" role="tab">
-                        <i class="bi bi-chat-text"></i> Messages
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
-                        <i class="bi bi-sliders"></i> Settings
-                    </button>
-                </li>
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#basic" type="button"><i class="bi bi-pencil"></i> Basic Info</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#messages" type="button"><i class="bi bi-chat-text"></i> Messages</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#settings" type="button"><i class="bi bi-sliders"></i> Settings</button></li>
             </ul>
-
-            <!-- Tab content -->
             <div class="tab-content">
-                <!-- BASIC INFO TAB -->
+                <!-- BASIC INFO -->
                 <div class="tab-pane fade show active" id="basic" role="tabpanel">
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -55,7 +45,6 @@
                                 <option value="Miscellaneous" selected>Miscellaneous</option>
                                 <option value="Cosmetics">Cosmetics</option>
                             </select>
-                            <small class="text-muted">How it's organized in inventory</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Sell Value</label>
@@ -63,88 +52,60 @@
                                 <input type="number" name="sell_value" class="form-control" value="0" min="0">
                                 <span class="input-group-text">BP</span>
                             </div>
-                            <small class="text-muted">Bloodpoints when sold</small>
                         </div>
                     </div>
                 </div>
-
-                <!-- MESSAGES TAB -->
+                <!-- MESSAGES -->
                 <div class="tab-pane fade" id="messages" role="tabpanel">
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label fw-bold">Encounter Message <span class="text-danger">*</span></label>
                             <textarea name="message" class="form-control" rows="2" placeholder="You spotted a majestic deer in the clearing!" required></textarea>
-                            <small class="text-muted">Shown when player encounters this (shown in logs)</small>
+                            <small class="text-muted">Shown when the player encounters this animal</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-bold">Description (Discord Embed)</label>
                             <textarea name="description" class="form-control" rows="3" placeholder="A beautiful deer stands before you, graceful and alert..."></textarea>
-                            <small class="text-muted">Full description shown in Discord embed (optional, uses message if empty)</small>
+                            <small class="text-muted">Full description shown in Discord embed (optional — uses Encounter Message if empty)</small>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Leave It Message (Peaceful Option)</label>
-                            <textarea name="flee_message" class="form-control" rows="2" placeholder="The deer looked at you with gentle eyes. You let it walk away peacefully..."></textarea>
-                            <small class="text-muted">Shown when player chooses "Leave It" button (optional)</small>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="bi bi-tree text-muted"></i> Leave It Message</label>
+                            <textarea name="flee_message" class="form-control" rows="2" placeholder="The deer looked at you with gentle eyes and wandered off..."></textarea>
+                            <small class="text-muted">Shown when player clicks <strong>"Leave It"</strong></small>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Failed Kill Message</label>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold"><i class="bi bi-x-circle text-danger"></i> Failed Kill Message</label>
                             <textarea name="fail_message" class="form-control" rows="2" placeholder="The deer bolted before you could land a killing blow..."></textarea>
-                            <small class="text-muted">Shown when player rolls but fails to kill the animal (optional)</small>
+                            <small class="text-muted">Shown when the roll <strong>fails</strong></small>
                         </div>
                     </div>
                 </div>
-
-                <!-- SETTINGS TAB -->
+                <!-- SETTINGS -->
                 <div class="tab-pane fade" id="settings" role="tabpanel">
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Weight (Spawn Chance)</label>
                             <input type="number" name="weight" class="form-control" value="10" min="0" required>
                             <small class="text-muted">Higher = more common (10 = normal)</small>
-                            <div class="mt-2">
-                                <small class="d-block text-muted">
-                                    <strong>Quick Guide:</strong><br>
-                                    1-5 = Very Rare<br>
-                                    10-20 = Common<br>
-                                    50+ = Very Common
-                                </small>
-                            </div>
+                            <div class="mt-2"><small class="text-muted">1–5 = Very Rare &nbsp;·&nbsp; 10–20 = Common &nbsp;·&nbsp; 50+ = Very Common</small></div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
                             <input type="number" name="difficulty" class="form-control" value="10" min="1" max="20" required>
                             <small class="text-muted">Roll needed to succeed</small>
-                            <div class="mt-2">
-                                <small class="d-block text-muted">
-                                    <strong>Quick Guide:</strong><br>
-                                    5-9 = Easy (60-80%)<br>
-                                    10-13 = Medium (40-55%)<br>
-                                    14-17 = Hard (20-35%)<br>
-                                    18-20 = Very Hard (5-15%)
-                                </small>
-                            </div>
+                            <div class="mt-2"><small class="text-muted">5–9 Easy &nbsp;·&nbsp; 10–13 Medium &nbsp;·&nbsp; 14–17 Hard &nbsp;·&nbsp; 18–20 Very Hard</small></div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold">Preview</label>
-                            <div class="card bg-light">
-                                <div class="card-body p-2">
-                                    <div class="mb-2">
-                                        <span class="badge bg-info">Weight: 10</span>
-                                        <span class="badge bg-warning text-dark">Diff: 10</span>
-                                        <span class="badge bg-success">BP: 0</span>
-                                    </div>
-                                    <small class="text-muted">
-                                        <strong>Spawn:</strong> Normal<br>
-                                        <strong>Success:</strong> ~55%<br>
-                                        <strong>XP:</strong> 60 (success) / 30 (fail)
-                                    </small>
-                                </div>
+                            <label class="form-label fw-bold">XP Reference</label>
+                            <div class="p-2 rounded" style="background:#111;border:1px solid #2c2c2c;">
+                                <small class="text-muted d-block">Success XP = 10 + (difficulty × 5)</small>
+                                <small class="text-muted d-block">Fail XP = Success XP ÷ 4</small>
+                                <small class="text-muted d-block mt-1">Leave It XP = 5 (always)</small>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
             <hr class="my-3">
             <div class="text-end">
                 <button type="submit" class="btn btn-primary btn-lg">
@@ -155,55 +116,45 @@
     </div>
 </div>
 
-<!-- EXISTING ITEMS TABLE -->
+<!-- TABLE -->
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-list-ul"></i> Existing Hunting Outcomes</span>
-        <span class="badge bg-secondary">{{ items|length }} total</span>
+        <div class="d-flex align-items-center gap-2">
+            <input type="text" id="huntSearch" class="form-control form-control-sm" placeholder="Search..." style="width:180px;">
+            <span class="badge bg-secondary">{{ items|length }} total</span>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0">
-                <thead class="table-light">
+            <table class="table table-dark table-hover table-sm mb-0" id="huntingTable">
+                <thead>
                     <tr>
-                        <th style="width: 15%;">Item</th>
-                        <th style="width: 20%;">Message</th>
-                        <th style="width: 12%;">Category</th>
-                        <th style="width: 8%;" class="text-center">Sell Value</th>
-                        <th style="width: 8%;" class="text-center">Weight</th>
-                        <th style="width: 8%;" class="text-center">Difficulty</th>
-                        <th style="width: 15%;">Actions</th>
+                        <th class="sortable" data-col="0" style="cursor:pointer; width:14%;">Item <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th style="width:24%;">Message</th>
+                        <th class="sortable" data-col="2" style="cursor:pointer; width:10%;">Category <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="3" style="cursor:pointer; width:9%;">Sell <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="4" style="cursor:pointer; width:8%;">Weight <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="5" style="cursor:pointer; width:7%;">Diff <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th style="width:10%;">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="huntingBody">
                     {% for item in items %}
                     <tr>
-                        <td>
-                            {% if item[1] %}
-                                <strong>{{ item[1] }}</strong>
-                            {% else %}
-                                <em class="text-muted">Nothing</em>
-                            {% endif %}
-                        </td>
-                        <td><small>{{ item[2][:50] }}{% if item[2]|length > 50 %}...{% endif %}</small></td>
-                        <td><span class="badge bg-secondary">{{ item[4] or 'Miscellaneous' }}</span></td>
+                        <td>{% if item[1] %}<strong>{{ item[1] }}</strong>{% else %}<em class="text-muted">Nothing</em>{% endif %}</td>
+                        <td><small class="text-muted">{{ item[2][:65] }}{% if item[2]|length > 65 %}…{% endif %}</small></td>
+                        <td><span class="badge bg-secondary">{{ item[4] or 'Misc' }}</span></td>
                         <td class="text-center">
-                            {% if item[7] and item[7] > 0 %}
-                                <span class="badge bg-success">{{ item[7] }} BP</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Not sellable</span>
-                            {% endif %}
+                            {% if item[7] and item[7] > 0 %}<span class="badge bg-success">{{ item[7] }} BP</span>
+                            {% else %}<span class="badge" style="background:#333;">—</span>{% endif %}
                         </td>
                         <td class="text-center"><span class="badge bg-info">{{ item[8] or 10 }}</span></td>
                         <td class="text-center"><span class="badge bg-warning text-dark">{{ item[9] or 10 }}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ item[0] }}">
-                                <i class="bi bi-pencil"></i> Edit
-                            </button>
+                            <button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editModal{{ item[0] }}" title="Edit"><i class="bi bi-pencil"></i></button>
                             <form method="POST" action="/hunting/delete/{{ item[0] }}" style="display:inline;">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this item?')">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this item?')" title="Delete"><i class="bi bi-trash"></i></button>
                             </form>
                         </td>
                     </tr>
@@ -225,28 +176,12 @@
             </div>
             <form method="POST" action="/hunting/edit/{{ item[0] }}">
                 <div class="modal-body">
-                    <!-- Nav tabs for edit modal -->
                     <ul class="nav nav-pills mb-3" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="edit-basic-tab-{{ item[0] }}" data-bs-toggle="tab" data-bs-target="#edit-basic-{{ item[0] }}" type="button" role="tab">
-                                Basic Info
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="edit-messages-tab-{{ item[0] }}" data-bs-toggle="tab" data-bs-target="#edit-messages-{{ item[0] }}" type="button" role="tab">
-                                Messages
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="edit-settings-tab-{{ item[0] }}" data-bs-toggle="tab" data-bs-target="#edit-settings-{{ item[0] }}" type="button" role="tab">
-                                Settings
-                            </button>
-                        </li>
+                        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#edit-basic-{{ item[0] }}" type="button">Basic Info</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#edit-msg-{{ item[0] }}" type="button">Messages</button></li>
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#edit-set-{{ item[0] }}" type="button">Settings</button></li>
                     </ul>
-
-                    <!-- Tab content -->
                     <div class="tab-content">
-                        <!-- BASIC INFO -->
                         <div class="tab-pane fade show active" id="edit-basic-{{ item[0] }}" role="tabpanel">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Item Name</label>
@@ -266,60 +201,89 @@
                                 <label class="form-label fw-bold">Sell Value</label>
                                 <div class="input-group">
                                     <input type="number" class="form-control" name="sell_value" value="{{ item[7] or 0 }}" min="0">
-                                    <span class="input-group-text">Bloodpoints</span>
+                                    <span class="input-group-text">BP</span>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- MESSAGES -->
-                        <div class="tab-pane fade" id="edit-messages-{{ item[0] }}" role="tabpanel">
+                        <div class="tab-pane fade" id="edit-msg-{{ item[0] }}" role="tabpanel">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Encounter Message <span class="text-danger">*</span></label>
                                 <textarea class="form-control" name="message" rows="2" required>{{ item[2] }}</textarea>
-                                <small class="text-muted">Shown when player encounters this</small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Description (Discord Embed)</label>
                                 <textarea class="form-control" name="description" rows="3">{{ item[3] or '' }}</textarea>
-                                <small class="text-muted">Full description in Discord</small>
+                                <small class="text-muted">Optional — uses Encounter Message if empty</small>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Leave It Message</label>
-                                <textarea class="form-control" name="flee_message" rows="2">{{ item[10] or '' }}</textarea>
-                                <small class="text-muted">Shown when player chooses peaceful option</small>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Failed Kill Message</label>
-                                <textarea class="form-control" name="fail_message" rows="2">{{ item[11] or '' }}</textarea>
-                                <small class="text-muted">Shown when player rolls but fails to kill the animal</small>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Leave It Message</label>
+                                    <textarea class="form-control" name="flee_message" rows="2">{{ item[10] or '' }}</textarea>
+                                    <small class="text-muted">Shown when player chooses "Leave It"</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Failed Kill Message</label>
+                                    <textarea class="form-control" name="fail_message" rows="2">{{ item[11] or '' }}</textarea>
+                                    <small class="text-muted">Shown when the roll fails</small>
+                                </div>
                             </div>
                         </div>
-
-                        <!-- SETTINGS -->
-                        <div class="tab-pane fade" id="edit-settings-{{ item[0] }}" role="tabpanel">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Weight (Spawn Chance)</label>
-                                <input type="number" class="form-control" name="weight" value="{{ item[8] or 10 }}" min="0" required>
-                                <small class="text-muted">Higher = more common</small>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
-                                <input type="number" class="form-control" name="difficulty" value="{{ item[9] or 10 }}" min="1" max="20" required>
-                                <small class="text-muted">Player must roll this or higher to succeed</small>
+                        <div class="tab-pane fade" id="edit-set-{{ item[0] }}" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Weight (Spawn Chance)</label>
+                                    <input type="number" class="form-control" name="weight" value="{{ item[8] or 10 }}" min="0" required>
+                                    <small class="text-muted">Higher = more common</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
+                                    <input type="number" class="form-control" name="difficulty" value="{{ item[9] or 10 }}" min="1" max="20" required>
+                                    <small class="text-muted">Player must roll this or higher</small>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle"></i> Save Changes
-                    </button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 {% endfor %}
+{% endblock %}
 
+{% block scripts %}
+<script>
+// Sortable columns
+const huntSort = {};
+document.querySelectorAll('#huntingTable th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        huntSort[col] = !huntSort[col];
+        const tbody = document.getElementById('huntingBody');
+        Array.from(tbody.querySelectorAll('tr'))
+            .sort((a, b) => {
+                const av = a.cells[col].innerText.trim();
+                const bv = b.cells[col].innerText.trim();
+                const an = parseFloat(av), bn = parseFloat(bv);
+                if (!isNaN(an) && !isNaN(bn)) return huntSort[col] ? an - bn : bn - an;
+                return huntSort[col] ? av.localeCompare(bv) : bv.localeCompare(av);
+            })
+            .forEach(r => tbody.appendChild(r));
+        document.querySelectorAll('#huntingTable th.sortable i').forEach(i => i.className = 'bi bi-arrow-down-up text-muted small');
+        th.querySelector('i').className = huntSort[col] ? 'bi bi-arrow-up small text-light' : 'bi bi-arrow-down small text-light';
+    });
+});
+
+// Search filter
+document.getElementById('huntSearch').addEventListener('input', function () {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#huntingBody tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+});
+</script>
 {% endblock %}
