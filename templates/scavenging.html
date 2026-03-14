@@ -192,11 +192,11 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Category</label>
                                 <select name="category" class="form-select">
-                                    <option value="Consumables" {% if item[4] == 'Consumables' %}selected{% endif %}>Consumables</option>
-                                    <option value="Tools" {% if item[4] == 'Tools' %}selected{% endif %}>Tools</option>
-                                    <option value="Collectibles" {% if item[4] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
-                                    <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
-                                    <option value="Cosmetics" {% if item[4] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
+                                    <option value="Consumables" {% if item[3] == 'Consumables' %}selected{% endif %}>Consumables</option>
+                                    <option value="Tools" {% if item[3] == 'Tools' %}selected{% endif %}>Tools</option>
+                                    <option value="Collectibles" {% if item[3] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
+                                    <option value="Miscellaneous" {% if item[3] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
+                                    <option value="Cosmetics" {% if item[3] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -214,7 +214,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Description (Discord Embed)</label>
-                                <textarea class="form-control" name="description" rows="3">{{ item[3] or '' }}</textarea>
+                                <textarea class="form-control" name="description" rows="3">{{ item[4] or '' }}</textarea>
                                 <small class="text-muted">Optional — uses Discovery Message if empty</small>
                             </div>
                             <div class="row g-3">
@@ -239,7 +239,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
-                                    <input type="number" class="form-control" name="difficulty" value="{{ item[7] or 10 }}" min="1" max="20" required>
+                                    <input type="number" class="form-control" name="difficulty" value="{{ item[5] or 10 }}" min="1" max="20" required>
                                     <small class="text-muted">Player must roll this or higher</small>
                                 </div>
                             </div>
@@ -270,6 +270,7 @@
 <script>
 const SCAV_PAGE_KEY = 'scavPage';
 const SCAV_SIZE_KEY = 'scavPageSize';
+const SCAV_SEARCH_KEY = 'scavSearch';
 let scavPage = parseInt(sessionStorage.getItem(SCAV_PAGE_KEY) || '0');
 let scavFilteredRows = [];
 
@@ -291,6 +292,7 @@ function scavRender() {
     document.getElementById('scavNextBtn').disabled = end >= total;
     sessionStorage.setItem(SCAV_PAGE_KEY, scavPage);
     sessionStorage.setItem(SCAV_SIZE_KEY, pageSize);
+    sessionStorage.setItem(SCAV_SEARCH_KEY, document.getElementById('scavSearch').value);
 }
 
 function scavChangePage(dir) {
@@ -301,8 +303,12 @@ function scavChangePage(dir) {
 
 document.getElementById('scavPageSize').addEventListener('change', () => { scavPage = 0; scavRender(); });
 document.getElementById('scavSearch').addEventListener('input', () => { scavPage = 0; scavRender(); });
+
+// Restore saved state on load
 const savedScavSize = sessionStorage.getItem(SCAV_SIZE_KEY);
 if (savedScavSize) document.getElementById('scavPageSize').value = savedScavSize;
+const savedScavSearch = sessionStorage.getItem(SCAV_SEARCH_KEY);
+if (savedScavSearch) document.getElementById('scavSearch').value = savedScavSearch;
 
 const scavSort = {};
 document.querySelectorAll('#scavTable th.sortable').forEach(th => {
