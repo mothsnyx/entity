@@ -28,7 +28,6 @@
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#settings" type="button"><i class="bi bi-sliders"></i> Settings</button></li>
             </ul>
             <div class="tab-content">
-                <!-- BASIC INFO -->
                 <div class="tab-pane fade show active" id="basic" role="tabpanel">
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -55,7 +54,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- MESSAGES -->
                 <div class="tab-pane fade" id="messages" role="tabpanel">
                     <div class="row g-3">
                         <div class="col-12">
@@ -69,18 +67,17 @@
                             <small class="text-muted">Full description shown in Discord embed (optional — uses Catch Message if empty)</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold"><i class="bi bi-water text-muted"></i> Release Message</label>
+                            <label class="form-label fw-bold">Release Message</label>
                             <textarea name="flee_message" class="form-control" rows="2" placeholder="You toss it back. The fish disappears into the dark water..."></textarea>
                             <small class="text-muted">Shown when player clicks <strong>"Release It"</strong></small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold"><i class="bi bi-x-circle text-danger"></i> Failed Catch Message</label>
+                            <label class="form-label fw-bold">Failed Catch Message</label>
                             <textarea name="fail_message" class="form-control" rows="2" placeholder="The line snapped and the fish vanished into the dark water..."></textarea>
                             <small class="text-muted">Shown when the roll <strong>fails</strong></small>
                         </div>
                     </div>
                 </div>
-                <!-- SETTINGS -->
                 <div class="tab-pane fade" id="settings" role="tabpanel">
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -118,10 +115,17 @@
 
 <!-- TABLE -->
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <span><i class="bi bi-list-ul"></i> Existing Fishing Outcomes</span>
-        <div class="d-flex align-items-center gap-2">
-            <input type="text" id="fishSearch" class="form-control form-control-sm" placeholder="Search..." style="width:180px;">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <label class="text-muted small mb-0">Show</label>
+            <select id="fishPageSize" class="form-select form-select-sm" style="width:75px;">
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="999999">All</option>
+            </select>
+            <input type="text" id="fishSearch" class="form-control form-control-sm" placeholder="Search..." style="width:160px;">
             <span class="badge bg-secondary">{{ items|length }} total</span>
         </div>
     </div>
@@ -130,12 +134,12 @@
             <table class="table table-dark table-hover table-sm mb-0" id="fishingTable">
                 <thead>
                     <tr>
-                        <th class="sortable" data-col="0" style="cursor:pointer; width:14%;">Item <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable" data-col="0" style="cursor:pointer;width:14%;">Item <i class="bi bi-arrow-down-up text-muted small"></i></th>
                         <th style="width:24%;">Message</th>
-                        <th class="sortable" data-col="2" style="cursor:pointer; width:10%;">Category <i class="bi bi-arrow-down-up text-muted small"></i></th>
-                        <th class="sortable text-center" data-col="3" style="cursor:pointer; width:9%;">Sell <i class="bi bi-arrow-down-up text-muted small"></i></th>
-                        <th class="sortable text-center" data-col="4" style="cursor:pointer; width:8%;">Weight <i class="bi bi-arrow-down-up text-muted small"></i></th>
-                        <th class="sortable text-center" data-col="5" style="cursor:pointer; width:7%;">Diff <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable" data-col="2" style="cursor:pointer;width:10%;">Category <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="3" style="cursor:pointer;width:9%;">Sell <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="4" style="cursor:pointer;width:8%;">Weight <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="5" style="cursor:pointer;width:7%;">Diff <i class="bi bi-arrow-down-up text-muted small"></i></th>
                         <th style="width:10%;">Actions</th>
                     </tr>
                 </thead>
@@ -161,6 +165,13 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+    <div class="card-footer d-flex justify-content-between align-items-center py-2">
+        <small class="text-muted" id="fishPageInfo"></small>
+        <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-secondary" id="fishPrevBtn" onclick="fishChangePage(-1)">‹ Prev</button>
+            <button class="btn btn-sm btn-outline-secondary" id="fishNextBtn" onclick="fishChangePage(1)">Next ›</button>
         </div>
     </div>
 </div>
@@ -256,7 +267,45 @@
 {% endblock %}
 
 {% block scripts %}
+<style>
+.nav-tabs .nav-link, .nav-pills .nav-link { color: #adb5bd; background: transparent; border-color: transparent; }
+.nav-tabs .nav-link:hover, .nav-pills .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); border-color: transparent; }
+.nav-tabs .nav-link.active { color: #fff !important; background-color: #b71c1c !important; border-color: #b71c1c !important; }
+.nav-pills .nav-link.active { color: #fff !important; background-color: #b71c1c !important; }
+.nav-tabs { border-bottom-color: #2c2c2c; }
+</style>
 <script>
+let fishPage = 0;
+let fishFilteredRows = [];
+
+function fishGetPageSize() { return parseInt(document.getElementById('fishPageSize').value); }
+
+function fishRender() {
+    const pageSize = fishGetPageSize();
+    const start = fishPage * pageSize;
+    const end = start + pageSize;
+    const allRows = Array.from(document.querySelectorAll('#fishingBody tr'));
+    const q = document.getElementById('fishSearch').value.toLowerCase();
+    fishFilteredRows = allRows.filter(r => !q || r.innerText.toLowerCase().includes(q));
+    allRows.forEach(r => r.style.display = 'none');
+    fishFilteredRows.slice(start, end).forEach(r => r.style.display = '');
+    const total = fishFilteredRows.length;
+    const showing = Math.min(end, total);
+    document.getElementById('fishPageInfo').textContent = total === 0 ? 'No results' : `Showing ${start + 1}–${showing} of ${total}`;
+    document.getElementById('fishPrevBtn').disabled = fishPage === 0;
+    document.getElementById('fishNextBtn').disabled = end >= total;
+}
+
+function fishChangePage(dir) {
+    const pageSize = fishGetPageSize();
+    const maxPage = Math.ceil(fishFilteredRows.length / pageSize) - 1;
+    fishPage = Math.max(0, Math.min(fishPage + dir, maxPage));
+    fishRender();
+}
+
+document.getElementById('fishPageSize').addEventListener('change', () => { fishPage = 0; fishRender(); });
+document.getElementById('fishSearch').addEventListener('input', () => { fishPage = 0; fishRender(); });
+
 const fishSort = {};
 document.querySelectorAll('#fishingTable th.sortable').forEach(th => {
     th.addEventListener('click', () => {
@@ -265,8 +314,7 @@ document.querySelectorAll('#fishingTable th.sortable').forEach(th => {
         const tbody = document.getElementById('fishingBody');
         Array.from(tbody.querySelectorAll('tr'))
             .sort((a, b) => {
-                const av = a.cells[col].innerText.trim();
-                const bv = b.cells[col].innerText.trim();
+                const av = a.cells[col].innerText.trim(), bv = b.cells[col].innerText.trim();
                 const an = parseFloat(av), bn = parseFloat(bv);
                 if (!isNaN(an) && !isNaN(bn)) return fishSort[col] ? an - bn : bn - an;
                 return fishSort[col] ? av.localeCompare(bv) : bv.localeCompare(av);
@@ -274,14 +322,10 @@ document.querySelectorAll('#fishingTable th.sortable').forEach(th => {
             .forEach(r => tbody.appendChild(r));
         document.querySelectorAll('#fishingTable th.sortable i').forEach(i => i.className = 'bi bi-arrow-down-up text-muted small');
         th.querySelector('i').className = fishSort[col] ? 'bi bi-arrow-up small text-light' : 'bi bi-arrow-down small text-light';
+        fishPage = 0; fishRender();
     });
 });
 
-document.getElementById('fishSearch').addEventListener('input', function () {
-    const q = this.value.toLowerCase();
-    document.querySelectorAll('#fishingBody tr').forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
-    });
-});
+fishRender();
 </script>
 {% endblock %}
