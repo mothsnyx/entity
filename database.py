@@ -508,7 +508,14 @@ class Database:
                 'name': result[1],
                 'role': result[2],
                 'bloodpoints': result[3],
-                'auric_cells': result[4]
+                'auric_cells': result[4],
+                'user_id': result[5] if len(result) > 5 else None,
+                'hunting_level': result[6] if len(result) > 6 else 1,
+                'hunting_xp': result[7] if len(result) > 7 else 0,
+                'fishing_level': result[8] if len(result) > 8 else 1,
+                'fishing_xp': result[9] if len(result) > 9 else 0,
+                'scavenging_level': result[10] if len(result) > 10 else 1,
+                'scavenging_xp': result[11] if len(result) > 11 else 0,
             }
         return None
     
