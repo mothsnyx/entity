@@ -3,20 +3,25 @@
 {% block title %}Manage Realms{% endblock %}
 
 {% block content %}
-<h1>Manage Realms</h1>
-<p class="lead">Add, edit, or remove game realms</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="mb-1"><i class="bi bi-globe"></i> Manage Realms</h1>
+        <p class="text-muted mb-0">Add, edit, or remove game realms</p>
+    </div>
+    <span class="badge bg-secondary fs-6">{{ realms|length }} realms</span>
+</div>
 
 <div class="card mb-4">
     <div class="card-header">
-        Add New Realm
+        <i class="bi bi-plus-circle"></i> Add New Realm
     </div>
     <div class="card-body">
         <form method="POST" action="/realms/add">
             <div class="row">
-                <div class="col-md-8">
-                    <input type="text" name="name" class="form-control" placeholder="Realm Name" required>
+                <div class="col-md-9">
+                    <input type="text" name="name" class="form-control" placeholder="Realm name e.g. Coldwind Farm" required>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-plus"></i> Add Realm
                     </button>
@@ -27,22 +32,26 @@
 </div>
 
 <div class="card">
-    <div class="card-header">
-        All Realms ({{ realms|length }})
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> All Realms</span>
+        <div class="d-flex align-items-center gap-2">
+            <input type="text" id="realmSearch" class="form-control form-control-sm" placeholder="Search..." style="width:180px;">
+            <span class="badge bg-secondary">{{ realms|length }} total</span>
+        </div>
     </div>
-    <div class="card-body">
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-dark table-striped table-hover">
+            <table class="table table-dark table-hover table-sm mb-0" id="realmsTable">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th class="text-end">Actions</th>
+                        <th class="sortable" data-col="0" style="cursor:pointer; width:8%;">ID <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable" data-col="1" style="cursor:pointer;">Name <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th style="width:20%;" class="text-end">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="realmsBody">
                     {% for realm in realms %}
-                    <tr>
+                    <tr id="row-{{ realm[0] }}">
                         <td>{{ realm[0] }}</td>
                         <td>
                             <span id="realm-name-{{ realm[0] }}">{{ realm[1] }}</span>
@@ -51,18 +60,18 @@
                             </form>
                         </td>
                         <td class="text-end">
-                            <button class="btn btn-sm btn-warning" onclick="toggleEdit({{ realm[0] }})">
-                                <i class="bi bi-pencil"></i> Edit
+                            <button class="btn btn-sm btn-outline-primary" id="edit-btn-{{ realm[0] }}" onclick="startEdit({{ realm[0] }})">
+                                <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-success" id="save-btn-{{ realm[0] }}" style="display:none;" onclick="submitEdit({{ realm[0] }})">
-                                <i class="bi bi-check"></i> Save
+                            <button class="btn btn-sm btn-outline-success" id="save-btn-{{ realm[0] }}" style="display:none;" onclick="submitEdit({{ realm[0] }})">
+                                <i class="bi bi-check-lg"></i>
                             </button>
-                            <button class="btn btn-sm btn-secondary" id="cancel-btn-{{ realm[0] }}" style="display:none;" onclick="cancelEdit({{ realm[0] }})">
-                                Cancel
+                            <button class="btn btn-sm btn-outline-secondary" id="cancel-btn-{{ realm[0] }}" style="display:none;" onclick="cancelEdit({{ realm[0] }})">
+                                <i class="bi bi-x-lg"></i>
                             </button>
-                            <form method="POST" action="/realms/delete/{{ realm[0] }}" style="display:inline;" onsubmit="return confirm('Delete this realm?');">
-                                <button type="submit" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-trash"></i> Delete
+                            <form method="POST" action="/realms/delete/{{ realm[0] }}" style="display:inline;" onsubmit="return confirm('Delete {{ realm[1] }}?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </form>
                         </td>
@@ -76,13 +85,23 @@
 {% endblock %}
 
 {% block scripts %}
+<style>
+.nav-tabs .nav-link, .nav-pills .nav-link { color: #adb5bd; background: transparent; border-color: transparent; }
+.nav-tabs .nav-link:hover, .nav-pills .nav-link:hover { color: #fff; background: rgba(255,255,255,0.06); border-color: transparent; }
+.nav-tabs .nav-link.active { color: #fff !important; background-color: #b71c1c !important; border-color: #b71c1c !important; }
+.nav-pills .nav-link.active { color: #fff !important; background-color: #b71c1c !important; }
+.nav-tabs { border-bottom-color: #2c2c2c; }
+</style>
 <script>
-function toggleEdit(id) {
+// ── Inline edit functions ─────────────────────────
+function startEdit(id) {
     document.getElementById('realm-name-' + id).style.display = 'none';
     document.getElementById('edit-form-' + id).style.display = 'block';
+    document.getElementById('edit-btn-' + id).style.display = 'none';
     document.getElementById('save-btn-' + id).style.display = 'inline-block';
     document.getElementById('cancel-btn-' + id).style.display = 'inline-block';
-    event.target.style.display = 'none';
+    // Focus the input
+    document.getElementById('edit-form-' + id).querySelector('input').focus();
 }
 
 function submitEdit(id) {
@@ -92,9 +111,51 @@ function submitEdit(id) {
 function cancelEdit(id) {
     document.getElementById('realm-name-' + id).style.display = 'inline';
     document.getElementById('edit-form-' + id).style.display = 'none';
+    document.getElementById('edit-btn-' + id).style.display = 'inline-block';
     document.getElementById('save-btn-' + id).style.display = 'none';
     document.getElementById('cancel-btn-' + id).style.display = 'none';
-    document.querySelector(`tr:has(#realm-name-${id}) .btn-warning`).style.display = 'inline-block';
 }
+
+// Also allow pressing Enter to save
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[id^="edit-form-"]').forEach(form => {
+        form.querySelector('input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); form.submit(); }
+            if (e.key === 'Escape') {
+                const id = form.id.replace('edit-form-', '');
+                cancelEdit(id);
+            }
+        });
+    });
+});
+
+// ── Sortable columns ──────────────────────────────
+const realmSort = {};
+document.querySelectorAll('#realmsTable th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        realmSort[col] = !realmSort[col];
+        const tbody = document.getElementById('realmsBody');
+        Array.from(tbody.querySelectorAll('tr'))
+            .sort((a, b) => {
+                const av = a.cells[col].innerText.trim();
+                const bv = b.cells[col].innerText.trim();
+                const an = parseFloat(av), bn = parseFloat(bv);
+                if (!isNaN(an) && !isNaN(bn)) return realmSort[col] ? an - bn : bn - an;
+                return realmSort[col] ? av.localeCompare(bv) : bv.localeCompare(av);
+            })
+            .forEach(r => tbody.appendChild(r));
+        document.querySelectorAll('#realmsTable th.sortable i').forEach(i => i.className = 'bi bi-arrow-down-up text-muted small');
+        th.querySelector('i').className = realmSort[col] ? 'bi bi-arrow-up small text-light' : 'bi bi-arrow-down small text-light';
+    });
+});
+
+// ── Search filter ─────────────────────────────────
+document.getElementById('realmSearch').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('#realmsBody tr').forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+});
 </script>
 {% endblock %}
