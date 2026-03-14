@@ -1065,7 +1065,7 @@ async def fishing(interaction: discord.Interaction, name: str):
                 color=discord.Color.from_rgb(0, 0, 0)
             )
             result_embed.add_field(name="Result", value="No item obtained", inline=True)
-            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP (peaceful)", inline=True)
+            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP", inline=True)
             
             if xp_result and xp_result['leveled_up']:
                 result_embed.add_field(
@@ -1200,7 +1200,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
                 color=discord.Color.from_rgb(0, 0, 0)
             )
             result_embed.add_field(name="Result", value="No item obtained", inline=True)
-            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP (peaceful)", inline=True)
+            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP", inline=True)
             
             if xp_result and xp_result['leveled_up']:
                 result_embed.add_field(
