@@ -192,11 +192,11 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Category</label>
                                 <select name="category" class="form-select">
-                                    <option value="Consumables" {% if item[4] == 'Consumables' %}selected{% endif %}>Consumables</option>
-                                    <option value="Tools" {% if item[4] == 'Tools' %}selected{% endif %}>Tools</option>
-                                    <option value="Collectibles" {% if item[4] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
-                                    <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
-                                    <option value="Cosmetics" {% if item[4] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
+                                    <option value="Consumables" {% if item[3] == 'Consumables' %}selected{% endif %}>Consumables</option>
+                                    <option value="Tools" {% if item[3] == 'Tools' %}selected{% endif %}>Tools</option>
+                                    <option value="Collectibles" {% if item[3] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
+                                    <option value="Miscellaneous" {% if item[3] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
+                                    <option value="Cosmetics" {% if item[3] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -214,7 +214,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Description (Discord Embed)</label>
-                                <textarea class="form-control" name="description" rows="3">{{ item[3] or '' }}</textarea>
+                                <textarea class="form-control" name="description" rows="3">{{ item[4] or '' }}</textarea>
                                 <small class="text-muted">Optional — uses Encounter Message if empty</small>
                             </div>
                             <div class="row g-3">
@@ -239,7 +239,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
-                                    <input type="number" class="form-control" name="difficulty" value="{{ item[7] or 10 }}" min="1" max="20" required>
+                                    <input type="number" class="form-control" name="difficulty" value="{{ item[5] or 10 }}" min="1" max="20" required>
                                     <small class="text-muted">Player must roll this or higher</small>
                                 </div>
                             </div>
@@ -270,6 +270,7 @@
 <script>
 const HUNT_PAGE_KEY = 'huntPage';
 const HUNT_SIZE_KEY = 'huntPageSize';
+const HUNT_SEARCH_KEY = 'huntSearch';
 let huntPage = parseInt(sessionStorage.getItem(HUNT_PAGE_KEY) || '0');
 let huntFilteredRows = [];
 
@@ -291,6 +292,7 @@ function huntRender() {
     document.getElementById('huntNextBtn').disabled = end >= total;
     sessionStorage.setItem(HUNT_PAGE_KEY, huntPage);
     sessionStorage.setItem(HUNT_SIZE_KEY, pageSize);
+    sessionStorage.setItem(HUNT_SEARCH_KEY, document.getElementById('huntSearch').value);
 }
 
 function huntChangePage(dir) {
@@ -301,8 +303,12 @@ function huntChangePage(dir) {
 
 document.getElementById('huntPageSize').addEventListener('change', () => { huntPage = 0; huntRender(); });
 document.getElementById('huntSearch').addEventListener('input', () => { huntPage = 0; huntRender(); });
+
+// Restore saved state on load
 const savedHuntSize = sessionStorage.getItem(HUNT_SIZE_KEY);
 if (savedHuntSize) document.getElementById('huntPageSize').value = savedHuntSize;
+const savedHuntSearch = sessionStorage.getItem(HUNT_SEARCH_KEY);
+if (savedHuntSearch) document.getElementById('huntSearch').value = savedHuntSearch;
 
 const huntSort = {};
 document.querySelectorAll('#huntingTable th.sortable').forEach(th => {
