@@ -192,11 +192,11 @@
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Category</label>
                                 <select name="category" class="form-select">
-                                    <option value="Consumables" {% if item[3] == 'Consumables' %}selected{% endif %}>Consumables</option>
-                                    <option value="Tools" {% if item[3] == 'Tools' %}selected{% endif %}>Tools</option>
-                                    <option value="Collectibles" {% if item[3] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
-                                    <option value="Miscellaneous" {% if item[3] == 'Miscellaneous' or not item[3] %}selected{% endif %}>Miscellaneous</option>
-                                    <option value="Cosmetics" {% if item[3] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
+                                    <option value="Consumables" {% if item[4] == 'Consumables' %}selected{% endif %}>Consumables</option>
+                                    <option value="Tools" {% if item[4] == 'Tools' %}selected{% endif %}>Tools</option>
+                                    <option value="Collectibles" {% if item[4] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
+                                    <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
+                                    <option value="Cosmetics" {% if item[4] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -214,7 +214,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Description (Discord Embed)</label>
-                                <textarea class="form-control" name="description" rows="3">{{ item[4] or '' }}</textarea>
+                                <textarea class="form-control" name="description" rows="3">{{ item[3] or '' }}</textarea>
                                 <small class="text-muted">Optional — uses Encounter Message if empty</small>
                             </div>
                             <div class="row g-3">
