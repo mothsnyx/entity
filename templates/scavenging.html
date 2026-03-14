@@ -1,25 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Scavenging{% endblock %}
+{% block title %}Manage Fishing{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h1 class="mb-1"><i class="bi bi-search"></i> Manage Scavenging Loot</h1>
-        <p class="text-muted mb-0">Configure items and messages for the scavenging minigame</p>
+        <h1 class="mb-1"><i class="bi bi-water"></i> Manage Fishing Loot</h1>
+        <p class="text-muted mb-0">Configure items and messages for the fishing minigame</p>
     </div>
     <span class="badge bg-secondary fs-6">{{ items|length }} outcomes</span>
 </div>
 
 <div class="alert alert-info">
-    <i class="bi bi-info-circle"></i> <strong>Tip:</strong> Leave "Item Name" empty to create a "nothing found" message.
+    <i class="bi bi-info-circle"></i> <strong>Tip:</strong> Leave "Item Name" empty to create a "nothing caught" message.
 </div>
 
-<!-- ADD NEW ITEM CARD -->
 <div class="card mb-4">
-    <div class="card-header">
-        <i class="bi bi-plus-circle"></i> Add New Scavenging Outcome
-    </div>
+    <div class="card-header"><i class="bi bi-plus-circle"></i> Add New Fishing Outcome</div>
     <div class="card-body">
         <form method="POST" action="/scavenging/add">
             <ul class="nav nav-tabs mb-3" role="tablist">
@@ -32,8 +29,8 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Item Name</label>
-                            <input type="text" name="item_name" class="form-control" placeholder="e.g. Bandages, Old Key (leave empty for no item)">
-                            <small class="text-muted">Leave empty for "nothing found" outcomes</small>
+                            <input type="text" name="item_name" class="form-control" placeholder="e.g. Bass, Salmon (leave empty for no item)">
+                            <small class="text-muted">Leave empty for "nothing caught" outcomes</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Category</label>
@@ -58,22 +55,22 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label fw-bold">Discovery Message <span class="text-danger">*</span></label>
-                            <textarea name="message" class="form-control" rows="2" placeholder="You found something hidden in the debris!" required></textarea>
-                            <small class="text-muted">Shown when the player discovers this item</small>
+                            <textarea name="message" class="form-control" rows="2" placeholder="You spotted a something hidden in the debris!" required></textarea>
+                            <small class="text-muted">Shown when the player encounters this animal</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-bold">Description (Discord Embed)</label>
-                            <textarea name="description" class="form-control" rows="3" placeholder="Among the rubble, you spot a partially intact medkit..."></textarea>
-                            <small class="text-muted">Full description shown in Discord embed (optional — uses Discovery Message if empty)</small>
+                            <textarea name="description" class="form-control" rows="3" placeholder="Among the rubble you spot something useful..."></textarea>
+                            <small class="text-muted">Full description in Discord embed (optional — uses Discovery Message if empty)</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-bold">Leave Behind Message</label>
-                            <textarea name="flee_message" class="form-control" rows="2" placeholder="You leave it where it is. Perhaps someone else will need it more..."></textarea>
+                            <label class="form-label fw-bold">Leave It Message</label>
+                            <textarea name="flee_message" class="form-control" rows="2" placeholder="You leave it where it is..."></textarea>
                             <small class="text-muted">Shown when player clicks <strong>"Leave It"</strong></small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Failed Retrieval Message</label>
-                            <textarea name="fail_message" class="form-control" rows="2" placeholder="The item crumbled apart as you tried to pry it free..."></textarea>
+                            <textarea name="fail_message" class="form-control" rows="2" placeholder="The item crumbled as you tried to retrieve it..."></textarea>
                             <small class="text-muted">Shown when the roll <strong>fails</strong></small>
                         </div>
                     </div>
@@ -83,21 +80,19 @@
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Weight (Spawn Chance)</label>
                             <input type="number" name="weight" class="form-control" value="10" min="0" required>
-                            <small class="text-muted">Higher = more common (10 = normal)</small>
-                            <div class="mt-2"><small class="text-muted">1–5 = Very Rare &nbsp;·&nbsp; 10–20 = Common &nbsp;·&nbsp; 50+ = Very Common</small></div>
+                            <small class="text-muted">Higher = more common &nbsp;·&nbsp; 1–5 Rare &nbsp;·&nbsp; 10–20 Common &nbsp;·&nbsp; 50+ Very Common</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
                             <input type="number" name="difficulty" class="form-control" value="10" min="1" max="20" required>
-                            <small class="text-muted">Roll needed to retrieve</small>
-                            <div class="mt-2"><small class="text-muted">5–9 Easy &nbsp;·&nbsp; 10–13 Medium &nbsp;·&nbsp; 14–17 Hard &nbsp;·&nbsp; 18–20 Very Hard</small></div>
+                            <small class="text-muted">5–9 Easy &nbsp;·&nbsp; 10–13 Medium &nbsp;·&nbsp; 14–17 Hard &nbsp;·&nbsp; 18–20 Very Hard</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-bold">XP Reference</label>
                             <div class="p-2 rounded" style="background:#111;border:1px solid #2c2c2c;">
                                 <small class="text-muted d-block">Success XP = 10 + (difficulty × 5)</small>
                                 <small class="text-muted d-block">Fail XP = Success XP ÷ 4</small>
-                                <small class="text-muted d-block mt-1">Leave XP = 5 (always)</small>
+                                <small class="text-muted d-block">Leave XP = 5</small>
                             </div>
                         </div>
                     </div>
@@ -105,18 +100,15 @@
             </div>
             <hr class="my-3">
             <div class="text-end">
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <i class="bi bi-plus-circle"></i> Add Scavenging Outcome
-                </button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Fishing Outcome</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- TABLE -->
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <span><i class="bi bi-list-ul"></i> Existing Scavenging Outcomes</span>
+        <span><i class="bi bi-list-ul"></i> Existing Fishing Outcomes</span>
         <div class="d-flex align-items-center gap-2 flex-wrap">
             <label class="text-muted small mb-0">Show</label>
             <select id="scavPageSize" class="form-select form-select-sm" style="width:75px;">
@@ -134,28 +126,28 @@
             <table class="table table-dark table-hover table-sm mb-0" id="scavTable">
                 <thead>
                     <tr>
-                        <th class="sortable" data-col="0" style="cursor:pointer;width:14%;">Item <i class="bi bi-arrow-down-up text-muted small"></i></th>
-                        <th style="width:24%;">Message</th>
-                        <th class="sortable" data-col="2" style="cursor:pointer;width:10%;">Category <i class="bi bi-arrow-down-up text-muted small"></i></th>
-                        <th class="sortable text-center" data-col="3" style="cursor:pointer;width:9%;">Sell <i class="bi bi-arrow-down-up text-muted small"></i></th>
-                        <th class="sortable text-center" data-col="4" style="cursor:pointer;width:8%;">Weight <i class="bi bi-arrow-down-up text-muted small"></i></th>
-                        <th class="sortable text-center" data-col="5" style="cursor:pointer;width:7%;">Diff <i class="bi bi-arrow-down-up text-muted small"></i></th>
-                        <th style="width:10%;">Actions</th>
+                        <th class="sortable" data-col="0" style="cursor:pointer;">Item <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th>Message</th>
+                        <th class="sortable" data-col="2" style="cursor:pointer;">Cat. <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="3" style="cursor:pointer;">Sell <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="4" style="cursor:pointer;">Wt. <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="sortable text-center" data-col="5" style="cursor:pointer;">Diff <i class="bi bi-arrow-down-up text-muted small"></i></th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="scavBody">
                     {% for item in items %}
                     <tr>
                         <td>{% if item[1] %}<strong>{{ item[1] }}</strong>{% else %}<em class="text-muted">Nothing</em>{% endif %}</td>
-                        <td><small class="text-muted">{{ item[2][:65] }}{% if item[2]|length > 65 %}…{% endif %}</small></td>
-                        <td><span class="badge bg-secondary">{{ item[3] or 'Misc' }}</span></td>
+                        <td><small class="text-muted">{{ item[2][:60] }}{% if item[2]|length > 60 %}…{% endif %}</small></td>
+                        <td><span class="badge bg-secondary">{{ item[4] or 'Misc' }}</span></td>
                         <td class="text-center">
-                            {% if item[4] and item[4]|int > 0 %}<span class="badge bg-success">{{ item[4] }} BP</span>
+                            {% if item[7] and item[7]|int > 0 %}<span class="badge bg-success">{{ item[7] }} BP</span>
                             {% else %}<span class="badge" style="background:#333;">—</span>{% endif %}
                         </td>
-                        <td class="text-center"><span class="badge bg-info">{{ item[5] or 10 }}</span></td>
-                        <td class="text-center"><span class="badge bg-warning text-dark">{{ item[6] or 10 }}</span></td>
-                        <td>
+                        <td class="text-center"><span class="badge bg-info">{{ item[8] or 10 }}</span></td>
+                        <td class="text-center"><span class="badge bg-warning text-dark">{{ item[9] or 10 }}</span></td>
+                        <td class="text-center">
                             <button class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editModal{{ item[0] }}" title="Edit"><i class="bi bi-pencil"></i></button>
                             <form method="POST" action="/scavenging/delete/{{ item[0] }}" style="display:inline;">
                                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this item?')" title="Delete"><i class="bi bi-trash"></i></button>
@@ -170,13 +162,12 @@
     <div class="card-footer d-flex justify-content-between align-items-center py-2">
         <small class="text-muted" id="scavPageInfo"></small>
         <div class="d-flex gap-1">
-            <button class="btn btn-sm btn-outline-secondary" id="scavPrevBtn" onclick="scavChangePage(-1)">‹ Prev</button>
-            <button class="btn btn-sm btn-outline-secondary" id="scavNextBtn" onclick="scavChangePage(1)">Next ›</button>
+            <button class="btn btn-sm btn-outline-secondary" id="scavPrevBtn" onclick="scavChangePage(-1)">&#8249; Prev</button>
+            <button class="btn btn-sm btn-outline-secondary" id="scavNextBtn" onclick="scavChangePage(1)">Next &#8250;</button>
         </div>
     </div>
 </div>
 
-<!-- EDIT MODALS -->
 {% for item in items %}
 <div class="modal fade" id="editModal{{ item[0] }}" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -196,22 +187,22 @@
                         <div class="tab-pane fade show active" id="edit-basic-{{ item[0] }}" role="tabpanel">
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Item Name</label>
-                                <input type="text" class="form-control" name="item_name" value="{{ item[1] or '' }}" placeholder="Leave empty for 'nothing found'">
+                                <input type="text" class="form-control" name="item_name" value="{{ item[1] or '' }}" placeholder="Leave empty for 'nothing caught'">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Category</label>
                                 <select name="category" class="form-select">
-                                    <option value="Consumables" {% if item[3] == 'Consumables' %}selected{% endif %}>Consumables</option>
-                                    <option value="Tools" {% if item[3] == 'Tools' %}selected{% endif %}>Tools</option>
-                                    <option value="Collectibles" {% if item[3] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
-                                    <option value="Miscellaneous" {% if item[3] == 'Miscellaneous' or not item[3] %}selected{% endif %}>Miscellaneous</option>
-                                    <option value="Cosmetics" {% if item[3] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
+                                    <option value="Consumables" {% if item[4] == 'Consumables' %}selected{% endif %}>Consumables</option>
+                                    <option value="Tools" {% if item[4] == 'Tools' %}selected{% endif %}>Tools</option>
+                                    <option value="Collectibles" {% if item[4] == 'Collectibles' %}selected{% endif %}>Collectibles</option>
+                                    <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
+                                    <option value="Cosmetics" {% if item[4] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
                                 </select>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Sell Value</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control" name="sell_value" value="{{ item[4] or 0 }}" min="0">
+                                    <input type="number" class="form-control" name="sell_value" value="{{ item[7] or 0 }}" min="0">
                                     <span class="input-group-text">BP</span>
                                 </div>
                             </div>
@@ -223,18 +214,18 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Description (Discord Embed)</label>
-                                <textarea class="form-control" name="description" rows="3">{{ item[9] or '' }}</textarea>
+                                <textarea class="form-control" name="description" rows="3">{{ item[3] or '' }}</textarea>
                                 <small class="text-muted">Optional — uses Discovery Message if empty</small>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">Leave Behind Message</label>
-                                    <textarea class="form-control" name="flee_message" rows="2">{{ item[7] or '' }}</textarea>
+                                    <label class="form-label fw-bold">Leave It Message</label>
+                                    <textarea class="form-control" name="flee_message" rows="2">{{ item[10] or '' }}</textarea>
                                     <small class="text-muted">Shown when player chooses "Leave It"</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Failed Retrieval Message</label>
-                                    <textarea class="form-control" name="fail_message" rows="2">{{ item[8] or '' }}</textarea>
+                                    <textarea class="form-control" name="fail_message" rows="2">{{ item[11] or '' }}</textarea>
                                     <small class="text-muted">Shown when the roll fails</small>
                                 </div>
                             </div>
@@ -243,12 +234,12 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Weight (Spawn Chance)</label>
-                                    <input type="number" class="form-control" name="weight" value="{{ item[5] or 10 }}" min="0" required>
+                                    <input type="number" class="form-control" name="weight" value="{{ item[8] or 10 }}" min="0" required>
                                     <small class="text-muted">Higher = more common</small>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">Difficulty (d20 Roll)</label>
-                                    <input type="number" class="form-control" name="difficulty" value="{{ item[6] or 10 }}" min="1" max="20" required>
+                                    <input type="number" class="form-control" name="difficulty" value="{{ item[9] or 10 }}" min="1" max="20" required>
                                     <small class="text-muted">Player must roll this or higher</small>
                                 </div>
                             </div>
@@ -273,6 +264,8 @@
 .nav-tabs .nav-link.active { color: #fff !important; background-color: #b71c1c !important; border-color: #b71c1c !important; }
 .nav-pills .nav-link.active { color: #fff !important; background-color: #b71c1c !important; }
 .nav-tabs { border-bottom-color: #2c2c2c; }
+#scavTable th, #scavTable td { white-space: nowrap; }
+#scavTable td:nth-child(2) { white-space: normal; max-width: 220px; }
 </style>
 <script>
 const SCAV_PAGE_KEY = 'scavPage';
@@ -287,16 +280,13 @@ function scavRender() {
     const allRows = Array.from(document.querySelectorAll('#scavBody tr'));
     const q = document.getElementById('scavSearch').value.toLowerCase();
     scavFilteredRows = allRows.filter(r => !q || r.innerText.toLowerCase().includes(q));
-
     const maxPage = Math.max(0, Math.ceil(scavFilteredRows.length / pageSize) - 1);
-    if (scavPage > maxPage) { scavPage = maxPage; sessionStorage.setItem(SCAV_PAGE_KEY, scavPage); }
-
-    const start = scavPage * pageSize;
-    const end = start + pageSize;
+    if (scavPage > maxPage) scavPage = maxPage;
+    const start = scavPage * pageSize, end = start + pageSize;
     allRows.forEach(r => r.style.display = 'none');
     scavFilteredRows.slice(start, end).forEach(r => r.style.display = '');
     const total = scavFilteredRows.length;
-    document.getElementById('scavPageInfo').textContent = total === 0 ? 'No results' : `Showing ${start + 1}–${Math.min(end, total)} of ${total}`;
+    document.getElementById('scavPageInfo').textContent = total === 0 ? 'No results' : 'Showing ' + (start+1) + '\u2013' + Math.min(end,total) + ' of ' + total;
     document.getElementById('scavPrevBtn').disabled = scavPage === 0;
     document.getElementById('scavNextBtn').disabled = end >= total;
     sessionStorage.setItem(SCAV_PAGE_KEY, scavPage);
@@ -305,14 +295,12 @@ function scavRender() {
 
 function scavChangePage(dir) {
     const pageSize = scavGetPageSize();
-    const maxPage = Math.ceil(scavFilteredRows.length / pageSize) - 1;
-    scavPage = Math.max(0, Math.min(scavPage + dir, maxPage));
+    scavPage = Math.max(0, Math.min(scavPage + dir, Math.ceil(scavFilteredRows.length / pageSize) - 1));
     scavRender();
 }
 
 document.getElementById('scavPageSize').addEventListener('change', () => { scavPage = 0; scavRender(); });
 document.getElementById('scavSearch').addEventListener('input', () => { scavPage = 0; scavRender(); });
-
 const savedScavSize = sessionStorage.getItem(SCAV_SIZE_KEY);
 if (savedScavSize) document.getElementById('scavPageSize').value = savedScavSize;
 
@@ -326,16 +314,14 @@ document.querySelectorAll('#scavTable th.sortable').forEach(th => {
             .sort((a, b) => {
                 const av = a.cells[col].innerText.trim(), bv = b.cells[col].innerText.trim();
                 const an = parseFloat(av), bn = parseFloat(bv);
-                if (!isNaN(an) && !isNaN(bn)) return scavSort[col] ? an - bn : bn - an;
+                if (!isNaN(an) && !isNaN(bn)) return scavSort[col] ? an-bn : bn-an;
                 return scavSort[col] ? av.localeCompare(bv) : bv.localeCompare(av);
-            })
-            .forEach(r => tbody.appendChild(r));
+            }).forEach(r => tbody.appendChild(r));
         document.querySelectorAll('#scavTable th.sortable i').forEach(i => i.className = 'bi bi-arrow-down-up text-muted small');
         th.querySelector('i').className = scavSort[col] ? 'bi bi-arrow-up small text-light' : 'bi bi-arrow-down small text-light';
         scavPage = 0; scavRender();
     });
 });
-
 scavRender();
 </script>
 {% endblock %}
