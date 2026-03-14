@@ -810,71 +810,414 @@ async def travel(interaction: discord.Interaction, name: str):
     
     await interaction.response.send_message(embed=embed)
 
-# Hunting Minigame
-@bot.tree.command(name="hunting", description="Go hunting for resources")
+# Interactive Hunting Command with XP
+@bot.tree.command(name="hunting", description="Go hunting for resources!")
 @app_commands.describe(name="Character name")
 async def hunting(interaction: discord.Interaction, name: str):
     result = db.hunting_minigame(name)
-    if result:
+    if not result:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=f"Profile **{name}** not found!",
+            color=discord.Color.from_rgba(230, 1, 18)
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+    
+    # Get character's current level for display
+    profile = db.get_profile(name)
+    char_level = profile.get('level', 1) if profile else 1
+    level_bonus = db.get_level_bonus(name, 'hunting')
+    
+    difficulty = result.get('difficulty', 10)
+    item_name = result.get('item')
+    
+    if not item_name:
         embed = discord.Embed(
             title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Hunting",
             description=result.get('description', result['message']),
-            color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
-        )
-        if result['item']:
-            embed.add_field(name=f"**{name}** found:", value=f"**{result['item']}**", inline=False)
-        await interaction.response.send_message(embed=embed)
-    else:
-        embed = discord.Embed(
-            title="<a:error:1467157734817398946> ┃ Error!",
-            description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(0, 0, 0)
         )
         await interaction.response.send_message(embed=embed)
+        return
+    
+    embed = discord.Embed(
+        title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Hunting",
+        description=result.get('description', result['message']),
+        color=discord.Color.from_rgb(0, 0, 0)
+    )
+    embed.add_field(name="Target", value=f"**{item_name}**", inline=True)
+    embed.add_field(name="Difficulty", value=f"**{difficulty}** (Roll d20{f'+{level_bonus}' if level_bonus > 0 else ''})", inline=True)
+    embed.set_footer(text=f"{name} (Level {char_level}) - Click 'Attempt' to roll")
+    
+    class HuntingView(View):
+        def __init__(self):
+            super().__init__(timeout=60)
+            self.character_name = name
+            self.item_name = item_name
+            self.difficulty = difficulty
+            self.flee_message = result.get('flee_message', f"You decided to leave the {item_name} alone. It wandered off peacefully.")
+            self.fail_message = result.get('fail_message', f"The **{item_name}** managed to escape before you could kill it.")
+            
+        @discord.ui.button(label="Attempt to Kill", style=discord.ButtonStyle.danger)
+        async def attempt_button(self, interaction: discord.Interaction, button: Button):
+            level_bonus = db.get_level_bonus(self.character_name, 'hunting')
+            base_roll = random.randint(1, 20)
+            total_roll = base_roll + level_bonus
+            success = total_roll >= self.difficulty
+            
+            # XP rewards: 10 base + 5 per difficulty point
+            xp_reward = 10 + (self.difficulty * 5)
+            
+            if success:
+                db.add_minigame_item(self.character_name, self.item_name)
+                xp_result = db.add_xp(self.character_name, xp_reward, 'hunting')
+                
+                result_embed = discord.Embed(
+                    title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Successful Hunt",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n Successfully caught **{self.item_name}**!",
+                    color=discord.Color.from_rgb(0, 0, 0)
+                )
+                result_embed.add_field(name="Obtained", value=f"**{self.item_name}**", inline=True)
+                result_embed.add_field(name="XP Gained", value=f"+{xp_reward} XP", inline=True)
+                
+                if xp_result and xp_result['leveled_up']:
+                    result_embed.add_field(
+                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                        inline=False
+                    )
+                    result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+                elif xp_result:
+                    result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            else:
+                xp_reward_fail = xp_reward // 4
+                xp_result = db.add_xp(self.character_name, xp_reward_fail, 'hunting')
+                
+                result_embed = discord.Embed(
+                    title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Failed Hunt",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n {self.fail_message}",
+                    color=discord.Color.from_rgba(230, 1, 18)
+                )
+                result_embed.add_field(name="Result", value="The animal fled...", inline=True)
+                result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
+                
+                if xp_result and xp_result['leveled_up']:
+                    result_embed.add_field(
+                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                        inline=False
+                    )
+                    result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+                elif xp_result:
+                    result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            
+            for item in self.children:
+                item.disabled = True
+            
+            await interaction.response.edit_message(embed=result_embed, view=self)
+        
+        @discord.ui.button(label="Leave it", style=discord.ButtonStyle.gray)
+        async def leave_button(self, interaction: discord.Interaction, button: Button):
+            # Small XP reward for leaving it alone (peaceful option)
+            xp_reward_peaceful = 5
+            xp_result = db.add_xp(self.character_name, xp_reward_peaceful, 'hunting')
+            
+            result_embed = discord.Embed(
+                title="<:DailyRitualIcon_hunter:1467234763495571477> ┃ Peaceful Choice",
+                description=f"**{self.character_name}** chose to leave the **{self.item_name}** alone.\n\n{self.flee_message}",
+                color=discord.Color.from_rgb(0, 0, 0)  # Gray for peaceful
+            )
+            result_embed.add_field(name="Result", value="No item obtained", inline=True)
+            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP (peaceful)", inline=True)
+            
+            if xp_result and xp_result['leveled_up']:
+                result_embed.add_field(
+                    name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                    value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                    inline=False
+                )
+                result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+            elif xp_result:
+                result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            
+            for item in self.children:
+                item.disabled = True
+            
+            await interaction.response.edit_message(embed=result_embed, view=self)
+    
+    await interaction.response.send_message(embed=embed, view=HuntingView())
+    
 
 # Fishing Minigame
-@bot.tree.command(name="fishing", description="Go fishing for resources")
+@bot.tree.command(name="fishing", description="Go fishing for resources!")
 @app_commands.describe(name="Character name")
 async def fishing(interaction: discord.Interaction, name: str):
     result = db.fishing_minigame(name)
-    if result:
+    if not result:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=f"Profile **{name}** not found!",
+            color=discord.Color.from_rgba(230, 1, 18)
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+    
+    profile = db.get_profile(name)
+    char_level = profile.get('level', 1) if profile else 1
+    level_bonus = db.get_level_bonus(name, 'fishing')
+    
+    difficulty = result.get('difficulty', 10)
+    item_name = result.get('item')
+    
+    if not item_name:
         embed = discord.Embed(
             title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Fishing",
             description=result.get('description', result['message']),
-            color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
-        )
-        if result['item']:
-            embed.add_field(name=f"**{name}** caught:", value=f"**{result['item']}**", inline=False)
-        await interaction.response.send_message(embed=embed)
-    else:
-        embed = discord.Embed(
-            title="<a:error:1467157734817398946> ┃ Error!",
-            description=f"Profile **{name}** not found!",
-            color=discord.Color.from_rgba(230, 1, 18)
+            color=discord.Color.from_rgb(0, 0, 0)
         )
         await interaction.response.send_message(embed=embed)
+        return
+    
+    embed = discord.Embed(
+        title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Fishing",
+        description=result.get('description', result['message']),
+        color=discord.Color.from_rgb(30, 144, 255)
+    )
+    embed.add_field(name="Catch", value=f"**{item_name}**", inline=True)
+    embed.add_field(name="Difficulty", value=f"**{difficulty}** (Roll d20{f'+{level_bonus}' if level_bonus > 0 else ''})", inline=True)
+    embed.set_footer(text=f"{name} (Level {char_level}) - Click 'Reel In' to roll")
+    
+    class FishingView(View):
+        def __init__(self):
+            super().__init__(timeout=60)
+            self.character_name = name
+            self.item_name = item_name
+            self.difficulty = difficulty
+            self.flee_message = result.get('flee_message', f"You decided to let the {item_name} go. It swam away gracefully.")
+            self.fail_message = result.get('fail_message', f"The **{item_name}** got away before you could reel it in.")
+            
+        @discord.ui.button(label="Reel In", style=discord.ButtonStyle.danger)
+        async def attempt_button(self, interaction: discord.Interaction, button: Button):
+            level_bonus = db.get_level_bonus(self.character_name, 'fishing')
+            base_roll = random.randint(1, 20)
+            total_roll = base_roll + level_bonus
+            success = total_roll >= self.difficulty
+            
+            xp_reward = 10 + (self.difficulty * 5)
+            
+            if success:
+                db.add_minigame_item(self.character_name, self.item_name)
+                xp_result = db.add_xp(self.character_name, xp_reward, 'fishing')
+                
+                result_embed = discord.Embed(
+                    title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Successful Catch!",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n Successfully caught **{self.item_name}**!",
+                    color=discord.Color.from_rgb(0, 0, 0)
+                )
+                result_embed.add_field(name="Obtained", value=f"**{self.item_name}**", inline=True)
+                result_embed.add_field(name="XP Gained", value=f"+{xp_reward} XP", inline=True)
+                
+                if xp_result and xp_result['leveled_up']:
+                    result_embed.add_field(
+                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                        inline=False
+                    )
+                    result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+                elif xp_result:
+                    result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            else:
+                xp_reward_fail = xp_reward // 4
+                xp_result = db.add_xp(self.character_name, xp_reward_fail, 'fishing')
+                
+                result_embed = discord.Embed(
+                    title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Failed Catch!",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n {self.fail_message}",
+                    color=discord.Color.from_rgba(230, 1, 18)
+                )
+                result_embed.add_field(name="Result", value="The line snapped!", inline=True)
+                result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
+                
+                if xp_result and xp_result['leveled_up']:
+                    result_embed.add_field(
+                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                        inline=False
+                    )
+                    result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+                elif xp_result:
+                    result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            
+            for item in self.children:
+                item.disabled = True
+            
+            await interaction.response.edit_message(embed=result_embed, view=self)
+        
+        @discord.ui.button(label="Release It", style=discord.ButtonStyle.gray)
+        async def leave_button(self, interaction: discord.Interaction, button: Button):
+            xp_reward_peaceful = 5
+            xp_result = db.add_xp(self.character_name, xp_reward_peaceful, 'fishing')
+            
+            result_embed = discord.Embed(
+                title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Released Catch",
+                description=f"**{self.character_name}** decided to release the **{self.item_name}**.\n\n {self.flee_message}",
+                color=discord.Color.from_rgb(128, 128, 128)
+            )
+            result_embed.add_field(name="Result", value="No item obtained", inline=True)
+            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP (peaceful)", inline=True)
+            
+            if xp_result and xp_result['leveled_up']:
+                result_embed.add_field(
+                    name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                    value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                    inline=False
+                )
+                result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+            elif xp_result:
+                result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            
+            for item in self.children:
+                item.disabled = True
+            
+            await interaction.response.edit_message(embed=result_embed, view=self)
+    
+    await interaction.response.send_message(embed=embed, view=FishingView())
 
 # Scavenging Minigame
-@bot.tree.command(name="scavenging", description="Go scavenging for resources")
+@bot.tree.command(name="scavenging", description="Go scavenging for resources!")
 @app_commands.describe(name="Character name")
 async def scavenging(interaction: discord.Interaction, name: str):
     result = db.scavenging_minigame(name)
-    if result:
-        embed = discord.Embed(
-            title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Scavenging",
-            description=result.get('description', result['message']),
-            color=discord.Color.from_rgb(0, 0, 0)  # Black (Minigame color)
-        )
-        if result['item']:
-            embed.add_field(name=f"**{name}** found:", value=f"**{result['item']}**", inline=False)
-        await interaction.response.send_message(embed=embed)
-    else:
+    if not result:
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=f"Profile **{name}** not found!",
             color=discord.Color.from_rgba(230, 1, 18)
         )
         await interaction.response.send_message(embed=embed)
+        return
+    
+    profile = db.get_profile(name)
+    char_level = profile.get('level', 1) if profile else 1
+    level_bonus = db.get_level_bonus(name, 'scavenging')
+    
+    difficulty = result.get('difficulty', 10)
+    item_name = result.get('item')
+    
+    if not item_name:
+        embed = discord.Embed(
+            title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Scavenging",
+            description=result.get('description', result['message']),
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+    
+    embed = discord.Embed(
+        title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Scavenging",
+        description=result.get('description', result['message']),
+        color=discord.Color.from_rgb(0, 0, 0)
+    )
+    embed.add_field(name="Found", value=f"**{item_name}**", inline=True)
+    embed.add_field(name="Difficulty", value=f"**{difficulty}** (Roll d20{f'+{level_bonus}' if level_bonus > 0 else ''})", inline=True)
+    embed.set_footer(text=f"{name} (Level {char_level}) - Click 'Retrieve' to roll")
+    
+    class ScavengingView(View):
+        def __init__(self):
+            super().__init__(timeout=60)
+            self.character_name = name
+            self.item_name = item_name
+            self.difficulty = difficulty
+            self.flee_message = result.get('flee_message', f"You decided to leave the {item_name} where it was. Perhaps someone else will find it.")
+            self.fail_message = result.get('fail_message', f"The **{item_name}** was too damaged or out of reach to retrieve.")
+            
+        @discord.ui.button(label="Retrieve Item", style=discord.ButtonStyle.danger)
+        async def attempt_button(self, interaction: discord.Interaction, button: Button):
+            level_bonus = db.get_level_bonus(self.character_name, 'scavenging')
+            base_roll = random.randint(1, 20)
+            total_roll = base_roll + level_bonus
+            success = total_roll >= self.difficulty
+            
+            xp_reward = 10 + (self.difficulty * 5)
+            
+            if success:
+                db.add_minigame_item(self.character_name, self.item_name)
+                xp_result = db.add_xp(self.character_name, xp_reward, 'scavenging')
+                
+                result_embed = discord.Embed(
+                    title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Successful Retrieval!",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n Successfully retrieved **{self.item_name}**!",
+                    color=discord.Color.from_rgb(0, 0, 0)
+                )
+                result_embed.add_field(name="Obtained", value=f"**{self.item_name}**", inline=True)
+                result_embed.add_field(name="XP Gained", value=f"+{xp_reward} XP", inline=True)
+                
+                if xp_result and xp_result['leveled_up']:
+                    result_embed.add_field(
+                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                        inline=False
+                    )
+                    result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+                elif xp_result:
+                    result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            else:
+                xp_reward_fail = xp_reward // 4
+                xp_result = db.add_xp(self.character_name, xp_reward_fail, 'scavenging')
+                
+                result_embed = discord.Embed(
+                    title="<:DailyRitualIcon_objectives:1467234764795809842> ┃ Failed Retrieval!",
+                    description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} = **{total_roll}** (needed {self.difficulty})\n\n {self.fail_message}",
+                    color=discord.Color.from_rgba(230, 1, 18)
+                )
+                result_embed.add_field(name="Result", value="Too damaged...", inline=True)
+                result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
+                
+                if xp_result and xp_result['leveled_up']:
+                    result_embed.add_field(
+                        name="<:lvlup:1482362825119633478> ┃ LEVEL UP!", 
+                        value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                        inline=False
+                    )
+                    result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+                elif xp_result:
+                    result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            
+            for item in self.children:
+                item.disabled = True
+            
+            await interaction.response.edit_message(embed=result_embed, view=self)
+        
+        @discord.ui.button(label="📭 Leave It", style=discord.ButtonStyle.gray)
+        async def leave_button(self, interaction: discord.Interaction, button: Button):
+            xp_reward_peaceful = 5
+            xp_result = db.add_xp(self.character_name, xp_reward_peaceful, 'scavenging')
+            
+            result_embed = discord.Embed(
+                title="🔍 ┃ Left Behind",
+                description=f"**{self.character_name}** decided to leave the **{self.item_name}** behind.\n\n{self.flee_message}",
+                color=discord.Color.from_rgb(128, 128, 128)
+            )
+            result_embed.add_field(name="Result", value="No item obtained", inline=True)
+            result_embed.add_field(name="XP Gained", value=f"+{xp_reward_peaceful} XP (peaceful)", inline=True)
+            
+            if xp_result and xp_result['leveled_up']:
+                result_embed.add_field(
+                    name="🎉 LEVEL UP!", 
+                    value=f"Level {xp_result['old_level']} → **Level {xp_result['new_level']}**\n+{(xp_result['new_level']-1)//5 - (xp_result['old_level']-1)//5} roll bonus!", 
+                    inline=False
+                )
+                result_embed.set_footer(text=f"Next level: {xp_result['current_xp']}/{xp_result['xp_for_next']} XP")
+            elif xp_result:
+                result_embed.set_footer(text=f"Level {xp_result['new_level']} | XP: {xp_result['current_xp']}/{xp_result['xp_for_next']}")
+            
+            for item in self.children:
+                item.disabled = True
+            
+            await interaction.response.edit_message(embed=result_embed, view=self)
+    
+    await interaction.response.send_message(embed=embed, view=ScavengingView())
 
 # List Command
 @bot.tree.command(name="list", description="Show all your character profiles")
