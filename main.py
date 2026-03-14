@@ -827,8 +827,7 @@ async def hunting(interaction: discord.Interaction, name: str):
     
     # Get character's current level for display
     profile = db.get_profile(name)
-    char_level = profile.get('level', 1) if profile else 1
-    level_bonus = db.get_level_bonus(name, 'hunting')
+    char_level = profile.get('hunting_level', 1) if profile else 1
     
     difficulty = result.get('difficulty', 10)
     item_name = result.get('item')
@@ -857,8 +856,8 @@ async def hunting(interaction: discord.Interaction, name: str):
             self.character_name = name
             self.item_name = item_name
             self.difficulty = difficulty
-            self.flee_message = result.get('flee_message' or f"You decided to leave the {item_name} alone. It ran off into the Fog.")
-            self.fail_message = result.get('fail_message' or f"The **{item_name}** managed to escape before you could kill it.")
+            self.flee_message = result.get('flee_message') or f"You decided to leave the {item_name} alone. It ran off into the Fog."
+            self.fail_message = result.get('fail_message') or f"The **{item_name}** managed to escape before you could kill it."
             
         @discord.ui.button(label="Attempt to Kill", style=discord.ButtonStyle.danger)
         async def attempt_button(self, interaction: discord.Interaction, button: Button):
@@ -965,7 +964,7 @@ async def fishing(interaction: discord.Interaction, name: str):
         return
     
     profile = db.get_profile(name)
-    char_level = profile.get('level', 1) if profile else 1
+    char_level = profile.get('fishing_level', 1) if profile else 1
     level_bonus = db.get_level_bonus(name, 'fishing')
     
     difficulty = result.get('difficulty', 10)
@@ -995,8 +994,8 @@ async def fishing(interaction: discord.Interaction, name: str):
             self.character_name = name
             self.item_name = item_name
             self.difficulty = difficulty
-            self.flee_message = result.get('flee_message' or f"You decided to let the {item_name} go. It swims into the depths of the water.")
-            self.fail_message = result.get('fail_message' or f"The **{item_name}** got away before you could reel it in.")
+            self.flee_message = result.get('flee_message') or f"You decided to let the {item_name} go. It swims into the depths of the water."
+            self.fail_message = result.get('fail_message') or f"The **{item_name}** got away before you could reel it in."
             
         @discord.ui.button(label="Reel In", style=discord.ButtonStyle.danger)
         async def attempt_button(self, interaction: discord.Interaction, button: Button):
@@ -1100,7 +1099,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
         return
     
     profile = db.get_profile(name)
-    char_level = profile.get('level', 1) if profile else 1
+    char_level = profile.get('scavenging_level', 1) if profile else 1
     level_bonus = db.get_level_bonus(name, 'scavenging')
     
     difficulty = result.get('difficulty', 10)
@@ -1130,8 +1129,8 @@ async def scavenging(interaction: discord.Interaction, name: str):
             self.character_name = name
             self.item_name = item_name
             self.difficulty = difficulty
-            self.flee_message = result.get('flee_message' or f"You decided to leave the {item_name} where it was.")
-            self.fail_message = result.get('fail_message' or f"The **{item_name}** was too damaged or out of reach to retrieve.")
+            self.flee_message = result.get('flee_message') or f"You decided to leave the {item_name} where it was."
+            self.fail_message = result.get('fail_message') or f"The **{item_name}** was too damaged or out of reach to retrieve."
             
         @discord.ui.button(label="Retrieve Item", style=discord.ButtonStyle.danger)
         async def attempt_button(self, interaction: discord.Interaction, button: Button):
