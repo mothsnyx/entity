@@ -848,7 +848,7 @@ async def hunting(interaction: discord.Interaction, name: str):
         color=discord.Color.from_rgb(0, 0, 0)
     )
     embed.add_field(name="Animal", value=f"**{item_name}**", inline=True)
-    embed.add_field(name="Difficulty", value=f"**{difficulty}**)", inline=True)
+    embed.add_field(name="Difficulty", value=f"**{difficulty}**", inline=True)
     embed.set_footer(text=f"{name} (Level {char_level})")
     
     class HuntingView(View):
