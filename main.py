@@ -1061,7 +1061,7 @@ async def fishing(interaction: discord.Interaction, name: str):
             
             result_embed = discord.Embed(
                 title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Peaceful Choice",
-                description=f"**{self.character_name}** decided to leave the **{self.item_name} be**.\n\n {self.flee_message}",
+                description=f"**{self.character_name}** decided to leave the **{self.item_name}** alone.\n\n {self.flee_message}",
                 color=discord.Color.from_rgb(0, 0, 0)
             )
             result_embed.add_field(name="Result", value="No item obtained", inline=True)
