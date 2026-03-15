@@ -1054,14 +1054,14 @@ async def fishing(interaction: discord.Interaction, name: str):
             
             await interaction.response.edit_message(embed=result_embed, view=self)
         
-        @discord.ui.button(label="Release It", style=discord.ButtonStyle.gray)
+        @discord.ui.button(label="Leave it", style=discord.ButtonStyle.gray)
         async def leave_button(self, interaction: discord.Interaction, button: Button):
             xp_reward_peaceful = 5
             xp_result = db.add_xp(self.character_name, xp_reward_peaceful, 'fishing')
             
             result_embed = discord.Embed(
-                title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Released Catch",
-                description=f"**{self.character_name}** decided to release the **{self.item_name}**.\n\n {self.flee_message}",
+                title="<:DailyRitualIcon_sacrifice:1467234766053970055> ┃ Peaceful Choice",
+                description=f"**{self.character_name}** decided to leave the **{self.item_name} be**.\n\n {self.flee_message}",
                 color=discord.Color.from_rgb(0, 0, 0)
             )
             result_embed.add_field(name="Result", value="No item obtained", inline=True)
