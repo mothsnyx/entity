@@ -899,7 +899,7 @@ async def hunting(interaction: discord.Interaction, name: str):
                     description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''}\n\n {self.fail_message}",
                     color=discord.Color.from_rgb(116, 7, 14)
                 )
-                result_embed.add_field(name="Result", value="The animal fled...", inline=True)
+                result_embed.add_field(name="Result", value="No item obtained", inline=True)
                 result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
                 
                 if xp_result and xp_result['leveled_up']:
@@ -1036,7 +1036,7 @@ async def fishing(interaction: discord.Interaction, name: str):
                     description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} \n\n {self.fail_message}",
                     color=discord.Color.from_rgb(116, 7, 14)
                 )
-                result_embed.add_field(name="Result", value="The line snapped!", inline=True)
+                result_embed.add_field(name="Result", value="No item obtained", inline=True)
                 result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
                 
                 if xp_result and xp_result['leveled_up']:
@@ -1171,7 +1171,7 @@ async def scavenging(interaction: discord.Interaction, name: str):
                     description=f"**{self.character_name}** rolled **{base_roll}**{f' +{level_bonus}' if level_bonus > 0 else ''} \n\n {self.fail_message}",
                     color=discord.Color.from_rgb(116, 7, 14)
                 )
-                result_embed.add_field(name="Result", value="Too damaged...", inline=True)
+                result_embed.add_field(name="Result", value="No item obtained", inline=True)
                 result_embed.add_field(name="XP Gained", value=f"+{xp_reward_fail} XP", inline=True)
                 
                 if xp_result and xp_result['leveled_up']:
