@@ -1,22 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Fishing{% endblock %}
+{% block title %}Manage Scavenging{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-        <h1 class="mb-1"><i class="bi bi-water"></i> Manage Fishing Loot</h1>
-        <p class="text-muted mb-0">Configure items and messages for the fishing minigame</p>
+        <h1 class="mb-1"><i class="bi bi-search"></i> Manage Scavenging Loot</h1>
+        <p class="text-muted mb-0">Configure items and messages for the scavenging minigame</p>
     </div>
     <span class="badge bg-secondary fs-6">{{ items|length }} outcomes</span>
 </div>
 
 <div class="alert alert-info">
-    <i class="bi bi-info-circle"></i> <strong>Tip:</strong> Leave "Item Name" empty to create a "nothing caught" message.
+    <i class="bi bi-info-circle"></i> <strong>Tip:</strong> Leave "Item Name" empty to create a "nothing found" message.
 </div>
 
 <div class="card mb-4">
-    <div class="card-header"><i class="bi bi-plus-circle"></i> Add New Fishing Outcome</div>
+    <div class="card-header">
+        <i class="bi bi-plus-circle"></i> Add New Scavenging Outcome
+    </div>
     <div class="card-body">
         <form method="POST" action="/scavenging/add">
             <ul class="nav nav-tabs mb-3" role="tablist">
@@ -25,11 +27,12 @@
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#settings" type="button"><i class="bi bi-sliders"></i> Settings</button></li>
             </ul>
             <div class="tab-content">
+            
                 <div class="tab-pane fade show active" id="basic" role="tabpanel">
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Item Name</label>
-                            <input type="text" name="item_name" class="form-control" placeholder="e.g. Bass, Salmon (leave empty for no item)">
+                            <input type="text" name="item_name" class="form-control" placeholder="e.g. Bandages, Old Key (leave empty for no item)">
                             <small class="text-muted">Leave empty for "nothing caught" outcomes</small>
                         </div>
                         <div class="col-md-4">
