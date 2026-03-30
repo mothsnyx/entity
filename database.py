@@ -1307,3 +1307,208 @@ class Database:
         # Level 15-19: +3
         # etc.
         return (level - 1) // 5
+
+    def buy_items_with_quantity(self, name, item_quantities):
+    """
+    Buy multiple items with quantities
+    Args:
+        name: Character name
+        item_quantities: Dict like {"Medkit": 3, "Flashlight": 2}
+    Returns:
+        (success, message, total_price, currency_type, items_purchased)
+    """
+    try:
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        # Check if profile exists
+        cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE name = ?", (name,))
+        result = cursor.fetchone()
+        if not result:
+            conn.close()
+            return False, f"Profile {name} not found!", 0, None, {}
+        
+        bloodpoints, auric_cells = result[0], result[1]
+        
+        # First pass: validate all items exist and calculate total cost
+        total_cost = 0
+        currency_type = None
+        item_prices = {}
+        
+        for item_name, quantity in item_quantities.items():
+            cursor.execute("SELECT price, currency_type FROM shop_items WHERE item_name = ?", (item_name,))
+            result = cursor.fetchone()
+            if not result:
+                conn.close()
+                return False, f"Item **{item_name}** not found in shop!", 0, None, {}
+            
+            price = result[0]
+            item_currency = result[1] if result[1] else 'bloodpoints'
+            
+            # Check currency consistency
+            if currency_type is None:
+                currency_type = item_currency
+            elif currency_type != item_currency:
+                conn.close()
+                return False, f"Cannot mix currencies! All items must use the same currency (Bloodpoints or Auric Cells).", 0, None, {}
+            
+            item_prices[item_name] = price
+            total_cost += price * quantity
+        
+        # Check if enough currency
+        if currency_type == 'auric_cells':
+            current_balance = auric_cells
+            currency_name = "Auric Cells"
+            currency_column = "auric_cells"
+        else:
+            current_balance = bloodpoints
+            currency_name = "Bloodpoints"
+            currency_column = "bloodpoints"
+        
+        if current_balance < total_cost:
+            conn.close()
+            return False, f"Insufficient {currency_name}! Total cost is **{total_cost:,}**, you have **{current_balance:,}**.", total_cost, currency_type, {}
+        
+        # Deduct currency
+        cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (total_cost, name))
+        
+        # Add all items to inventory
+        items_purchased = {}
+        for item_name, quantity in item_quantities.items():
+            for _ in range(quantity):
+                cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
+            items_purchased[item_name] = quantity
+        
+        conn.commit()
+        conn.close()
+        return True, "Purchase successful", total_cost, currency_type, items_purchased
+    
+    except Exception as e:
+        return False, f"Error: {str(e)}", 0, None, {}
+
+
+    def add_items_with_quantity(self, name, item_quantities):
+        """
+        Add multiple items with quantities to inventory (admin function)
+        Args:
+            name: Character name
+            item_quantities: Dict like {"Medkit": 3, "Flashlight": 2}
+        Returns:
+            (success, message, items_added)
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Check if profile exists
+            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            if not cursor.fetchone():
+                conn.close()
+                return False, f"Profile {name} not found!", {}
+            
+            # Add all items
+            items_added = {}
+            for item_name, quantity in item_quantities.items():
+                for _ in range(quantity):
+                    cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
+                items_added[item_name] = quantity
+            
+            conn.commit()
+            conn.close()
+            return True, "Items added successfully", items_added
+        
+        except Exception as e:
+            return False, f"Error: {str(e)}", {}
+    
+    
+    def remove_items_with_quantity(self, name, item_quantities):
+        """
+        Remove multiple items with quantities from inventory
+        Args:
+            name: Character name
+            item_quantities: Dict like {"Medkit": 3, "Flashlight": 2}
+        Returns:
+            (success, message, items_removed)
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Check if profile exists
+            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            if not cursor.fetchone():
+                conn.close()
+                return False, f"Profile {name} not found!", {}
+            
+            # First pass: check if user has enough of each item
+            for item_name, quantity in item_quantities.items():
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?", (name, item_name))
+                count = cursor.fetchone()[0]
+                
+                if count < quantity:
+                    conn.close()
+                    return False, f"Not enough **{item_name}** in inventory! You have {count}, trying to remove {quantity}.", {}
+            
+            # Remove items
+            items_removed = {}
+            for item_name, quantity in item_quantities.items():
+                # Delete exact number of items
+                cursor.execute(
+                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT ?)",
+                    (name, item_name, quantity)
+                )
+                items_removed[item_name] = quantity
+            
+            conn.commit()
+            conn.close()
+            return True, "Items removed successfully", items_removed
+        
+        except Exception as e:
+            return False, f"Error: {str(e)}", {}
+    
+    
+    def use_items_with_quantity(self, name, item_quantities):
+        """
+        Use (consume) multiple items with quantities from inventory
+        Args:
+            name: Character name
+            item_quantities: Dict like {"Medkit": 3, "Flashlight": 2}
+        Returns:
+            (success, message, items_used)
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            # Check if profile exists
+            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            if not cursor.fetchone():
+                conn.close()
+                return False, f"Profile {name} not found!", {}
+            
+            # First pass: check if user has enough of each item
+            for item_name, quantity in item_quantities.items():
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?", (name, item_name))
+                count = cursor.fetchone()[0]
+                
+                if count < quantity:
+                    conn.close()
+                    return False, f"Not enough **{item_name}** in inventory! You have {count}, trying to use {quantity}.", {}
+            
+            # Remove (use) items
+            items_used = {}
+            for item_name, quantity in item_quantities.items():
+                # Delete exact number of items
+                cursor.execute(
+                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT ?)",
+                    (name, item_name, quantity)
+                )
+                items_used[item_name] = quantity
+            
+            conn.commit()
+            conn.close()
+            return True, "Items used successfully", items_used
+        
+        except Exception as e:
+            return False, f"Error: {str(e)}", {}
+            
