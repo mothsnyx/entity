@@ -420,60 +420,82 @@ async def shop(interaction: discord.Interaction):
 @bot.tree.command(name="buy", description="Purchase items from the shop")
 @app_commands.describe(
     name="Character name",
-    items="Item names separated by commas (e.g., Medkit, Flashlight, Toolbox)"
+    items="Items with optional quantities (e.g., 'Medkit:3, Flashlight:2' or just 'Medkit, Flashlight')"
 )
 async def buy_item(interaction: discord.Interaction, name: str, items: str):
-    # Parse items - split by comma and strip whitespace
+    """
+    Buy items with quantity support
+    Format: 
+      - "Medkit:3" = 3 Medkits
+      - "Medkit:3, Flashlight:2" = 3 Medkits and 2 Flashlights
+      - "Medkit, Flashlight" = 1 of each (backward compatible)
+    """
+    # Parse items with quantities
+    item_quantities = {}
     item_list = [item.strip() for item in items.split(',')]
     
-    # If only one item, use the old single buy function
-    if len(item_list) == 1:
-        success, message, price, currency_type = db.buy_item(name, item_list[0])
-        
-        if success:
-            # Determine currency display
-            if currency_type == 'auric_cells':
-                currency_name = "Auric Cells"
-                currency_abbr = "AC"
-            else:
-                currency_name = "Bloodpoints"
-                currency_abbr = "BP"
-            
-            embed = discord.Embed(
-                title="<a:check:1467157700831088773> ┃ Purchase successful!",
-                description=f"**{name}** purchased **{item_list[0]}** for **{price:,}** {currency_name}!",
-                color=discord.Color.from_rgb(0, 0, 0)
-            )
+    for item_entry in item_list:
+        if ':' in item_entry:
+            # Format: "Item:Quantity"
+            parts = item_entry.split(':')
+            item_name = parts[0].strip()
+            try:
+                quantity = int(parts[1].strip())
+                if quantity < 1:
+                    embed = discord.Embed(
+                        title="<a:error:1467157734817398946> ┃ Error!",
+                        description=f"Quantity must be at least 1 for **{item_name}**!",
+                        color=discord.Color.from_rgb(116, 7, 14)
+                    )
+                    await interaction.response.send_message(embed=embed)
+                    return
+                item_quantities[item_name] = quantity
+            except ValueError:
+                embed = discord.Embed(
+                    title="<a:error:1467157734817398946> ┃ Error!",
+                    description=f"Invalid quantity for **{item_name}**! Use format: Item:Number (e.g., Medkit:3)",
+                    color=discord.Color.from_rgb(116, 7, 14)
+                )
+                await interaction.response.send_message(embed=embed)
+                return
         else:
-            embed = discord.Embed(
-                title="<a:error:1467157734817398946> ┃ Error!",
-                description=message,
-                color=discord.Color.from_rgb(116, 7, 14)
-            )
-    else:
-        # Multiple items - use bulk buy
-        success, message, total_price, currency_type, items_purchased = db.buy_items_bulk(name, item_list)
+            # No quantity specified, default to 1
+            item_quantities[item_entry.strip()] = 1
+    
+    # Buy items with quantities
+    success, message, total_price, currency_type, items_purchased = db.buy_items_with_quantity(name, item_quantities)
+    
+    if success:
+        # Determine currency display
+        if currency_type == 'auric_cells':
+            currency_name = "Auric Cells"
+            currency_abbr = "AC"
+        else:
+            currency_name = "Bloodpoints"
+            currency_abbr = "BP"
         
-        if success:
-            # Determine currency display
-            if currency_type == 'auric_cells':
-                currency_name = "Auric Cells"
-                currency_abbr = "AC"
+        # Format items list with quantities
+        items_display_list = []
+        total_items = 0
+        for item_name, qty in items_purchased.items():
+            if qty > 1:
+                items_display_list.append(f"**{item_name}** x{qty}")
             else:
-                currency_name = "Bloodpoints"
-                currency_abbr = "BP"
-            
-            # Format items list
-            items_display = "**, **".join(items_purchased)
-            
-            embed = discord.Embed(
-                title="<a:check:1467157700831088773> ┃ Purchase successful!",
-                description=f"**{name}** purchased **{items_display}** for **{total_price:,}** {currency_name}!",
-                color=discord.Color.from_rgb(0, 0, 0)
-            )
+                items_display_list.append(f"**{item_name}**")
+            total_items += qty
+        
+        items_display = ", ".join(items_display_list)
+        
+        embed = discord.Embed(
+            title="<a:check:1467157700831088773> ┃ Purchase successful!",
+            description=f"**{name}** purchased {items_display} for **{total_price:,}** {currency_name}!",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+        
+        if total_items > 1:
             embed.add_field(
-                name="Items Purchased",
-                value=f"{len(items_purchased)} items",
+                name="Total Items",
+                value=f"{total_items} items",
                 inline=True
             )
             embed.add_field(
@@ -481,22 +503,26 @@ async def buy_item(interaction: discord.Interaction, name: str, items: str):
                 value=f"{total_price:,} {currency_abbr}",
                 inline=True
             )
-        else:
-            embed = discord.Embed(
-                title="<a:error:1467157734817398946> ┃ Error!",
-                description=message,
-                color=discord.Color.from_rgb(116, 7, 14)
-            )
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
     
     await interaction.response.send_message(embed=embed)
 
 # Inventory Management
-@bot.tree.command(name="additem", description="Add an item to a character's inventory")
+@bot.tree.command(name="additem", description="Add items to a character's inventory")
 @app_commands.describe(
     name="Character name",
-    item="Item name"
+    items="Items with optional quantities (e.g., 'Medkit:3, Flashlight:2' or just 'Medkit')"
 )
-async def add_item(interaction: discord.Interaction, name: str, item: str):
+async def add_item(interaction: discord.Interaction, name: str, items: str):
+    """
+    Add items with quantity support
+    Format: Same as buy command
+    """
     # Check ownership
     is_owner, msg = db.check_ownership(name, interaction.user.id)
     if not is_owner:
@@ -508,27 +534,83 @@ async def add_item(interaction: discord.Interaction, name: str, item: str):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
     
-    success, message = db.add_item(name, item)
+    # Parse items with quantities
+    item_quantities = {}
+    item_list = [item.strip() for item in items.split(',')]
+    
+    for item_entry in item_list:
+        if ':' in item_entry:
+            parts = item_entry.split(':')
+            item_name = parts[0].strip()
+            try:
+                quantity = int(parts[1].strip())
+                if quantity < 1:
+                    embed = discord.Embed(
+                        title="<a:error:1467157734817398946> ┃ Error!",
+                        description=f"Quantity must be at least 1 for **{item_name}**!",
+                        color=discord.Color.from_rgb(116, 7, 14)
+                    )
+                    await interaction.response.send_message(embed=embed)
+                    return
+                item_quantities[item_name] = quantity
+            except ValueError:
+                embed = discord.Embed(
+                    title="<a:error:1467157734817398946> ┃ Error!",
+                    description=f"Invalid quantity for **{item_name}**! Use format: Item:Number (e.g., Medkit:3)",
+                    color=discord.Color.from_rgb(116, 7, 14)
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+        else:
+            item_quantities[item_entry.strip()] = 1
+    
+    # Add items
+    success, message, items_added = db.add_items_with_quantity(name, item_quantities)
+    
     if success:
+        # Format items list
+        items_display_list = []
+        total_items = 0
+        for item_name, qty in items_added.items():
+            if qty > 1:
+                items_display_list.append(f"**{item_name}** x{qty}")
+            else:
+                items_display_list.append(f"**{item_name}**")
+            total_items += qty
+        
+        items_display = ", ".join(items_display_list)
+        
         embed = discord.Embed(
-            title="<a:check:1467157700831088773> ┃ Item added!",
-            description=f"Added **{item}** to **{name}**'s inventory!",
+            title="<a:check:1467157700831088773> ┃ Items added!",
+            description=f"Added {items_display} to **{name}**'s inventory!",
             color=discord.Color.from_rgb(0, 0, 0)
         )
+        
+        if total_items > 1:
+            embed.add_field(
+                name="Total Items Added",
+                value=f"{total_items} items",
+                inline=True
+            )
     else:
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
             color=discord.Color.from_rgb(116, 7, 14)
         )
+    
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="removeitem", description="Remove an item from a character's inventory")
+@bot.tree.command(name="removeitem", description="Remove items from a character's inventory")
 @app_commands.describe(
     name="Character name",
-    item="Item name"
+    items="Items with optional quantities (e.g., 'Medkit:3, Flashlight:2' or just 'Medkit')"
 )
-async def remove_item(interaction: discord.Interaction, name: str, item: str):
+async def remove_item(interaction: discord.Interaction, name: str, items: str):
+    """
+    Remove items with quantity support
+    Format: Same as buy command
+    """
     # Check ownership
     is_owner, msg = db.check_ownership(name, interaction.user.id)
     if not is_owner:
@@ -540,27 +622,83 @@ async def remove_item(interaction: discord.Interaction, name: str, item: str):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
     
-    success, message = db.remove_item(name, item)
+    # Parse items with quantities
+    item_quantities = {}
+    item_list = [item.strip() for item in items.split(',')]
+    
+    for item_entry in item_list:
+        if ':' in item_entry:
+            parts = item_entry.split(':')
+            item_name = parts[0].strip()
+            try:
+                quantity = int(parts[1].strip())
+                if quantity < 1:
+                    embed = discord.Embed(
+                        title="<a:error:1467157734817398946> ┃ Error!",
+                        description=f"Quantity must be at least 1 for **{item_name}**!",
+                        color=discord.Color.from_rgb(116, 7, 14)
+                    )
+                    await interaction.response.send_message(embed=embed)
+                    return
+                item_quantities[item_name] = quantity
+            except ValueError:
+                embed = discord.Embed(
+                    title="<a:error:1467157734817398946> ┃ Error!",
+                    description=f"Invalid quantity for **{item_name}**! Use format: Item:Number (e.g., Medkit:3)",
+                    color=discord.Color.from_rgb(116, 7, 14)
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+        else:
+            item_quantities[item_entry.strip()] = 1
+    
+    # Remove items
+    success, message, items_removed = db.remove_items_with_quantity(name, item_quantities)
+    
     if success:
+        # Format items list
+        items_display_list = []
+        total_items = 0
+        for item_name, qty in items_removed.items():
+            if qty > 1:
+                items_display_list.append(f"**{item_name}** x{qty}")
+            else:
+                items_display_list.append(f"**{item_name}**")
+            total_items += qty
+        
+        items_display = ", ".join(items_display_list)
+        
         embed = discord.Embed(
-            title="<a:check:1467157700831088773> ┃ Item removed!",
-            description=f"Removed **{item}** from **{name}**'s inventory!",
+            title="<a:check:1467157700831088773> ┃ Items removed!",
+            description=f"Removed {items_display} from **{name}**'s inventory!",
             color=discord.Color.from_rgb(0, 0, 0)
         )
+        
+        if total_items > 1:
+            embed.add_field(
+                name="Total Items Removed",
+                value=f"{total_items} items",
+                inline=True
+            )
     else:
         embed = discord.Embed(
             title="<a:error:1467157734817398946> ┃ Error!",
             description=message,
             color=discord.Color.from_rgb(116, 7, 14)
         )
+    
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="use", description="Use items from your character's inventory")
 @app_commands.describe(
     name="Character name",
-    items="Item names separated by commas (e.g., Medkit, Flashlight, Toolbox)"
+    items="Items with optional quantities (e.g., 'Medkit:3, Flashlight:2' or just 'Medkit, Flashlight')"
 )
 async def use_items(interaction: discord.Interaction, name: str, items: str):
+    """
+    Use items with quantity support
+    Format: Same as buy command
+    """
     # Check ownership
     is_owner, msg = db.check_ownership(name, interaction.user.id)
     if not is_owner:
@@ -572,18 +710,51 @@ async def use_items(interaction: discord.Interaction, name: str, items: str):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
     
-    # Parse items - split by comma and strip whitespace
+    # Parse items with quantities
+    item_quantities = {}
     item_list = [item.strip() for item in items.split(',')]
     
-    success, message, items_used = db.use_items(name, item_list)
+    for item_entry in item_list:
+        if ':' in item_entry:
+            parts = item_entry.split(':')
+            item_name = parts[0].strip()
+            try:
+                quantity = int(parts[1].strip())
+                if quantity < 1:
+                    embed = discord.Embed(
+                        title="<a:error:1467157734817398946> ┃ Error!",
+                        description=f"Quantity must be at least 1 for **{item_name}**!",
+                        color=discord.Color.from_rgb(116, 7, 14)
+                    )
+                    await interaction.response.send_message(embed=embed)
+                    return
+                item_quantities[item_name] = quantity
+            except ValueError:
+                embed = discord.Embed(
+                    title="<a:error:1467157734817398946> ┃ Error!",
+                    description=f"Invalid quantity for **{item_name}**! Use format: Item:Number (e.g., Medkit:3)",
+                    color=discord.Color.from_rgb(116, 7, 14)
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+        else:
+            item_quantities[item_entry.strip()] = 1
+    
+    # Use items
+    success, message, items_used = db.use_items_with_quantity(name, item_quantities)
     
     if success:
         # Format items list
-        if len(items_used) == 1:
-            items_display = f"**{items_used[0]}**"
-        else:
-            items_display = "**, **".join(items_used)
-            items_display = f"**{items_display}**"
+        items_display_list = []
+        total_items = 0
+        for item_name, qty in items_used.items():
+            if qty > 1:
+                items_display_list.append(f"**{item_name}** x{qty}")
+            else:
+                items_display_list.append(f"**{item_name}**")
+            total_items += qty
+        
+        items_display = ", ".join(items_display_list)
         
         embed = discord.Embed(
             title="<a:check:1467157700831088773> ┃ Items used!",
@@ -591,19 +762,11 @@ async def use_items(interaction: discord.Interaction, name: str, items: str):
             color=discord.Color.from_rgb(0, 0, 0)
         )
         
-        if len(items_used) > 1:
+        if total_items > 1:
             embed.add_field(
-                name="Items Used",
-                value=f"{len(items_used)} items",
+                name="Total Items Used",
+                value=f"{total_items} items",
                 inline=True
-            )
-        
-        # If there was a partial failure, add warning
-        if "not found" in message.lower():
-            embed.add_field(
-                name="⚠️ Warning",
-                value=message,
-                inline=False
             )
     else:
         embed = discord.Embed(
