@@ -1385,47 +1385,98 @@ async def scavenging(interaction: discord.Interaction, name: str):
 # List Command
 @bot.tree.command(name="list", description="Show all your character profiles")
 async def list_profiles(interaction: discord.Interaction):
-    # Get all profiles (you might want to filter by user ID in future)
     conn = db.get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT name, role, bloodpoints, auric_cells FROM profiles ORDER BY name")
+    # Only fetch profiles belonging to the user who ran the command
+    cursor.execute(
+        "SELECT name, role, bloodpoints, auric_cells FROM profiles WHERE user_id = ? ORDER BY name",
+        (str(interaction.user.id),)
+    )
     profiles = cursor.fetchall()
     conn.close()
-    
-    if profiles:
+
+    if not profiles:
         embed = discord.Embed(
-            title="<:15824redneonstar:1467170916017639615> ┃ Character Profiles",
-            description=f"Total characters: **{len(profiles)}**",
-            color=discord.Color.from_rgb(0, 0, 0)  # #74070E
+            title="<:15824redneonstar:1467170916017639615> ┃ Your Characters",
+            description="You don't have any characters yet. Create one with `/create`!",
+            color=discord.Color.from_rgb(0, 0, 0)
         )
-        
-        # Group by role
-        killers = [p for p in profiles if p[1] == 'Killer']
-        survivors = [p for p in profiles if p[1] == 'Survivor']
-        
-        if killers:
-            killer_list = "\n".join([
-                f"<:killer:1467160220009762837> **{p[0]}**"
-                for p in killers
-            ])
-            embed.add_field(name="Killers", value=killer_list, inline=False)
-        
-        if survivors:
-            survivor_list = "\n".join([
-                f"<:survivor:1467160220982841345> **{p[0]}**"
-                for p in survivors
-            ])
-            embed.add_field(name="Survivors", value=survivor_list, inline=False)
-        
-        embed.set_footer(text="Use /profile [name] to view detailed information.")
+        await interaction.response.send_message(embed=embed)
+        return
+
+    # Group by role
+    killers   = [p for p in profiles if p[1] == 'Killer']
+    survivors = [p for p in profiles if p[1] == 'Survivor']
+
+    def build_lines(char_list, emoji):
+        return [
+            f"{emoji} **{p[0]}** — <:bp:1467159740797681716> {p[2]:,} BP / {p[3]:,} AC"
+            for p in char_list
+        ]
+
+    killer_lines   = build_lines(killers,   "<:killer:1467160220009762837>")
+    survivor_lines = build_lines(survivors, "<:survivor:1467160220982841345>")
+
+    def chunk_lines(lines, limit=1024):
+        """Split a list of lines into chunks that each fit within limit chars."""
+        chunks, current, current_len = [], [], 0
+        for line in lines:
+            # +1 for the newline we'll join with
+            if current_len + len(line) + 1 > limit and current:
+                chunks.append("\n".join(current))
+                current, current_len = [], 0
+            current.append(line)
+            current_len += len(line) + 1
+        if current:
+            chunks.append("\n".join(current))
+        return chunks
+
+    # Build all fields we need to add
+    fields = []
+    for i, chunk in enumerate(chunk_lines(killer_lines)):
+        label = "Killers" if i == 0 else "Killers (cont.)"
+        fields.append((label, chunk))
+    for i, chunk in enumerate(chunk_lines(survivor_lines)):
+        label = "Survivors" if i == 0 else "Survivors (cont.)"
+        fields.append((label, chunk))
+
+    # Discord allows max 25 fields per embed; split into pages if needed
+    pages = [fields[i:i+25] for i in range(0, max(len(fields), 1), 25)]
+
+    def make_embed(page_fields, page_num, total_pages):
+        embed = discord.Embed(
+            title="<:15824redneonstar:1467170916017639615> ┃ Your Characters",
+            description=f"You have **{len(profiles)}** character(s).",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+        for name, value in page_fields:
+            embed.add_field(name=name, value=value, inline=False)
+        footer = "Use /profile [name] to view details."
+        if total_pages > 1:
+            footer += f"  •  Page {page_num}/{total_pages}"
+        embed.set_footer(text=footer)
+        return embed
+
+    if len(pages) == 1:
+        await interaction.response.send_message(embed=make_embed(pages[0], 1, 1))
     else:
-        embed = discord.Embed(
-            title="<:15824redneonstar:1467170916017639615> ┃ Character Profiles",
-            description="No profiles found. Create one with `/create`!",
-            color=discord.Color.from_rgb(0, 0, 0) 
-        )
-    
-    await interaction.response.send_message(embed=embed)
+        # Multi-page view with Previous / Next buttons
+        class ListView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=120)
+                self.page = 0
+
+            @discord.ui.button(label="◀ Previous", style=discord.ButtonStyle.secondary)
+            async def prev_btn(self, inter: discord.Interaction, button: discord.ui.Button):
+                self.page = max(0, self.page - 1)
+                await inter.response.edit_message(embed=make_embed(pages[self.page], self.page + 1, len(pages)), view=self)
+
+            @discord.ui.button(label="Next ▶", style=discord.ButtonStyle.secondary)
+            async def next_btn(self, inter: discord.Interaction, button: discord.ui.Button):
+                self.page = min(len(pages) - 1, self.page + 1)
+                await inter.response.edit_message(embed=make_embed(pages[self.page], self.page + 1, len(pages)), view=self)
+
+        await interaction.response.send_message(embed=make_embed(pages[0], 1, len(pages)), view=ListView())
 
 # Help Command
 @bot.tree.command(name="help", description="Show all available commands")
