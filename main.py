@@ -1410,7 +1410,7 @@ async def list_profiles(interaction: discord.Interaction):
 
     def build_lines(char_list, emoji):
         return [
-            f"{emoji} **{p[0]}** — <:bp:1467159740797681716> {p[2]:,} BP / {p[3]:,} AC"
+            f"{emoji} **{p[0]}** — <:bp:1467159740797681716> {p[2]:,} / <:ac:1467159725870154021> {p[3]:,} AC"
             for p in char_list
         ]
 
