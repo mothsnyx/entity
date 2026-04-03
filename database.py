@@ -906,8 +906,15 @@ class Database:
         except Exception as e:
             return False, f"Error: {str(e)}", [], 0
     
-    def sell_items(self, name, item_names):
-        """Sell items and add bloodpoints. Returns (success, message, items_sold, total_earned)"""
+    def sell_items(self, name, item_quantities):
+        """Sell items and add bloodpoints.
+        
+        Args:
+            name: Character name
+            item_quantities: dict of {item_name: quantity}, e.g. {"Fresh Meat": 3, "Old Coins": 1}
+        Returns:
+            (success, message, items_sold, total_earned)
+        """
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
@@ -922,64 +929,66 @@ class Database:
             total_earned = 0
             items_not_found = []
             items_no_value = []
+            items_not_enough = []
             
-            for item_name in item_names:
-                # Check if item exists in inventory
-                cursor.execute("SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT 1", 
-                             (name, item_name))
-                result = cursor.fetchone()
+            for item_name, quantity in item_quantities.items():
+                # Check how many the character has
+                cursor.execute(
+                    "SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?",
+                    (name, item_name)
+                )
+                count = cursor.fetchone()[0]
                 
-                if not result:
+                if count == 0:
                     items_not_found.append(item_name)
                     continue
                 
-                inventory_id = result[0]
+                if count < quantity:
+                    items_not_enough.append(f"{item_name} (have {count}, need {quantity})")
+                    continue
                 
                 # Get sell value from minigame tables
                 sell_value = 0
                 
-                # Check hunting_items
-                cursor.execute("SELECT sell_value FROM hunting_items WHERE item_name = ?", (item_name,))
-                result = cursor.fetchone()
-                if result:
-                    sell_value = result[0] or 0
-                
-                # Check fishing_items if not found
-                if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM fishing_items WHERE item_name = ?", (item_name,))
+                for table in ("hunting_items", "fishing_items", "scavenging_items"):
+                    cursor.execute(f"SELECT sell_value FROM {table} WHERE item_name = ?", (item_name,))
                     result = cursor.fetchone()
-                    if result:
-                        sell_value = result[0] or 0
-                
-                # Check scavenging_items if not found
-                if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE item_name = ?", (item_name,))
-                    result = cursor.fetchone()
-                    if result:
-                        sell_value = result[0] or 0
+                    if result and result[0]:
+                        sell_value = result[0]
+                        break
                 
                 if sell_value == 0:
                     items_no_value.append(item_name)
                     continue
                 
-                # Remove item from inventory
-                cursor.execute("DELETE FROM inventory WHERE id = ?", (inventory_id,))
+                # Remove exactly `quantity` copies from inventory
+                cursor.execute(
+                    "DELETE FROM inventory WHERE id IN "
+                    "(SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT ?)",
+                    (name, item_name, quantity)
+                )
                 
-                # Add bloodpoints
-                cursor.execute("UPDATE profiles SET bloodpoints = bloodpoints + ? WHERE name = ?", 
-                             (sell_value, name))
+                earned = sell_value * quantity
+                cursor.execute(
+                    "UPDATE profiles SET bloodpoints = bloodpoints + ? WHERE name = ?",
+                    (earned, name)
+                )
                 
                 items_sold.append({
                     'name': item_name,
-                    'sell_value': sell_value
+                    'quantity': quantity,
+                    'sell_value': sell_value,
+                    'total': earned
                 })
-                total_earned += sell_value
+                total_earned += earned
             
             conn.commit()
             conn.close()
             
             if not items_sold:
-                if items_not_found:
+                if items_not_enough:
+                    return False, f"Not enough items: **{', '.join(items_not_enough)}**", [], 0
+                elif items_not_found:
                     return False, f"Items not found in inventory: **{', '.join(items_not_found)}**", [], 0
                 elif items_no_value:
                     return False, f"Items have no sell value: **{', '.join(items_no_value)}**", [], 0
@@ -987,10 +996,15 @@ class Database:
                     return False, "No items could be sold!", [], 0
             
             message = "Items sold successfully"
+            warnings = []
             if items_not_found:
-                message += f" (Not found: {', '.join(items_not_found)})"
+                warnings.append(f"Not found: {', '.join(items_not_found)}")
             if items_no_value:
-                message += f" (No value: {', '.join(items_no_value)})"
+                warnings.append(f"No value: {', '.join(items_no_value)}")
+            if items_not_enough:
+                warnings.append(f"Not enough: {', '.join(items_not_enough)}")
+            if warnings:
+                message += " (" + " | ".join(warnings) + ")"
             
             return True, message, items_sold, total_earned
             
