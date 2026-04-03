@@ -2179,7 +2179,7 @@ async def value_items(interaction: discord.Interaction, name: str, items: str):
 @bot.tree.command(name="sell", description="Sell items from your inventory for Bloodpoints")
 @app_commands.describe(
     name="Character name",
-    items="Item names separated by commas (e.g., Fresh Meat, Animal Hide, Old Map)"
+    items="Items to sell, e.g: Fresh Meat:3, Old Coins, Animal Hide:2  (no number = sell 1)"
 )
 async def sell_items(interaction: discord.Interaction, name: str, items: str):
     # Check ownership
@@ -2192,46 +2192,60 @@ async def sell_items(interaction: discord.Interaction, name: str, items: str):
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
-    
-    # Parse items - split by comma and strip whitespace
-    item_list = [item.strip() for item in items.split(',')]
-    
-    success, message, items_sold, total_earned = db.sell_items(name, item_list)
-    
-    if success:
-        # Format items list
-        if len(items_sold) == 1:
-            items_display = f"**{items_sold[0]['name']}**"
+
+    # Parse "Item Name:quantity, Other Item, Another:5" into {name: qty}
+    item_quantities = {}
+    parse_errors = []
+    for entry in items.split(','):
+        entry = entry.strip()
+        if not entry:
+            continue
+        if ':' in entry:
+            parts = entry.rsplit(':', 1)          # split on last colon only
+            item_name = parts[0].strip()
+            try:
+                qty = int(parts[1].strip())
+                if qty < 1:
+                    raise ValueError
+            except ValueError:
+                parse_errors.append(f"`{entry}` — quantity must be a whole number ≥ 1")
+                continue
         else:
-            items_display = "**, **".join([item['name'] for item in items_sold])
-            items_display = f"**{items_display}**"
-        
+            item_name = entry
+            qty = 1
+        item_quantities[item_name] = item_quantities.get(item_name, 0) + qty
+
+    if parse_errors:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Invalid input!",
+            description="Couldn't parse these entries:\n" + "\n".join(parse_errors)
+                        + "\n\nFormat: `Item Name:quantity` — e.g. `Fresh Meat:3, Old Coins`",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    success, message, items_sold, total_earned = db.sell_items(name, item_quantities)
+
+    if success:
         embed = discord.Embed(
             title="<a:check:1467157700831088773> ┃ Items sold!",
-            description=f"**{name}** sold {items_display} for **{total_earned:,}** <:bp:1467159740797681716> Bloodpoints!",
+            description=f"**{name}** earned **{total_earned:,}** <:bp:1467159740797681716> Bloodpoints!",
             color=discord.Color.from_rgb(0, 0, 0)
         )
-        
-        # Add breakdown
+
         items_text = "\n".join([
-            f"• {item['name']} → {item['sell_value']:,} BP"
+            f"• {item['name']} x{item['quantity']} → {item['sell_value']:,} BP each = **{item['total']:,} BP**"
             for item in items_sold
         ])
-        
-        embed.add_field(
-            name="Items Sold",
-            value=items_text,
-            inline=False
-        )
-        
+        embed.add_field(name="Items Sold", value=items_text, inline=False)
         embed.add_field(
             name="Total Earned",
             value=f"<:bp:1467159740797681716> {total_earned:,} BP",
             inline=False
         )
-        
-        # Warning if any items not sold
-        if "not found" in message.lower() or "no value" in message.lower():
+
+        if any(w in message.lower() for w in ("not found", "no value", "not enough")):
             embed.set_footer(text=f"⚠️ {message}")
     else:
         embed = discord.Embed(
@@ -2239,7 +2253,7 @@ async def sell_items(interaction: discord.Interaction, name: str, items: str):
             description=message,
             color=discord.Color.from_rgb(116, 7, 14)
         )
-    
+
     await interaction.response.send_message(embed=embed)
 
 def run_api():
