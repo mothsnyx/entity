@@ -1,8 +1,9 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ui import View, Button
 import random
+import itertools
 import re
 from database import Database, ADMIN_IDS
 import os
@@ -1664,6 +1665,23 @@ async def on_member_join(member):
         print(f"[WELCOME] ❌ Error: {e}")
         import traceback
         traceback.print_exc()
+
+# Status rotation
+_status_cycle = itertools.cycle([
+    discord.Activity(type=discord.ActivityType.watching, name="the trials unfold"),
+    discord.Activity(type=discord.ActivityType.watching, name="survivors cower in the fog"),
+    discord.Activity(type=discord.ActivityType.watching, name="killers stalk their prey"),
+    discord.Activity(type=discord.ActivityType.playing,  name="with the survivors' hope"),
+    discord.Activity(type=discord.ActivityType.watching, name="new creatures take shape in the fog"),
+    discord.Activity(type=discord.ActivityType.playing,  name="an eternal game of hunt and prey"),
+])
+
+@tasks.loop(hours=3)
+async def rotate_status():
+    await bot.change_presence(
+        status=discord.Status.dnd,
+        activity=next(_status_cycle)
+    )
 
 @bot.event
 async def on_message(message):
