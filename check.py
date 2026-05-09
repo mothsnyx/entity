@@ -1,26 +1,17 @@
-import sqlite3
+import discord
+import os
+from dotenv import load_dotenv
 
-conn = sqlite3.connect('game_database.db')
-cursor = conn.cursor()
+load_dotenv()
 
-print("=" * 50)
-print("CHECKING COLUMN ORDER IN DATABASE")
-print("=" * 50)
+intents = discord.Intents.default()
+bot = discord.Client(intents=intents)
 
-tables = ['hunting_items', 'fishing_items', 'scavenging_items', 'shop_items']
+@bot.event
+async def on_ready():
+    print(f"Bot is in {len(bot.guilds)} servers:\n")
+    for guild in bot.guilds:
+        print(f"- {guild.name} (ID: {guild.id}) | Members: {guild.member_count}")
+    await bot.close()
 
-for table in tables:
-    print(f"\n📊 {table}:")
-    cursor.execute(f"PRAGMA table_info({table})")
-    columns = cursor.fetchall()
-    
-    for col in columns:
-        col_id, col_name, col_type, not_null, default_val, pk = col
-        print(f"  [{col_id}] {col_name} ({col_type})")
-
-conn.close()
-
-print("\n" + "=" * 50)
-print("This shows the actual order of columns in your database")
-print("The HTML templates need to match these positions!")
-print("=" * 50)
+bot.run(os.getenv('DISCORD_TOKEN'))
