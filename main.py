@@ -1669,12 +1669,12 @@ async def on_member_join(member):
 
 # Status rotation
 _status_cycle = itertools.cycle([
-    discord.Activity(type=discord.ActivityType.watching, name="the trials unfold"),
-    discord.Activity(type=discord.ActivityType.watching, name="survivors cower in the fog"),
-    discord.Activity(type=discord.ActivityType.watching, name="killers stalk their prey"),
-    discord.Activity(type=discord.ActivityType.playing,  name="with the survivors' hope"),
-    discord.Activity(type=discord.ActivityType.watching, name="new creatures take shape in the fog"),
-    discord.Activity(type=discord.ActivityType.playing,  name="an eternal game of hunt and prey"),
+    discord.Activity(type=discord.ActivityType.watching, name="/help | Watching the trials unfold"),
+    discord.Activity(type=discord.ActivityType.watching, name="/help | Watching survivors cower in the fog"),
+    discord.Activity(type=discord.ActivityType.watching, name="/help | Watching killers stalk their prey"),
+    discord.Activity(type=discord.ActivityType.playing,  name="/help | Playing with the survivors' hope"),
+    discord.Activity(type=discord.ActivityType.watching, name="/help | Watching new creatures take shape in the fog"),
+    discord.Activity(type=discord.ActivityType.playing,  name="/help | Playing an eternal game of hunt and prey"),
 ])
 
 @tasks.loop(hours=3)
