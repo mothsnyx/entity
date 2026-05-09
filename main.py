@@ -1568,6 +1568,7 @@ async def on_ready():
         print(f"Synced {len(synced)} command(s)")
     except Exception as e:
         print(f"Failed to sync commands: {e}")
+    rotate_status.start() 
 
 @bot.event
 async def on_member_join(member):
