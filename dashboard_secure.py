@@ -714,7 +714,7 @@ def send_embed(embed_id):
             'reaction_roles': []  # No reaction roles from embeds page
         }
         
-        response = requests.post(bot_url, json=payload, timeout=5)
+        response = requests.post(bot_url, json=payload, timeout=15)
         
         if response.status_code == 200:
             result = response.json()
