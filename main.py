@@ -379,8 +379,8 @@ async def remove_currency(interaction: discord.Interaction, name: str, currency:
     receiver_name="The receiver's character name"
 )
 @app_commands.choices(currency=[
-    app_commands.Choice(name="Bloodpoints (bp)", value="bloodpoints"),
-    app_commands.Choice(name="Auric Cells (ac)", value="auric_cells")
+    app_commands.Choice(name="Bloodpoints", value="bloodpoints"),
+    app_commands.Choice(name="Auric Cells", value="auric_cells")
 ])
 async def give_currency(interaction: discord.Interaction, sender_name: str, currency: app_commands.Choice[str], amount: int, receiver_name: str):
     # Check that sender owns their character
