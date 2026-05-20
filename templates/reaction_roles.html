@@ -66,75 +66,80 @@
 
 <!-- Active Reaction Role Messages -->
 <div class="card">
-    <div class="card-header">
-        Active Reaction Role Messages
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Active Reaction Role Messages</span>
+        <small class="text-muted">Click a message to manage its roles</small>
     </div>
     <div class="card-body">
         {% if reaction_messages %}
-            <div class="table-responsive">
-                <table class="table table-dark table-hover">
-                    <thead>
-                        <tr>
-                            <th>Message ID</th>
-                            <th>Embed</th>
-                            <th>Roles</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for msg in reaction_messages %}
-                        <tr>
-                            <td><code>{{ msg.message_id }}</code></td>
-                            <td><span class="badge bg-primary">{{ msg.embed_name }}</span></td>
-                            <td>
-                                {% for role in msg.roles %}
-                                <span class="badge bg-secondary">{{ role.emoji }} → {{ role.role_id }}</span>
-                                {% endfor %}
-                            </td>
-                            <td class="text-end">
-                                <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#viewModal{{ msg.message_id }}">
-                                    <i class="bi bi-eye"></i> View
-                                </button>
-                                <form method="POST" action="/reaction-roles/delete/{{ msg.message_id }}" style="display: inline;">
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Remove all reaction roles from this message?');">
-                                        <i class="bi bi-trash"></i> Delete
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
+            {% for msg in reaction_messages %}
+            <div class="card mb-3 border-secondary">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-primary me-2">{{ msg.embed_name }}</span>
+                        <code class="text-muted small">{{ msg.message_id }}</code>
+                    </div>
+                    <form method="POST" action="/reaction-roles/delete/{{ msg.message_id }}" style="display: inline;">
+                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                onclick="return confirm('Remove ALL reaction roles from this message?');">
+                            <i class="bi bi-trash"></i> Delete All
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body">
 
-                        <!-- View Modal -->
-                        <div class="modal fade" id="viewModal{{ msg.message_id }}" tabindex="-1">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Reaction Roles Details</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <p><strong>Message ID:</strong> <code>{{ msg.message_id }}</code></p>
-                                        <p><strong>Embed:</strong> {{ msg.embed_name }}</p>
-                                        <hr>
-                                        <h6>Role Mappings:</h6>
-                                        <ul class="list-unstyled">
-                                            {% for role in msg.roles %}
-                                            <li class="mb-2">
-                                                <span class="badge bg-info">{{ role.emoji }}</span> 
-                                                → Role ID: <code>{{ role.role_id }}</code>
-                                            </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
+                    <!-- Current role mappings with individual remove buttons -->
+                    <h6 class="text-muted mb-2">Current Roles</h6>
+                    {% if msg.roles %}
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% for role in msg.roles %}
+                        <div class="d-flex align-items-center gap-1 bg-dark border border-secondary rounded px-2 py-1">
+                            <span class="fs-5">{{ role.emoji }}</span>
+                            <span class="text-muted mx-1">→</span>
+                            <code class="small">{{ role.role_id }}</code>
+                            <form method="POST" action="/reaction-roles/remove-role/{{ msg.message_id }}" style="display:inline;">
+                                <input type="hidden" name="emoji" value="{{ role.emoji }}">
+                                <button type="submit" class="btn btn-sm btn-link text-danger p-0 ms-1"
+                                        onclick="return confirm('Remove {{ role.emoji }} from this message?');"
+                                        title="Remove this role">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            </form>
                         </div>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-3">No roles mapped yet.</p>
+                    {% endif %}
+
+                    <!-- Add a new role to this message -->
+                    <h6 class="text-muted mb-2">Add a Role</h6>
+                    <form method="POST" action="/reaction-roles/add-role/{{ msg.message_id }}">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted mb-1">Emoji</label>
+                                <input type="text" name="emoji" class="form-control form-control-sm"
+                                       placeholder="🎮 or :emoji_name:" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted mb-1">Role ID</label>
+                                <input type="text" name="role_id" class="form-control form-control-sm"
+                                       placeholder="123456789012345678" required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-sm btn-success w-100">
+                                    <i class="bi bi-plus-circle"></i> Add
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            The emoji reaction will be added to the Discord message automatically.
+                        </small>
+                    </form>
+
+                </div>
             </div>
+            {% endfor %}
         {% else %}
             <p class="text-muted">No active reaction role messages yet.</p>
             <p class="text-muted">Create one above to get started!</p>
