@@ -11,6 +11,46 @@
     Users can click emoji reactions to get roles automatically!
 </div>
 
+<!-- Link a pre-existing Discord message to an embed -->
+<div class="card mb-4 border-warning">
+    <div class="card-header bg-warning text-dark">
+        <i class="bi bi-link-45deg"></i> Link Existing Discord Message
+    </div>
+    <div class="card-body">
+        <p class="text-muted small mb-3">
+            Use this if your embed already exists in Discord (with roles attached) but isn't
+            showing up here. Paste the existing message ID and channel ID — no new message
+            will be sent and no roles will be changed.
+        </p>
+        <form method="POST" action="/reaction-roles/link-existing">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Embed</label>
+                    <select name="embed_id" class="form-select" required>
+                        <option value="">-- Select Embed --</option>
+                        {% for embed in embeds %}
+                        <option value="{{ embed[0] }}">{{ embed[1] }} - {{ embed[2] or 'No title' }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Discord Message ID</label>
+                    <input type="text" name="message_id" class="form-control"
+                           placeholder="e.g. 1234567890123456789" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Discord Channel ID</label>
+                    <input type="text" name="channel_id" class="form-control"
+                           placeholder="e.g. 9876543210987654321" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-warning mt-3">
+                <i class="bi bi-link"></i> Link Message (no new message sent)
+            </button>
+        </form>
+    </div>
+</div>
+
 <!-- Create/Select Embed for Reaction Roles -->
 <div class="card mb-4">
     <div class="card-header">
