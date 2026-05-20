@@ -889,6 +889,124 @@ def create_reaction_role():
     
     return redirect(url_for('reaction_roles'))
 
+@app.route('/reaction-roles/edit-embed/<message_id>', methods=['POST'])
+@login_required
+def edit_reaction_role_embed(message_id):
+    """Edit the embed content for an existing reaction role message and update it live in Discord."""
+    title = request.form.get('title')
+    description = request.form.get('description')
+    color = request.form.get('color', '#000000').lstrip('#')
+    footer_text = request.form.get('footer_text')
+    image_url = request.form.get('image_url')
+    thumbnail_url = request.form.get('thumbnail_url')
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Find the embed linked to this message_id
+        cursor.execute("SELECT id, channel_id FROM embeds WHERE message_id = ?", (message_id,))
+        embed_row = cursor.fetchone()
+
+        if not embed_row:
+            flash('No embed found linked to this reaction role message!', 'danger')
+            conn.close()
+            return redirect(url_for('reaction_roles'))
+
+        embed_id = embed_row[0]
+        channel_id = embed_row[1]
+
+        # Update the embed in the database
+        cursor.execute("""UPDATE embeds SET
+                        title = ?, description = ?, color = ?,
+                        footer_text = ?, image_url = ?, thumbnail_url = ?
+                        WHERE id = ?""",
+                     (title, description, color, footer_text, image_url, thumbnail_url, embed_id))
+        conn.commit()
+        conn.close()
+
+        # Push the update live to Discord via bot API
+        import requests as req
+        bot_url = "http://localhost:5002/update_embed"
+        payload = {
+            'channel_id': channel_id,
+            'message_id': message_id,
+            'title': title,
+            'description': description,
+            'color': color,
+            'footer_text': footer_text,
+            'image_url': image_url,
+            'thumbnail_url': thumbnail_url
+        }
+        response = req.post(bot_url, json=payload, timeout=10)
+
+        if response.status_code == 200:
+            flash('Reaction role embed updated successfully in Discord!', 'success')
+        else:
+            flash(f'Embed saved to database but failed to update in Discord: {response.text}', 'warning')
+
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+
+    return redirect(url_for('reaction_roles'))
+
+@app.route('/reaction-roles/update-roles/<message_id>', methods=['POST'])
+@login_required
+def update_reaction_role_mappings(message_id):
+    """Update the emoji→role mappings for an existing reaction role message."""
+    emojis = request.form.getlist('emoji[]')
+    role_ids = request.form.getlist('role_id[]')
+
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Find the embed linked to this message_id for channel info
+        cursor.execute("SELECT channel_id FROM embeds WHERE message_id = ?", (message_id,))
+        embed_row = cursor.fetchone()
+
+        if not embed_row:
+            flash('No embed found linked to this reaction role message!', 'danger')
+            conn.close()
+            return redirect(url_for('reaction_roles'))
+
+        channel_id = embed_row[0]
+
+        # Delete old role mappings
+        cursor.execute("DELETE FROM reaction_roles WHERE message_id = ?", (message_id,))
+
+        # Insert new mappings
+        new_roles = []
+        for emoji, role_id in zip(emojis, role_ids):
+            if emoji and role_id:
+                cursor.execute("INSERT INTO reaction_roles (message_id, emoji, role_id) VALUES (?, ?, ?)",
+                             (message_id, emoji, role_id))
+                new_roles.append({'emoji': emoji, 'role_id': role_id})
+
+        conn.commit()
+        conn.close()
+
+        # Update reactions on the Discord message via bot API
+        import requests as req
+        bot_url = "http://localhost:5002/update_reactions"
+        payload = {
+            'channel_id': channel_id,
+            'message_id': message_id,
+            'reaction_roles': new_roles
+        }
+        response = req.post(bot_url, json=payload, timeout=10)
+
+        if response.status_code == 200:
+            flash(f'Reaction role mappings updated with {len(new_roles)} role(s)!', 'success')
+        else:
+            # Mappings saved in DB even if Discord sync fails
+            flash(f'Mappings saved but failed to sync reactions in Discord: {response.text}', 'warning')
+
+    except Exception as e:
+        flash(f'Error: {str(e)}', 'danger')
+
+    return redirect(url_for('reaction_roles'))
+
 @app.route('/reaction-roles/delete/<message_id>', methods=['POST'])
 @login_required
 def delete_reaction_role(message_id):
