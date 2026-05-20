@@ -371,6 +371,179 @@ async def remove_currency(interaction: discord.Interaction, name: str, currency:
         )
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command(name="givecurrency", description="Give Bloodpoints or Auric Cells from your character to another character")
+@app_commands.describe(
+    sender_name="Your character's name",
+    currency="Currency type",
+    amount="Amount to give",
+    receiver_name="The receiver's character name"
+)
+@app_commands.choices(currency=[
+    app_commands.Choice(name="Bloodpoints (bp)", value="bloodpoints"),
+    app_commands.Choice(name="Auric Cells (ac)", value="auric_cells")
+])
+async def give_currency(interaction: discord.Interaction, sender_name: str, currency: app_commands.Choice[str], amount: int, receiver_name: str):
+    # Check that sender owns their character
+    is_owner, msg = db.check_ownership(sender_name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    if amount <= 0:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description="Amount must be greater than 0!",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    # Check receiver exists
+    receiver_profile = db.get_profile(receiver_name)
+    if not receiver_profile:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=f"Receiver character **{receiver_name}** not found!",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    # Remove from sender
+    success, message = db.remove_currency(sender_name, currency.value, amount)
+    if not success:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+
+    # Add to receiver
+    success2, message2 = db.add_currency(receiver_name, currency.value, amount)
+    if not success2:
+        # Rollback: give sender their currency back
+        db.add_currency(sender_name, currency.value, amount)
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=f"Failed to give currency to **{receiver_name}**: {message2}",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+
+    embed = discord.Embed(
+        title="<a:check:1467157700831088773> ┃ Currency Transferred!",
+        description=f"**{sender_name}** gave **{amount:,}** {currency.name} to **{receiver_name}**!",
+        color=discord.Color.from_rgb(0, 0, 0)
+    )
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="giveitem", description="Give item(s) from your character to another character")
+@app_commands.describe(
+    sender_name="Your character's name",
+    items="Items with optional quantities (e.g., 'Medkit:3, Flashlight' or just 'Medkit')",
+    receiver_name="The receiver's character name"
+)
+async def give_item(interaction: discord.Interaction, sender_name: str, items: str, receiver_name: str):
+    # Check that sender owns their character
+    is_owner, msg = db.check_ownership(sender_name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    # Check receiver exists
+    receiver_profile = db.get_profile(receiver_name)
+    if not receiver_profile:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=f"Receiver character **{receiver_name}** not found!",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    # Parse items with quantities
+    item_quantities = {}
+    item_list = [item.strip() for item in items.split(',')]
+
+    for item_entry in item_list:
+        if ':' in item_entry:
+            parts = item_entry.split(':')
+            item_name = parts[0].strip()
+            try:
+                quantity = int(parts[1].strip())
+                if quantity < 1:
+                    embed = discord.Embed(
+                        title="<a:error:1467157734817398946> ┃ Error!",
+                        description=f"Quantity must be at least 1 for **{item_name}**!",
+                        color=discord.Color.from_rgb(116, 7, 14)
+                    )
+                    await interaction.response.send_message(embed=embed)
+                    return
+                item_quantities[item_name] = quantity
+            except ValueError:
+                embed = discord.Embed(
+                    title="<a:error:1467157734817398946> ┃ Error!",
+                    description=f"Invalid quantity for **{item_name}**! Use format: Item:Number (e.g., Medkit:3)",
+                    color=discord.Color.from_rgb(116, 7, 14)
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+        else:
+            item_quantities[item_entry.strip()] = 1
+
+    # Remove items from sender
+    success, message, items_removed = db.remove_items_with_quantity(sender_name, item_quantities)
+    if not success:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+
+    # Add items to receiver
+    success2, message2, items_added = db.add_items_with_quantity(receiver_name, item_quantities)
+    if not success2:
+        # Rollback: return items to sender
+        db.add_items_with_quantity(sender_name, item_quantities)
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=f"Failed to give items to **{receiver_name}**: {message2}",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+
+    # Format display
+    items_display_list = []
+    for item_name, qty in items_removed.items():
+        if qty > 1:
+            items_display_list.append(f"**{item_name}** x{qty}")
+        else:
+            items_display_list.append(f"**{item_name}**")
+    items_display = ", ".join(items_display_list)
+
+    embed = discord.Embed(
+        title="<a:check:1467157700831088773> ┃ Items Transferred!",
+        description=f"**{sender_name}** gave {items_display} to **{receiver_name}**!",
+        color=discord.Color.from_rgb(0, 0, 0)
+    )
+    await interaction.response.send_message(embed=embed)
+
 # Shop Command (NO EMOJIS)
 @bot.tree.command(name="shop", description="View available items for purchase")
 async def shop(interaction: discord.Interaction):
@@ -2016,6 +2189,48 @@ def api_update_embed():
         else:
             return jsonify({'status': 'error', 'message': 'Channel or message not found'}), 404
             
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@api.route('/update_reactions', methods=['POST'])
+def api_update_reactions():
+    """Clear existing reactions on a message and re-add based on updated reaction_roles list."""
+    try:
+        data = request.json
+        channel_id = int(data['channel_id'])
+        message_id = int(data['message_id'])
+        reaction_roles = data.get('reaction_roles', [])
+
+        async def update():
+            channel = bot.get_channel(channel_id)
+            if not channel:
+                for guild in bot.guilds:
+                    thread = guild.get_thread(channel_id)
+                    if thread:
+                        channel = thread
+                        break
+            if not channel:
+                return False
+            message = await channel.fetch_message(message_id)
+            # Clear all existing reactions the bot added
+            await message.clear_reactions()
+            # Re-add the new set
+            for rr in reaction_roles:
+                try:
+                    await message.add_reaction(rr['emoji'])
+                except Exception as e:
+                    print(f"Failed to add reaction {rr['emoji']}: {e}")
+            return True
+
+        import asyncio
+        future = asyncio.run_coroutine_threadsafe(update(), bot.loop)
+        success = future.result(timeout=15)
+
+        if success:
+            return jsonify({'status': 'success'}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Channel or message not found'}), 404
+
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
