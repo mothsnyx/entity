@@ -603,12 +603,12 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?", (name, item_name))
+            cursor.execute("SELECT * FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)", (name, item_name))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"{item_name} not found in {name}'s inventory!"
             
-            cursor.execute("DELETE FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT 1", (name, item_name))
+            cursor.execute("DELETE FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT 1", (name, item_name))
             conn.commit()
             conn.close()
             return True, f"Removed {item_name} from inventory"
@@ -819,7 +819,7 @@ class Database:
             
             for item_name in item_names:
                 # Check if item exists in inventory
-                cursor.execute("SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT 1", 
+                cursor.execute("SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT 1", 
                              (name, item_name))
                 result = cursor.fetchone()
                 
@@ -863,7 +863,7 @@ class Database:
             
             for item_name in item_names:
                 # Check if item exists in inventory
-                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?", 
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)", 
                              (name, item_name))
                 quantity = cursor.fetchone()[0]
                 
@@ -944,7 +944,7 @@ class Database:
             for item_name, quantity in item_quantities.items():
                 # Check how many the character has
                 cursor.execute(
-                    "SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?",
+                    "SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)",
                     (name, item_name)
                 )
                 count = cursor.fetchone()[0]
@@ -974,7 +974,7 @@ class Database:
                 # Remove exactly `quantity` copies from inventory
                 cursor.execute(
                     "DELETE FROM inventory WHERE id IN "
-                    "(SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT ?)",
+                    "(SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT ?)",
                     (name, item_name, quantity)
                 )
                 
@@ -1466,7 +1466,7 @@ class Database:
             
             # First pass: check if user has enough of each item
             for item_name, quantity in item_quantities.items():
-                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?", (name, item_name))
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)", (name, item_name))
                 count = cursor.fetchone()[0]
                 
                 if count < quantity:
@@ -1478,7 +1478,7 @@ class Database:
             for item_name, quantity in item_quantities.items():
                 # Delete exact number of items
                 cursor.execute(
-                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT ?)",
+                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT ?)",
                     (name, item_name, quantity)
                 )
                 items_removed[item_name] = quantity
@@ -1512,7 +1512,7 @@ class Database:
             
             # First pass: check if user has enough of each item
             for item_name, quantity in item_quantities.items():
-                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?", (name, item_name))
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)", (name, item_name))
                 count = cursor.fetchone()[0]
                 
                 if count < quantity:
@@ -1524,7 +1524,7 @@ class Database:
             for item_name, quantity in item_quantities.items():
                 # Delete exact number of items
                 cursor.execute(
-                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT ?)",
+                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT ?)",
                     (name, item_name, quantity)
                 )
                 items_used[item_name] = quantity
