@@ -515,6 +515,8 @@ async def give_item(interaction: discord.Interaction, sender_name: str, items: s
         await interaction.response.send_message(embed=embed)
         return
 
+    # Normalise item names before adding to receiver
+    item_quantities = {db.normalise(k): v for k, v in item_quantities.items()}
     # Add items to receiver
     success2, message2, items_added = db.add_items_with_quantity(receiver_name, item_quantities)
     if not success2:
@@ -737,6 +739,9 @@ async def add_item(interaction: discord.Interaction, name: str, items: str):
                 return
         else:
             item_quantities[item_entry.strip()] = 1
+    
+    # Normalise item names to Title Case before adding
+    item_quantities = {db.normalise(k): v for k, v in item_quantities.items()}
     
     # Add items
     success, message, items_added = db.add_items_with_quantity(name, item_quantities)
@@ -1741,7 +1746,8 @@ async def on_ready():
         print(f"Synced {len(synced)} command(s)")
     except Exception as e:
         print(f"Failed to sync commands: {e}")
-    rotate_status.start() 
+    rotate_status.start()
+    daily_vacuum.start()
 
 @bot.event
 async def on_member_join(member):
@@ -1978,7 +1984,6 @@ async def on_message(message):
 
 
 
-@bot.event
 @bot.event
 async def on_raw_reaction_add(payload):
     """Handle reaction roles when user adds a reaction"""
@@ -2489,6 +2494,17 @@ async def sell_items(interaction: discord.Interaction, name: str, items: str):
         )
 
     await interaction.response.send_message(embed=embed)
+
+@tasks.loop(hours=24)
+async def daily_vacuum():
+    """Reclaim free space from deleted rows once per day"""
+    try:
+        conn = db.get_connection()
+        conn.execute("VACUUM")
+        conn.close()
+        print("[DB] Daily VACUUM complete")
+    except Exception as e:
+        print(f"[DB] VACUUM error: {e}")
 
 def run_api():
     api.run(host='0.0.0.0', port=5002, debug=False)
