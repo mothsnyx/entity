@@ -18,7 +18,16 @@ class Database:
         self.populate_initial_data()
     
     def get_connection(self):
-        return sqlite3.connect(self.db_name)
+        conn = sqlite3.connect(self.db_name, timeout=15)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=15000")
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.create_function("LOWER", 1, lambda x: x.lower() if x else None)
+        return conn
+
+    def normalise(self, text):
+        """Normalise user-typed text to Title Case before inserting."""
+        return text.strip().title() if text else text
     
     def init_database(self):
         conn = self.get_connection()
@@ -379,7 +388,7 @@ class Database:
             
             conn = self.get_connection()
             cursor = conn.cursor()
-            cursor.execute("SELECT user_id FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT user_id FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             conn.close()
             
@@ -407,7 +416,7 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT user_id FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT user_id FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             
             if not result:
@@ -421,7 +430,7 @@ class Database:
                 return False, f"**{name}** is already owned by someone!"
             
             # Claim it
-            cursor.execute("UPDATE profiles SET user_id = ? WHERE name = ?", (str(user_id), name))
+            cursor.execute("UPDATE profiles SET user_id = ? WHERE LOWER(name) = LOWER(?)", (str(user_id), name))
             conn.commit()
             conn.close()
             return True, f"✅ You now own **{name}**!"
@@ -435,12 +444,12 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (character_name,))
+            cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (character_name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Character **{character_name}** not found!"
             
-            cursor.execute("UPDATE profiles SET user_id = ? WHERE name = ?", 
+            cursor.execute("UPDATE profiles SET user_id = ? WHERE LOWER(name) = LOWER(?)", 
                           (str(new_owner_id), character_name))
             conn.commit()
             conn.close()
@@ -454,13 +463,13 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (old_name,))
+            cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (old_name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile {old_name} not found!"
             
-            cursor.execute("UPDATE profiles SET name = ? WHERE name = ?", (new_name, old_name))
-            cursor.execute("UPDATE inventory SET character_name = ? WHERE character_name = ?", (new_name, old_name))
+            cursor.execute("UPDATE profiles SET name = ? WHERE LOWER(name) = LOWER(?)", (new_name, old_name))
+            cursor.execute("UPDATE inventory SET character_name = ? WHERE LOWER(character_name) = LOWER(?)", (new_name, old_name))
             conn.commit()
             conn.close()
             return True, f"Profile renamed to {new_name}"
@@ -474,12 +483,12 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile {name} not found!"
             
-            cursor.execute("UPDATE profiles SET role = ? WHERE name = ?", (new_role, name))
+            cursor.execute("UPDATE profiles SET role = ? WHERE LOWER(name) = LOWER(?)", (new_role, name))
             conn.commit()
             conn.close()
             return True, f"Role updated to {new_role}"
@@ -491,13 +500,13 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile {name} not found!"
             
-            cursor.execute("DELETE FROM profiles WHERE name = ?", (name,))
-            cursor.execute("DELETE FROM inventory WHERE character_name = ?", (name,))
+            cursor.execute("DELETE FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
+            cursor.execute("DELETE FROM inventory WHERE LOWER(character_name) = LOWER(?)", (name,))
             conn.commit()
             conn.close()
             return True, f"Profile {name} deleted"
@@ -507,7 +516,7 @@ class Database:
     def get_profile(self, name):
         conn = self.get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
+        cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
         result = cursor.fetchone()
         conn.close()
         
@@ -534,12 +543,12 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile {name} not found!"
             
-            cursor.execute(f"UPDATE profiles SET {currency_type} = {currency_type} + ? WHERE name = ?", (amount, name))
+            cursor.execute(f"UPDATE profiles SET {currency_type} = {currency_type} + ? WHERE LOWER(name) = LOWER(?)", (amount, name))
             conn.commit()
             conn.close()
             return True, f"Added {amount} {currency_type}"
@@ -551,7 +560,7 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute(f"SELECT {currency_type} FROM profiles WHERE name = ?", (name,))
+            cursor.execute(f"SELECT {currency_type} FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             
             if not result:
@@ -563,7 +572,7 @@ class Database:
                 conn.close()
                 return False, f"Insufficient {currency_type}! Current: {current_amount}"
             
-            cursor.execute(f"UPDATE profiles SET {currency_type} = {currency_type} - ? WHERE name = ?", (amount, name))
+            cursor.execute(f"UPDATE profiles SET {currency_type} = {currency_type} - ? WHERE LOWER(name) = LOWER(?)", (amount, name))
             conn.commit()
             conn.close()
             return True, f"Removed {amount} {currency_type}"
@@ -576,11 +585,12 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile {name} not found!"
             
+            item_name = self.normalise(item_name)
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
             conn.close()
@@ -593,12 +603,12 @@ class Database:
             conn = self.get_connection()
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM inventory WHERE character_name = ? AND item_name = ?", (name, item_name))
+            cursor.execute("SELECT * FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?", (name, item_name))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"{item_name} not found in {name}'s inventory!"
             
-            cursor.execute("DELETE FROM inventory WHERE character_name = ? AND item_name = ? LIMIT 1", (name, item_name))
+            cursor.execute("DELETE FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT 1", (name, item_name))
             conn.commit()
             conn.close()
             return True, f"Removed {item_name} from inventory"
@@ -613,7 +623,7 @@ class Database:
         cursor.execute("""
             SELECT item_name, COUNT(*) as quantity
             FROM inventory
-            WHERE character_name = ?
+            WHERE LOWER(character_name) = LOWER(?)
             GROUP BY item_name
         """, (name,))
         inventory_counts = {row[0]: row[1] for row in cursor.fetchall()}
@@ -668,7 +678,7 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists and get both currencies
-            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             if not result:
                 conn.close()
@@ -677,7 +687,7 @@ class Database:
             bloodpoints, auric_cells = result[0], result[1]
             
             # Check if item exists in shop and get its currency type
-            cursor.execute("SELECT price, currency_type FROM shop_items WHERE item_name = ?", (item_name,))
+            cursor.execute("SELECT price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
             result = cursor.fetchone()
             if not result:
                 conn.close()
@@ -702,7 +712,7 @@ class Database:
                 return False, f"Insufficient {currency_name}! This item costs **{price:,}**, you have **{current_balance:,}**.", price, currency_type
             
             # Deduct currency and add item
-            cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (price, name))
+            cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE LOWER(name) = LOWER(?)", (price, name))
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             
             conn.commit()
@@ -718,7 +728,7 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists and get both currencies
-            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             if not result:
                 conn.close()
@@ -732,7 +742,7 @@ class Database:
             ac_total = 0
             
             for item_name in item_names:
-                cursor.execute("SELECT price, currency_type FROM shop_items WHERE item_name = ?", (item_name,))
+                cursor.execute("SELECT price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                 result = cursor.fetchone()
                 
                 if not result:
@@ -778,7 +788,7 @@ class Database:
                 return False, f"Insufficient {currency_name}! Total cost is **{total_price:,}**, you have **{current_balance:,}**.", total_price, currency_type, []
             
             # Deduct currency and add all items
-            cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (total_price, name))
+            cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE LOWER(name) = LOWER(?)", (total_price, name))
             
             for item in items_to_buy:
                 cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item['name']))
@@ -799,7 +809,7 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile **{name}** not found!", []
@@ -809,7 +819,7 @@ class Database:
             
             for item_name in item_names:
                 # Check if item exists in inventory
-                cursor.execute("SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT 1", 
+                cursor.execute("SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT 1", 
                              (name, item_name))
                 result = cursor.fetchone()
                 
@@ -842,7 +852,7 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile **{name}** not found!", [], 0
@@ -853,7 +863,7 @@ class Database:
             
             for item_name in item_names:
                 # Check if item exists in inventory
-                cursor.execute("SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?", 
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?", 
                              (name, item_name))
                 quantity = cursor.fetchone()[0]
                 
@@ -865,21 +875,21 @@ class Database:
                 sell_value = 0
                 
                 # Check hunting_items
-                cursor.execute("SELECT sell_value FROM hunting_items WHERE item_name = ?", (item_name,))
+                cursor.execute("SELECT sell_value FROM hunting_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                 result = cursor.fetchone()
                 if result:
                     sell_value = result[0] or 0
                 
                 # Check fishing_items if not found
                 if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM fishing_items WHERE item_name = ?", (item_name,))
+                    cursor.execute("SELECT sell_value FROM fishing_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                     result = cursor.fetchone()
                     if result:
                         sell_value = result[0] or 0
                 
                 # Check scavenging_items if not found
                 if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE item_name = ?", (item_name,))
+                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                     result = cursor.fetchone()
                     if result:
                         sell_value = result[0] or 0
@@ -920,7 +930,7 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile **{name}** not found!", [], 0
@@ -934,7 +944,7 @@ class Database:
             for item_name, quantity in item_quantities.items():
                 # Check how many the character has
                 cursor.execute(
-                    "SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?",
+                    "SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?",
                     (name, item_name)
                 )
                 count = cursor.fetchone()[0]
@@ -951,7 +961,7 @@ class Database:
                 sell_value = 0
                 
                 for table in ("hunting_items", "fishing_items", "scavenging_items"):
-                    cursor.execute(f"SELECT sell_value FROM {table} WHERE item_name = ?", (item_name,))
+                    cursor.execute(f"SELECT sell_value FROM {table} WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                     result = cursor.fetchone()
                     if result and result[0]:
                         sell_value = result[0]
@@ -964,13 +974,13 @@ class Database:
                 # Remove exactly `quantity` copies from inventory
                 cursor.execute(
                     "DELETE FROM inventory WHERE id IN "
-                    "(SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT ?)",
+                    "(SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT ?)",
                     (name, item_name, quantity)
                 )
                 
                 earned = sell_value * quantity
                 cursor.execute(
-                    "UPDATE profiles SET bloodpoints = bloodpoints + ? WHERE name = ?",
+                    "UPDATE profiles SET bloodpoints = bloodpoints + ? WHERE LOWER(name) = LOWER(?)",
                     (earned, name)
                 )
                 
@@ -1076,7 +1086,7 @@ class Database:
         # Add the rewards to the character's profile (only if performance > 0)
         if performance > 0:
             cursor.execute(
-                "UPDATE profiles SET bloodpoints = bloodpoints + ?, auric_cells = auric_cells + ? WHERE name = ?",
+                "UPDATE profiles SET bloodpoints = bloodpoints + ?, auric_cells = auric_cells + ? WHERE LOWER(name) = LOWER(?)",
                 (bloodpoints, auric_cells, name)
             )
             conn.commit()
@@ -1262,7 +1272,7 @@ class Database:
         xp_col = f"{minigame_type}_xp"
         
         # Get current level and XP
-        cursor.execute(f"SELECT {level_col}, {xp_col} FROM profiles WHERE name = ?", (name,))
+        cursor.execute(f"SELECT {level_col}, {xp_col} FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
         result = cursor.fetchone()
         
         if not result:
@@ -1286,7 +1296,7 @@ class Database:
             leveled_up = True
         
         # Update database
-        cursor.execute(f"UPDATE profiles SET {level_col} = ?, {xp_col} = ? WHERE name = ?", (new_level, new_xp, name))
+        cursor.execute(f"UPDATE profiles SET {level_col} = ?, {xp_col} = ? WHERE LOWER(name) = LOWER(?)", (new_level, new_xp, name))
         conn.commit()
         conn.close()
         
@@ -1305,7 +1315,7 @@ class Database:
         cursor = conn.cursor()
         
         level_col = f"{minigame_type}_level"
-        cursor.execute(f"SELECT {level_col} FROM profiles WHERE name = ?", (name,))
+        cursor.execute(f"SELECT {level_col} FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
         result = cursor.fetchone()
         conn.close()
         
@@ -1336,7 +1346,7 @@ class Database:
                 cursor = conn.cursor()
             
                 # Check if profile exists
-                cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE name = ?", (name,))
+                cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
                 result = cursor.fetchone()
                 if not result:
                     conn.close()
@@ -1350,7 +1360,7 @@ class Database:
                 item_prices = {}
             
                 for item_name, quantity in item_quantities.items():
-                    cursor.execute("SELECT price, currency_type FROM shop_items WHERE item_name = ?", (item_name,))
+                    cursor.execute("SELECT price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                     result = cursor.fetchone()
                     if not result:
                         conn.close()
@@ -1384,7 +1394,7 @@ class Database:
                     return False, f"Insufficient {currency_name}! Total cost is **{total_cost:,}**, you have **{current_balance:,}**.", total_cost, currency_type, {}
             
                 # Deduct currency
-                cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE name = ?", (total_cost, name))
+                cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE LOWER(name) = LOWER(?)", (total_cost, name))
             
                 # Add all items to inventory
                 items_purchased = {}
@@ -1415,7 +1425,7 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile {name} not found!", {}
@@ -1449,14 +1459,14 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile {name} not found!", {}
             
             # First pass: check if user has enough of each item
             for item_name, quantity in item_quantities.items():
-                cursor.execute("SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?", (name, item_name))
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?", (name, item_name))
                 count = cursor.fetchone()[0]
                 
                 if count < quantity:
@@ -1468,7 +1478,7 @@ class Database:
             for item_name, quantity in item_quantities.items():
                 # Delete exact number of items
                 cursor.execute(
-                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT ?)",
+                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT ?)",
                     (name, item_name, quantity)
                 )
                 items_removed[item_name] = quantity
@@ -1495,14 +1505,14 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists
-            cursor.execute("SELECT name FROM profiles WHERE name = ?", (name,))
+            cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
                 conn.close()
                 return False, f"Profile {name} not found!", {}
             
             # First pass: check if user has enough of each item
             for item_name, quantity in item_quantities.items():
-                cursor.execute("SELECT COUNT(*) FROM inventory WHERE character_name = ? AND item_name = ?", (name, item_name))
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ?", (name, item_name))
                 count = cursor.fetchone()[0]
                 
                 if count < quantity:
@@ -1514,7 +1524,7 @@ class Database:
             for item_name, quantity in item_quantities.items():
                 # Delete exact number of items
                 cursor.execute(
-                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE character_name = ? AND item_name = ? LIMIT ?)",
+                    f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND item_name = ? LIMIT ?)",
                     (name, item_name, quantity)
                 )
                 items_used[item_name] = quantity
