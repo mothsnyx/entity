@@ -155,6 +155,7 @@ def add_shop_item():
     
     if item_name and price:
         try:
+            item_name = db.normalise(item_name)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO shop_items (item_name, price, description, category, currency_type) VALUES (?, ?, ?, ?, ?)",
@@ -295,6 +296,8 @@ def add_hunting_item():
     
     if message:
         try:
+            if item_name:
+                item_name = db.normalise(item_name)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO hunting_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -373,6 +376,8 @@ def add_fishing_item():
     
     if message:
         try:
+            if item_name:
+                item_name = db.normalise(item_name)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO fishing_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -451,6 +456,8 @@ def add_scavenging_item():
     
     if message:
         try:
+            if item_name:
+                item_name = db.normalise(item_name)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO scavenging_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -1007,122 +1014,6 @@ def update_reaction_role_mappings(message_id):
 
     return redirect(url_for('reaction_roles'))
 
-@app.route('/reaction-roles/add-role/<message_id>', methods=['POST'])
-@login_required
-def add_reaction_role_to_message(message_id):
-    """Add a single emoji→role mapping to an existing reaction role message."""
-    emoji = request.form.get('emoji', '').strip()
-    role_id = request.form.get('role_id', '').strip()
-
-    if not emoji or not role_id:
-        flash('Emoji and Role ID are required!', 'danger')
-        return redirect(url_for('reaction_roles'))
-
-    try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        # Find the embed linked to this message_id for channel info
-        cursor.execute("SELECT channel_id FROM embeds WHERE message_id = ?", (message_id,))
-        embed_row = cursor.fetchone()
-
-        if not embed_row:
-            flash('No embed found linked to this reaction role message!', 'danger')
-            conn.close()
-            return redirect(url_for('reaction_roles'))
-
-        channel_id = embed_row[0]
-
-        # Check if this emoji mapping already exists for this message
-        cursor.execute("SELECT id FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji))
-        existing = cursor.fetchone()
-        if existing:
-            flash(f'Emoji {emoji} already mapped on this message!', 'warning')
-            conn.close()
-            return redirect(url_for('reaction_roles'))
-
-        # Insert new mapping
-        cursor.execute("INSERT INTO reaction_roles (message_id, emoji, role_id) VALUES (?, ?, ?)",
-                       (message_id, emoji, role_id))
-        conn.commit()
-
-        # Fetch all current roles to re-sync reactions on Discord
-        cursor.execute("SELECT emoji, role_id FROM reaction_roles WHERE message_id = ?", (message_id,))
-        all_roles = [{'emoji': r[0], 'role_id': r[1]} for r in cursor.fetchall()]
-        conn.close()
-
-        # Push updated reactions to Discord via bot API
-        import requests as req
-        bot_url = "http://localhost:5002/update_reactions"
-        payload = {
-            'channel_id': channel_id,
-            'message_id': message_id,
-            'reaction_roles': all_roles
-        }
-        response = req.post(bot_url, json=payload, timeout=10)
-
-        if response.status_code == 200:
-            flash(f'Role added! {emoji} now grants role {role_id} on that message.', 'success')
-        else:
-            flash(f'Role saved in DB but failed to sync reaction on Discord: {response.text}', 'warning')
-
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-
-    return redirect(url_for('reaction_roles'))
-
-@app.route('/reaction-roles/remove-role/<message_id>', methods=['POST'])
-@login_required
-def remove_reaction_role_from_message(message_id):
-    """Remove a single emoji→role mapping from an existing reaction role message."""
-    emoji = request.form.get('emoji', '').strip()
-
-    if not emoji:
-        flash('Emoji is required!', 'danger')
-        return redirect(url_for('reaction_roles'))
-
-    try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT channel_id FROM embeds WHERE message_id = ?", (message_id,))
-        embed_row = cursor.fetchone()
-
-        if not embed_row:
-            flash('No embed found linked to this reaction role message!', 'danger')
-            conn.close()
-            return redirect(url_for('reaction_roles'))
-
-        channel_id = embed_row[0]
-
-        # Delete the specific mapping
-        cursor.execute("DELETE FROM reaction_roles WHERE message_id = ? AND emoji = ?", (message_id, emoji))
-        conn.commit()
-
-        # Fetch remaining roles to re-sync
-        cursor.execute("SELECT emoji, role_id FROM reaction_roles WHERE message_id = ?", (message_id,))
-        remaining_roles = [{'emoji': r[0], 'role_id': r[1]} for r in cursor.fetchall()]
-        conn.close()
-
-        import requests as req
-        bot_url = "http://localhost:5002/update_reactions"
-        payload = {
-            'channel_id': channel_id,
-            'message_id': message_id,
-            'reaction_roles': remaining_roles
-        }
-        response = req.post(bot_url, json=payload, timeout=10)
-
-        if response.status_code == 200:
-            flash(f'Role {emoji} removed from message.', 'success')
-        else:
-            flash(f'Role removed from DB but failed to sync reactions in Discord: {response.text}', 'warning')
-
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-
-    return redirect(url_for('reaction_roles'))
-
 @app.route('/reaction-roles/delete/<message_id>', methods=['POST'])
 @login_required
 def delete_reaction_role(message_id):
@@ -1135,52 +1026,6 @@ def delete_reaction_role(message_id):
         flash('Reaction roles deleted from message!', 'success')
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
-    return redirect(url_for('reaction_roles'))
-
-@app.route('/reaction-roles/link-existing', methods=['POST'])
-@login_required
-def link_existing_reaction_role():
-    """
-    Link a pre-existing Discord message to an embed row by writing the
-    message_id and channel_id directly into the embeds table.
-    No new message is sent and no existing reaction roles are touched.
-    """
-    embed_id   = request.form.get('embed_id', '').strip()
-    message_id = request.form.get('message_id', '').strip()
-    channel_id = request.form.get('channel_id', '').strip()
-
-    if not embed_id or not message_id or not channel_id:
-        flash('All three fields (embed, message ID, channel ID) are required!', 'danger')
-        return redirect(url_for('reaction_roles'))
-
-    try:
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        # Make sure the embed exists
-        cursor.execute("SELECT id, name FROM embeds WHERE id = ?", (embed_id,))
-        row = cursor.fetchone()
-        if not row:
-            flash('Embed not found!', 'danger')
-            conn.close()
-            return redirect(url_for('reaction_roles'))
-
-        # Stamp the existing Discord message_id + channel_id onto the embed row
-        cursor.execute(
-            "UPDATE embeds SET message_id = ?, channel_id = ? WHERE id = ?",
-            (message_id, channel_id, embed_id)
-        )
-        conn.commit()
-        conn.close()
-
-        flash(
-            f'Embed "{row[1]}" is now linked to message {message_id}. '
-            'It will appear in the Reaction Roles panel for editing.',
-            'success'
-        )
-    except Exception as e:
-        flash(f'Error: {str(e)}', 'danger')
-
     return redirect(url_for('reaction_roles'))
 
 # ==================== IP WHITELIST (Optional) ====================
