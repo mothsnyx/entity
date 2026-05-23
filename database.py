@@ -687,14 +687,15 @@ class Database:
             bloodpoints, auric_cells = result[0], result[1]
             
             # Check if item exists in shop and get its currency type
-            cursor.execute("SELECT price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+            cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
             result = cursor.fetchone()
             if not result:
                 conn.close()
                 return False, f"Item {item_name} not found in shop!", 0, None
             
-            price = result[0]
-            currency_type = result[1] if result[1] else 'bloodpoints'  # Default to bloodpoints if NULL
+            item_name = result[0]  # Use the exact stored name
+            price = result[1]
+            currency_type = result[2] if result[2] else 'bloodpoints'  # Default to bloodpoints if NULL
             
             # Check currency and balance based on type
             if currency_type == 'auric_cells':
@@ -742,18 +743,19 @@ class Database:
             ac_total = 0
             
             for item_name in item_names:
-                cursor.execute("SELECT price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                 result = cursor.fetchone()
                 
                 if not result:
                     conn.close()
                     return False, f"Item **{item_name}** not found in shop!", 0, None, []
                 
-                price = result[0]
-                currency_type = result[1] if result[1] else 'bloodpoints'
+                actual_name = result[0]  # Use the exact stored name
+                price = result[1]
+                currency_type = result[2] if result[2] else 'bloodpoints'
                 
                 items_to_buy.append({
-                    'name': item_name,
+                    'name': actual_name,
                     'price': price,
                     'currency_type': currency_type
                 })
@@ -1359,15 +1361,17 @@ class Database:
                 currency_type = None
                 item_prices = {}
             
+                actual_quantities = {}  # Remapped with exact shop names
                 for item_name, quantity in item_quantities.items():
-                    cursor.execute("SELECT price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                    cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                     result = cursor.fetchone()
                     if not result:
                         conn.close()
                         return False, f"Item **{item_name}** not found in shop!", 0, None, {}
                 
-                    price = result[0]
-                    item_currency = result[1] if result[1] else 'bloodpoints'
+                    actual_name = result[0]  # Use the exact stored name
+                    price = result[1]
+                    item_currency = result[2] if result[2] else 'bloodpoints'
                 
                     # Check currency consistency
                     if currency_type is None:
@@ -1376,8 +1380,11 @@ class Database:
                         conn.close()
                         return False, f"Cannot mix currencies! All items must use the same currency (Bloodpoints or Auric Cells).", 0, None, {}
                 
-                    item_prices[item_name] = price
+                    item_prices[actual_name] = price
+                    actual_quantities[actual_name] = quantity
                     total_cost += price * quantity
+                
+                item_quantities = actual_quantities  # Use exact names for INSERT
             
                 # Check if enough currency
                 if currency_type == 'auric_cells':
