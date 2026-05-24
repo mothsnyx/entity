@@ -653,6 +653,7 @@ class Database:
             'Miscellaneous': [],
             'Cosmetics': [],
             'Pets': [],
+            'Shelter': [],
             'NSFW': [],
         }
         
