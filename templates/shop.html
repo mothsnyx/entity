@@ -33,6 +33,7 @@
                         <option value="Miscellaneous" selected>Miscellaneous</option>
                         <option value="Cosmetics">Cosmetics</option>
                         <option value="Pets">Pets</option>
+                        <option value="Shelter">Shelter</option>
                         <option value="NSFW">NSFW</option>
                     </select>
                 </div>
@@ -158,6 +159,7 @@
                                                 <option value="Miscellaneous" {% if item[4] == 'Miscellaneous' or not item[4] %}selected{% endif %}>Miscellaneous</option>
                                                 <option value="Cosmetics" {% if item[4] == 'Cosmetics' %}selected{% endif %}>Cosmetics</option>
                                                 <option value="Pets" {% if item[4] == 'Pets' %}selected{% endif %}>Pets</option>
+                                                <option value="" {% if item[4] == '' %}selected{% endif %}>Shelter</option>
                                                 <option value="NSFW" {% if item[4] == 'NSFW' %}selected{% endif %}>NSFW</option>
                                             </select>
                                         </div>
