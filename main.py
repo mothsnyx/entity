@@ -334,6 +334,73 @@ async def add_currency(interaction: discord.Interaction, name: str, currency: ap
         )
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command(name="trialreward", description="Give trial rewards (Bloodpoints & Auric Cells) based on escapes or deaths")
+@app_commands.describe(
+    name="Character name",
+    count="Number of escapes or deaths (1–8)"
+)
+@app_commands.choices(count=[
+    app_commands.Choice(name="1", value=1),
+    app_commands.Choice(name="2", value=2),
+    app_commands.Choice(name="3", value=3),
+    app_commands.Choice(name="4", value=4),
+    app_commands.Choice(name="5", value=5),
+    app_commands.Choice(name="6", value=6),
+    app_commands.Choice(name="7", value=7),
+    app_commands.Choice(name="8", value=8),
+])
+async def trial_reward(interaction: discord.Interaction, name: str, count: app_commands.Choice[int]):
+    # Check ownership
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    bp_reward = count.value * 5000
+    ac_reward = count.value * 1
+
+    success_bp, msg_bp = db.add_currency(name, "bloodpoints", bp_reward)
+    if not success_bp:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=msg_bp,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    success_ac, msg_ac = db.add_currency(name, "auric_cells", ac_reward)
+    if not success_ac:
+        # Rollback bloodpoints
+        db.remove_currency(name, "bloodpoints", bp_reward)
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=msg_ac,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="<a:check:1467157700831088773> ┃ Trial Rewards Granted!",
+        description=f"**{name}** received their trial rewards!",
+        color=discord.Color.from_rgb(0, 0, 0)
+    )
+    embed.add_field(
+        name="Rewards",
+        value=(
+            f"<:bp:1467159740797681716> **{bp_reward:,}** Bloodpoints\n"
+            f"<:ac:1467159725870154021> **{ac_reward}** Auric Cell{'s' if ac_reward > 1 else ''}"
+        ),
+        inline=False
+    )
+    await interaction.response.send_message(embed=embed)
+
 @bot.tree.command(name="removecurrency", description="Remove Bloodpoints or Auric Cells from a character")
 @app_commands.describe(
     name="Character name",
