@@ -639,7 +639,7 @@ class Database:
                        'Miscellaneous'
                    ) as category
             FROM inventory i
-            WHERE i.character_name = ?
+            WHERE LOWER(i.character_name) = LOWER(?)
             ORDER BY category, i.item_name
         """, (name,))
         results = cursor.fetchall()
