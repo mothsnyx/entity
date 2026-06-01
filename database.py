@@ -1344,49 +1344,46 @@ class Database:
             Returns:
                 (success, message, total_price, currency_type, items_purchased)
             """
+            conn = self.get_connection()
             try:
-                conn = self.get_connection()
                 cursor = conn.cursor()
-            
-                # Check if profile exists
-                cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
+
+                # Check if profile exists — fetch exact stored name too
+                cursor.execute("SELECT bloodpoints, auric_cells, name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
                 result = cursor.fetchone()
                 if not result:
-                    conn.close()
                     return False, f"Profile {name} not found!", 0, None, {}
-            
-                bloodpoints, auric_cells = result[0], result[1]
-            
+
+                bloodpoints, auric_cells, name = result[0], result[1], result[2]
+
                 # First pass: validate all items exist and calculate total cost
                 total_cost = 0
                 currency_type = None
                 item_prices = {}
-            
+
                 actual_quantities = {}  # Remapped with exact shop names
                 for item_name, quantity in item_quantities.items():
                     cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
                     result = cursor.fetchone()
                     if not result:
-                        conn.close()
                         return False, f"Item **{item_name}** not found in shop!", 0, None, {}
-                
+
                     actual_name = result[0]  # Use the exact stored name
                     price = result[1]
                     item_currency = result[2] if result[2] else 'bloodpoints'
-                
+
                     # Check currency consistency
                     if currency_type is None:
                         currency_type = item_currency
                     elif currency_type != item_currency:
-                        conn.close()
                         return False, f"Cannot mix currencies! All items must use the same currency (Bloodpoints or Auric Cells).", 0, None, {}
-                
+
                     item_prices[actual_name] = price
                     actual_quantities[actual_name] = quantity
                     total_cost += price * quantity
-                
+
                 item_quantities = actual_quantities  # Use exact names for INSERT
-            
+
                 # Check if enough currency
                 if currency_type == 'auric_cells':
                     current_balance = auric_cells
@@ -1396,27 +1393,28 @@ class Database:
                     current_balance = bloodpoints
                     currency_name = "Bloodpoints"
                     currency_column = "bloodpoints"
-            
+
                 if current_balance < total_cost:
-                    conn.close()
                     return False, f"Insufficient {currency_name}! Total cost is **{total_cost:,}**, you have **{current_balance:,}**.", total_cost, currency_type, {}
-            
+
                 # Deduct currency
                 cursor.execute(f"UPDATE profiles SET {currency_column} = {currency_column} - ? WHERE LOWER(name) = LOWER(?)", (total_cost, name))
-            
+
                 # Add all items to inventory
                 items_purchased = {}
                 for item_name, quantity in item_quantities.items():
                     for _ in range(quantity):
                         cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
                     items_purchased[item_name] = quantity
-            
+
                 conn.commit()
-                conn.close()
                 return True, "Purchase successful", total_cost, currency_type, items_purchased
-        
+
             except Exception as e:
+                conn.rollback()
                 return False, f"Error: {str(e)}", 0, None, {}
+            finally:
+                conn.close()
 
 
     def add_items_with_quantity(self, name, item_quantities):
