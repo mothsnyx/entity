@@ -673,6 +673,8 @@ async def buy_item(interaction: discord.Interaction, name: str, items: str):
       - "Medkit:3, Flashlight:2" = 3 Medkits and 2 Flashlights
       - "Medkit, Flashlight" = 1 of each (backward compatible)
     """
+    await interaction.response.defer()
+
     # Parse items with quantities
     item_quantities = {}
     item_list = [item.strip() for item in items.split(',')]
@@ -690,7 +692,7 @@ async def buy_item(interaction: discord.Interaction, name: str, items: str):
                         description=f"Quantity must be at least 1 for **{item_name}**!",
                         color=discord.Color.from_rgb(116, 7, 14)
                     )
-                    await interaction.response.send_message(embed=embed)
+                    await interaction.followup.send(embed=embed)
                     return
                 item_quantities[item_name] = quantity
             except ValueError:
@@ -699,7 +701,7 @@ async def buy_item(interaction: discord.Interaction, name: str, items: str):
                     description=f"Invalid quantity for **{item_name}**! Use format: Item:Number (e.g., Medkit:3)",
                     color=discord.Color.from_rgb(116, 7, 14)
                 )
-                await interaction.response.send_message(embed=embed)
+                await interaction.followup.send(embed=embed)
                 return
         else:
             # No quantity specified, default to 1
@@ -753,7 +755,7 @@ async def buy_item(interaction: discord.Interaction, name: str, items: str):
             color=discord.Color.from_rgb(116, 7, 14)
         )
     
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 # Inventory Management
 @bot.tree.command(name="additem", description="Add items to a character's inventory")
