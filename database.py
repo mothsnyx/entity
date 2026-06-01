@@ -679,13 +679,13 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists and get both currencies
-            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
+            cursor.execute("SELECT bloodpoints, auric_cells, name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             if not result:
                 conn.close()
                 return False, f"Profile {name} not found!", 0, None
             
-            bloodpoints, auric_cells = result[0], result[1]
+            bloodpoints, auric_cells, name = result[0], result[1], result[2]
             
             # Check if item exists in shop and get its currency type
             cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
@@ -730,13 +730,13 @@ class Database:
             cursor = conn.cursor()
             
             # Check if profile exists and get both currencies
-            cursor.execute("SELECT bloodpoints, auric_cells FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
+            cursor.execute("SELECT bloodpoints, auric_cells, name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             if not result:
                 conn.close()
                 return False, f"Profile {name} not found!", 0, None, []
             
-            bloodpoints, auric_cells = result[0], result[1]
+            bloodpoints, auric_cells, name = result[0], result[1], result[2]
             
             # Get all items and calculate total per currency type
             items_to_buy = []
