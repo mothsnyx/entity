@@ -31,10 +31,11 @@ class Database:
     
     def init_database(self):
         conn = self.get_connection()
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
         
-        # Profiles table
-        cursor.execute('''
+            # Profiles table
+            cursor.execute('''
             CREATE TABLE IF NOT EXISTS profiles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
@@ -221,14 +222,16 @@ class Database:
             cursor.execute("ALTER TABLE scavenging_items ADD COLUMN fail_message TEXT")
             print("✓ Added fail_message column to scavenging_items table")
         
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
     
     def populate_initial_data(self):
         conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Check if data already exists
+        try:
+            cursor = conn.cursor()
+            
+            # Check if data already exists
         cursor.execute("SELECT COUNT(*) FROM shop_items")
         if cursor.fetchone()[0] == 0:
             # Add shop items
@@ -361,23 +364,25 @@ class Database:
             ]
             cursor.executemany("INSERT INTO scavenging_items (item_name, message) VALUES (?, ?)", scavenging_items)
         
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
     
     # Profile Methods
     def create_profile(self, name, role, user_id):
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO profiles (name, role, user_id) VALUES (?, ?, ?)", 
                          (name, role, str(user_id)))
             conn.commit()
-            conn.close()
             return True, f"Profile created for {name}"
         except sqlite3.IntegrityError:
             return False, f"Profile {name} already exists!"
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def check_ownership(self, name, user_id):
         """Check if user owns the character. Returns (is_owner, message)"""
@@ -387,10 +392,12 @@ class Database:
                 return True, "Admin access"
             
             conn = self.get_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT user_id FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
-            result = cursor.fetchone()
-            conn.close()
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT user_id FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
+                result = cursor.fetchone()
+            finally:
+                conn.close()
             
             if not result:
                 return False, f"Character **{name}** not found!"
@@ -412,113 +419,114 @@ class Database:
     
     def claim_character(self, name, user_id):
         """Claim an unowned (legacy) character"""
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT user_id FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             
             if not result:
-                conn.close()
                 return False, f"Character **{name}** not found!"
             
             owner_id = result[0]
             
             if owner_id is not None:
-                conn.close()
                 return False, f"**{name}** is already owned by someone!"
             
             # Claim it
             cursor.execute("UPDATE profiles SET user_id = ? WHERE LOWER(name) = LOWER(?)", (str(user_id), name))
             conn.commit()
-            conn.close()
             return True, f"✅ You now own **{name}**!"
             
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def assign_owner(self, character_name, new_owner_id):
         """Manually assign ownership of a character (admin only)"""
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (character_name,))
             if not cursor.fetchone():
-                conn.close()
                 return False, f"Character **{character_name}** not found!"
             
             cursor.execute("UPDATE profiles SET user_id = ? WHERE LOWER(name) = LOWER(?)", 
                           (str(new_owner_id), character_name))
             conn.commit()
-            conn.close()
             return True, f"✅ Assigned **{character_name}** to user ID {new_owner_id}"
             
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def edit_profile_name(self, old_name, new_name):
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (old_name,))
             if not cursor.fetchone():
-                conn.close()
                 return False, f"Profile {old_name} not found!"
             
             cursor.execute("UPDATE profiles SET name = ? WHERE LOWER(name) = LOWER(?)", (new_name, old_name))
             cursor.execute("UPDATE inventory SET character_name = ? WHERE LOWER(character_name) = LOWER(?)", (new_name, old_name))
             conn.commit()
-            conn.close()
             return True, f"Profile renamed to {new_name}"
         except sqlite3.IntegrityError:
             return False, f"Profile {new_name} already exists!"
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def edit_profile_role(self, name, new_role):
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
-                conn.close()
                 return False, f"Profile {name} not found!"
             
             cursor.execute("UPDATE profiles SET role = ? WHERE LOWER(name) = LOWER(?)", (new_role, name))
             conn.commit()
-            conn.close()
             return True, f"Role updated to {new_role}"
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def delete_profile(self, name):
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
-                conn.close()
                 return False, f"Profile {name} not found!"
             
             cursor.execute("DELETE FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             cursor.execute("DELETE FROM inventory WHERE LOWER(character_name) = LOWER(?)", (name,))
             conn.commit()
-            conn.close()
             return True, f"Profile {name} deleted"
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def get_profile(self, name):
         conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
-        result = cursor.fetchone()
-        conn.close()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
+            result = cursor.fetchone()
+        finally:
+            conn.close()
         
         if result:
             return {
@@ -539,111 +547,112 @@ class Database:
     
     # Currency Methods
     def add_currency(self, name, currency_type, amount):
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
-                conn.close()
                 return False, f"Profile {name} not found!"
             
             cursor.execute(f"UPDATE profiles SET {currency_type} = {currency_type} + ? WHERE LOWER(name) = LOWER(?)", (amount, name))
             conn.commit()
-            conn.close()
             return True, f"Added {amount} {currency_type}"
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def remove_currency(self, name, currency_type, amount):
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute(f"SELECT {currency_type} FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             result = cursor.fetchone()
             
             if not result:
-                conn.close()
                 return False, f"Profile {name} not found!"
             
             current_amount = result[0]
             if current_amount < amount:
-                conn.close()
                 return False, f"Insufficient {currency_type}! Current: {current_amount}"
             
             cursor.execute(f"UPDATE profiles SET {currency_type} = {currency_type} - ? WHERE LOWER(name) = LOWER(?)", (amount, name))
             conn.commit()
-            conn.close()
             return True, f"Removed {amount} {currency_type}"
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     # Inventory Methods
     def add_item(self, name, item_name):
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
             if not cursor.fetchone():
-                conn.close()
                 return False, f"Profile {name} not found!"
             
             item_name = self.normalise(item_name)
             cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
             conn.commit()
-            conn.close()
             return True, f"Added {item_name} to inventory"
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def remove_item(self, name, item_name):
+        conn = self.get_connection()
         try:
-            conn = self.get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT * FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)", (name, item_name))
             if not cursor.fetchone():
-                conn.close()
                 return False, f"{item_name} not found in {name}'s inventory!"
             
             cursor.execute("DELETE FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT 1", (name, item_name))
             conn.commit()
-            conn.close()
             return True, f"Removed {item_name} from inventory"
         except Exception as e:
             return False, f"Error: {str(e)}"
+        finally:
+            conn.close()
     
     def get_inventory(self, name):
         conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # First, get inventory counts (accurate count from inventory table only)
-        cursor.execute("""
-            SELECT item_name, COUNT(*) as quantity
-            FROM inventory
-            WHERE LOWER(character_name) = LOWER(?)
-            GROUP BY item_name
-        """, (name,))
-        inventory_counts = {row[0]: row[1] for row in cursor.fetchall()}
-        
-        # Then get categories for each item (using DISTINCT to avoid duplicates from multiple scenarios)
-        cursor.execute("""
-            SELECT DISTINCT i.item_name,
-                   COALESCE(
-                       (SELECT category FROM shop_items WHERE item_name = i.item_name LIMIT 1),
-                       (SELECT category FROM hunting_items WHERE item_name = i.item_name LIMIT 1),
-                       (SELECT category FROM fishing_items WHERE item_name = i.item_name LIMIT 1),
-                       (SELECT category FROM scavenging_items WHERE item_name = i.item_name LIMIT 1),
-                       'Miscellaneous'
-                   ) as category
-            FROM inventory i
-            WHERE LOWER(i.character_name) = LOWER(?)
-            ORDER BY category, i.item_name
-        """, (name,))
-        results = cursor.fetchall()
-        conn.close()
+        try:
+            cursor = conn.cursor()
+            
+            # First, get inventory counts (accurate count from inventory table only)
+            cursor.execute("""
+                SELECT item_name, COUNT(*) as quantity
+                FROM inventory
+                WHERE LOWER(character_name) = LOWER(?)
+                GROUP BY item_name
+            """, (name,))
+            inventory_counts = {row[0]: row[1] for row in cursor.fetchall()}
+            
+            # Then get categories for each item (using DISTINCT to avoid duplicates from multiple scenarios)
+            cursor.execute("""
+                SELECT DISTINCT i.item_name,
+                       COALESCE(
+                           (SELECT category FROM shop_items WHERE item_name = i.item_name LIMIT 1),
+                           (SELECT category FROM hunting_items WHERE item_name = i.item_name LIMIT 1),
+                           (SELECT category FROM fishing_items WHERE item_name = i.item_name LIMIT 1),
+                           (SELECT category FROM scavenging_items WHERE item_name = i.item_name LIMIT 1),
+                           'Miscellaneous'
+                       ) as category
+                FROM inventory i
+                WHERE LOWER(i.character_name) = LOWER(?)
+                ORDER BY category, i.item_name
+            """, (name,))
+            results = cursor.fetchall()
+        finally:
+            conn.close()
         
         # Categorize items
         categorized = {
