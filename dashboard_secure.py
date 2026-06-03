@@ -1051,4 +1051,7 @@ if __name__ == '__main__':
     print(f"⚠️  CHANGE PASSWORD in line 18!")
     print("="*50)
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # debug=False in production: debug mode starts the auto-reloader, which
+    # runs a SECOND copy of this process — a second writer to the SQLite file
+    # that can cause 'database is locked' errors.
+    app.run(debug=False, host='0.0.0.0', port=5000)
