@@ -2566,14 +2566,23 @@ async def sell_items(interaction: discord.Interaction, name: str, items: str):
 
 @tasks.loop(hours=24)
 async def daily_vacuum():
-    """Reclaim free space from deleted rows once per day"""
+    """Keep the WAL file from growing.
+
+    A full VACUUM takes an EXCLUSIVE lock and rewrites the whole database,
+    which on a Raspberry Pi can exceed the 15s busy_timeout and cause
+    'database is locked' errors for the bot AND the dashboard. A WAL
+    checkpoint achieves the routine maintenance (truncating the WAL file)
+    without blocking other writers.
+    """
     try:
         conn = db.get_connection()
-        conn.execute("VACUUM")
-        conn.close()
-        print("[DB] Daily VACUUM complete")
+        try:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        finally:
+            conn.close()
+        print("[DB] Daily WAL checkpoint complete")
     except Exception as e:
-        print(f"[DB] VACUUM error: {e}")
+        print(f"[DB] checkpoint error: {e}")
 
 def run_api():
     api.run(host='0.0.0.0', port=5002, debug=False)
