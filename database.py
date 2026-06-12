@@ -91,35 +91,9 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 character_name TEXT NOT NULL,
                 item_name TEXT NOT NULL,
-                FOREIGN KEY (character_name) REFERENCES profiles(name) ON DELETE CASCADE ON UPDATE CASCADE
+                FOREIGN KEY (character_name) REFERENCES profiles(name) ON DELETE CASCADE
             )
             ''')
-
-            # Migration: recreate inventory table if it lacks ON UPDATE CASCADE.
-            # SQLite cannot ALTER a foreign key, so we do the standard
-            # rename-create-copy-drop dance inside a transaction.
-            cursor.execute("PRAGMA foreign_key_list(inventory)")
-            fk_rows = cursor.fetchall()
-            needs_migration = not any(
-                row[2] == 'profiles' and row[6] == 'CASCADE'  # row[6] is on_update
-                for row in fk_rows
-            )
-            if needs_migration:
-                print("↻ Migrating inventory table to add ON UPDATE CASCADE...")
-                cursor.execute("PRAGMA foreign_keys=OFF")
-                cursor.execute("ALTER TABLE inventory RENAME TO inventory_old")
-                cursor.execute('''
-                CREATE TABLE inventory (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    character_name TEXT NOT NULL,
-                    item_name TEXT NOT NULL,
-                    FOREIGN KEY (character_name) REFERENCES profiles(name) ON DELETE CASCADE ON UPDATE CASCADE
-                )
-                ''')
-                cursor.execute("INSERT INTO inventory SELECT * FROM inventory_old")
-                cursor.execute("DROP TABLE inventory_old")
-                cursor.execute("PRAGMA foreign_keys=ON")
-                print("✓ inventory table migrated successfully")
 
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS shop_items (
@@ -409,18 +383,31 @@ class Database:
         try:
             cursor = conn.cursor()
 
-            new_name = self.normalise(new_name)  # Normalise before uniqueness check
+            new_name = self.normalise(new_name)
 
             cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (old_name,))
             if not cursor.fetchone():
                 return False, f"Profile {old_name} not found!"
-            
+
+            # Check explicitly for a duplicate before touching anything.
+            cursor.execute(
+                "SELECT 1 FROM profiles WHERE LOWER(name) = LOWER(?) AND LOWER(name) != LOWER(?)",
+                (new_name, old_name)
+            )
+            if cursor.fetchone():
+                return False, f"Profile {new_name} already exists!"
+
+            # Disable FK enforcement for the duration of the rename so SQLite
+            # doesn't raise an IntegrityError because inventory rows still
+            # reference the old name while we haven't updated them yet.
+            cursor.execute("PRAGMA foreign_keys=OFF")
             cursor.execute("UPDATE profiles SET name = ? WHERE LOWER(name) = LOWER(?)", (new_name, old_name))
             cursor.execute("UPDATE inventory SET character_name = ? WHERE LOWER(character_name) = LOWER(?)", (new_name, old_name))
+            cursor.execute("PRAGMA foreign_keys=ON")
             conn.commit()
             return True, f"Profile renamed to {new_name}"
-        except sqlite3.IntegrityError:
-            return False, f"Profile {new_name} already exists!"
+        except sqlite3.IntegrityError as e:
+            return False, f"Error: {str(e)}"
         except Exception as e:
             return False, f"Error: {str(e)}"
         finally:
