@@ -91,9 +91,35 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 character_name TEXT NOT NULL,
                 item_name TEXT NOT NULL,
-                FOREIGN KEY (character_name) REFERENCES profiles(name) ON DELETE CASCADE
+                FOREIGN KEY (character_name) REFERENCES profiles(name) ON DELETE CASCADE ON UPDATE CASCADE
             )
             ''')
+
+            # Migration: recreate inventory table if it lacks ON UPDATE CASCADE.
+            # SQLite cannot ALTER a foreign key, so we do the standard
+            # rename-create-copy-drop dance inside a transaction.
+            cursor.execute("PRAGMA foreign_key_list(inventory)")
+            fk_rows = cursor.fetchall()
+            needs_migration = not any(
+                row[2] == 'profiles' and row[6] == 'CASCADE'  # row[6] is on_update
+                for row in fk_rows
+            )
+            if needs_migration:
+                print("↻ Migrating inventory table to add ON UPDATE CASCADE...")
+                cursor.execute("PRAGMA foreign_keys=OFF")
+                cursor.execute("ALTER TABLE inventory RENAME TO inventory_old")
+                cursor.execute('''
+                CREATE TABLE inventory (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    character_name TEXT NOT NULL,
+                    item_name TEXT NOT NULL,
+                    FOREIGN KEY (character_name) REFERENCES profiles(name) ON DELETE CASCADE ON UPDATE CASCADE
+                )
+                ''')
+                cursor.execute("INSERT INTO inventory SELECT * FROM inventory_old")
+                cursor.execute("DROP TABLE inventory_old")
+                cursor.execute("PRAGMA foreign_keys=ON")
+                print("✓ inventory table migrated successfully")
 
             cursor.execute('''
             CREATE TABLE IF NOT EXISTS shop_items (
@@ -382,9 +408,9 @@ class Database:
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
-            
+
             new_name = self.normalise(new_name)  # Normalise before uniqueness check
-            
+
             cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (old_name,))
             if not cursor.fetchone():
                 return False, f"Profile {old_name} not found!"
