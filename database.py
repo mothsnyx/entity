@@ -383,6 +383,8 @@ class Database:
         try:
             cursor = conn.cursor()
             
+            new_name = self.normalise(new_name)  # Normalise before uniqueness check
+            
             cursor.execute("SELECT * FROM profiles WHERE LOWER(name) = LOWER(?)", (old_name,))
             if not cursor.fetchone():
                 return False, f"Profile {old_name} not found!"
