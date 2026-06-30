@@ -6,7 +6,7 @@
 <div class="text-center mb-5">
     <i class="bi bi-calendar-check dashboard-icon"></i>
     <h1 class="display-4 mt-3">Reservations</h1>
-    <p class="lead">Reserve channels for roleplay sessions</p>
+    <p class="lead">Member's Character Reservations</p>
 </div>
 
 <div class="card">
@@ -17,8 +17,8 @@
         <form method="POST" action="{{ url_for('create_reservation_dashboard') }}">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label">Guild ID</label>
-                    <input type="text" name="guild_id" class="form-control" placeholder="Guild ID" required>
+                    <label class="form-label">Server ID</label>
+                    <input type="text" name="guild_id" class="form-control" placeholder="Server ID" required>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Channel ID</label>
