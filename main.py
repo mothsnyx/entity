@@ -2222,8 +2222,8 @@ def api_send_reservation():
         channel_id = int(data['channel_id'])
         user_id = int(data['user_id'])
         reservation_id = data['reservation_id']
-        title = data.get('title') or "📅 Reservation Active"
-        description = data.get('description') or f"<@{user_id}> has an active reservation."
+        title = data.get('title') or "<:IconAddon_bloodiedWater:1468241349856722944> ┃ Reservation Active"
+        description = data.get('description') or f"Successfully reserved!"
         color = data.get('color', '000000')
         expires_at = int(data['expires_at'])
         image_url = data.get('image_url')
@@ -2239,7 +2239,6 @@ def api_send_reservation():
             embed.set_image(url=image_url)
         if thumbnail_url:
             embed.set_thumbnail(url=thumbnail_url)
-        embed.set_footer(text=f"Reservation #{reservation_id}")
 
         async def send():
             channel = bot.get_channel(channel_id)
