@@ -526,7 +526,7 @@ def reservations():
 @app.route('/reservations/create', methods=['POST'])
 @login_required
 def create_reservation_dashboard():
-    guild_id = request.form.get('guild_id')
+    guild_id = '1308318260944568340'
     channel_id = request.form.get('channel_id')
     user_id = request.form.get('user_id')
     hours = request.form.get('hours')
@@ -536,7 +536,7 @@ def create_reservation_dashboard():
     image_url = request.form.get('image_url') or None
     thumbnail_url = request.form.get('thumbnail_url') or None
 
-    if not (guild_id and channel_id and user_id and hours):
+    if not (channel_id and user_id and hours):
         flash('Channel ID, User ID and duration are required!', 'danger')
         return redirect(url_for('reservations'))
 
