@@ -1817,6 +1817,7 @@ async def on_ready():
         print(f"Failed to sync commands: {e}")
     rotate_status.start()
     daily_vacuum.start()
+    check_reservations.start()
 
 @bot.event
 async def on_member_join(member):
@@ -1932,8 +1933,34 @@ async def rotate_status():
         activity=next(_status_cycle)
     )
 
-@bot.event
-async def on_message(message):
+@tasks.loop(minutes=1)
+async def check_reservations():
+    due = db.get_due_reservations()
+    for row in due:
+        res_id, channel_id, user_id, title = row[0], row[2], row[4], row[5]
+        try:
+            channel = bot.get_channel(int(channel_id))
+            if not channel:
+                for guild in bot.guilds:
+                    thread = guild.get_thread(int(channel_id))
+                    if thread:
+                        channel = thread
+                        break
+
+            if channel:
+                embed = discord.Embed(
+                    title="⏰ ┃ Reservation Expired",
+                    description=f"Your reservation **{title or ''}** has run out.",
+                    color=discord.Color.from_rgb(116, 7, 14)
+                )
+                embed.set_footer(text=f"Reservation #{res_id}")
+                await channel.send(content=f"<@{user_id}>", embed=embed)
+        except Exception as e:
+            print(f"Failed to send reservation expiry notice for #{res_id}: {e}")
+        finally:
+            db.mark_reservation_notified(res_id)
+
+
     """Automatically detect and roll dice in brackets [1d20]"""
     # Ignore messages from the bot itself
     if message.author == bot.user:
@@ -2308,6 +2335,57 @@ def api_update_reactions():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@api.route('/send_reservation', methods=['POST'])
+def api_send_reservation():
+    try:
+        data = request.json
+        channel_id = int(data['channel_id'])
+        user_id = int(data['user_id'])
+        reservation_id = data['reservation_id']
+        title = data.get('title') or "📅 Reservation Active"
+        description = data.get('description') or f"<@{user_id}> has an active reservation."
+        color = data.get('color', '000000')
+        expires_at = int(data['expires_at'])
+        image_url = data.get('image_url')
+        thumbnail_url = data.get('thumbnail_url')
+
+        embed = discord.Embed(
+            title=title,
+            description=description,
+            color=int(color, 16) if color else 0
+        )
+        embed.add_field(name="Expires", value=f"<t:{expires_at}:F> ┃ <t:{expires_at}:R>", inline=False)
+        if image_url:
+            embed.set_image(url=image_url)
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
+        embed.set_footer(text=f"Reservation #{reservation_id}")
+
+        async def send():
+            channel = bot.get_channel(channel_id)
+            if not channel:
+                for guild in bot.guilds:
+                    thread = guild.get_thread(channel_id)
+                    if thread:
+                        channel = thread
+                        break
+            if not channel:
+                return None
+            message = await channel.send(content=f"<@{user_id}>", embed=embed)
+            return message.id
+
+        import asyncio
+        future = asyncio.run_coroutine_threadsafe(send(), bot.loop)
+        message_id = future.result(timeout=10)
+
+        if message_id:
+            return jsonify({'status': 'success', 'message_id': str(message_id)}), 200
+        else:
+            return jsonify({'status': 'error', 'message': 'Channel not found'}), 404
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @api.route('/upload_image', methods=['POST'])
 def api_upload_image():
     """Upload image to Discord and return the CDN URL"""
@@ -2409,6 +2487,117 @@ async def assign_owner(interaction: discord.Interaction, character: str, user: d
             color=discord.Color.from_rgb(116, 7, 14)
         )
     await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="reservation", description="[ADMIN] Create a reservation timer that pings a user when it expires")
+@app_commands.describe(
+    user="The user this reservation is for",
+    hours="Hours until the reservation expires (max 336 / 14 days)",
+    title="Embed title (optional)",
+    description="Embed description (optional)",
+    color="Hex color, e.g. FF0000 (optional)",
+    image_url="Embed image URL (optional)",
+    thumbnail_url="Embed thumbnail URL (optional)"
+)
+async def create_reservation(interaction: discord.Interaction, user: discord.Member, hours: float,
+                              title: str = None, description: str = None, color: str = None,
+                              image_url: str = None, thumbnail_url: str = None):
+    if interaction.user.id not in ADMIN_IDS:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description="❌ Only admins can use this command!",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    if hours <= 0 or hours > 336:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description="Reservation length must be between 0 and 336 hours (14 days).",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    color_value = color.lstrip('#') if color else '000000'
+    try:
+        color_int = int(color_value, 16)
+    except ValueError:
+        color_value = '000000'
+        color_int = 0
+
+    embed_title = title or "📅 Reservation Active"
+    embed_description = description or f"{user.mention} has an active reservation."
+
+    reservation_id, expires_at = db.create_reservation(
+        interaction.guild_id, interaction.channel_id, user.id,
+        embed_title, embed_description, color_value, None, image_url, thumbnail_url, hours
+    )
+
+    embed = discord.Embed(
+        title=embed_title,
+        description=embed_description,
+        color=discord.Color(color_int)
+    )
+    embed.add_field(name="Expires", value=f"<t:{expires_at}:F> ┃ <t:{expires_at}:R>", inline=False)
+    if image_url:
+        embed.set_image(url=image_url)
+    if thumbnail_url:
+        embed.set_thumbnail(url=thumbnail_url)
+    embed.set_footer(text=f"Reservation #{reservation_id}")
+
+    await interaction.response.send_message(content=user.mention, embed=embed)
+    sent_message = await interaction.original_response()
+    db.set_reservation_message(reservation_id, sent_message.id)
+
+@bot.tree.command(name="reservations", description="List active reservations")
+async def list_reservations(interaction: discord.Interaction):
+    rows = db.get_active_reservations()
+    if not rows:
+        embed = discord.Embed(
+            title="📅 Active Reservations",
+            description="There are no active reservations.",
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    embed = discord.Embed(title="📅 Active Reservations", color=discord.Color.from_rgb(0, 0, 0))
+    for row in rows:
+        res_id, channel_id, user_id, r_title, expires_at = row[0], row[2], row[4], row[5], row[12]
+        embed.add_field(
+            name=f"#{res_id} ┃ {r_title or 'Reservation'}",
+            value=f"<@{user_id}> in <#{channel_id}> ┃ expires <t:{expires_at}:R>",
+            inline=False
+        )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@bot.tree.command(name="cancelreservation", description="[ADMIN] Cancel an active reservation")
+@app_commands.describe(reservation_id="The reservation ID (see /reservations)")
+async def cancel_reservation(interaction: discord.Interaction, reservation_id: int):
+    if interaction.user.id not in ADMIN_IDS:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description="❌ Only admins can use this command!",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    success, message = db.delete_reservation(reservation_id)
+    if success:
+        embed = discord.Embed(
+            title="<a:check:1467157700831088773> ┃ Reservation Cancelled",
+            description=message,
+            color=discord.Color.from_rgb(0, 0, 0)
+        )
+    else:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="value", description="Check the sell value of items from your inventory")
 @app_commands.describe(
