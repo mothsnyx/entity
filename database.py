@@ -174,6 +174,26 @@ class Database:
                         cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} {defaults[col]}")
                         print(f"✓ Added {col} column to {table} table")
 
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS reservations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT NOT NULL,
+                channel_id TEXT NOT NULL,
+                message_id TEXT,
+                user_id TEXT NOT NULL,
+                title TEXT,
+                description TEXT,
+                color TEXT DEFAULT '000000',
+                footer_text TEXT,
+                image_url TEXT,
+                thumbnail_url TEXT,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                notified INTEGER DEFAULT 0,
+                active INTEGER DEFAULT 1
+            )
+            ''')
+
             conn.commit()
         finally:
             conn.close()
@@ -1501,3 +1521,92 @@ class Database:
             finally:
                 conn.close()
             
+    # Reservation Methods
+    @_serialize_writes
+    def create_reservation(self, guild_id, channel_id, user_id, title, description, color,
+                            footer_text, image_url, thumbnail_url, duration_hours):
+        import time
+        created_at = int(time.time())
+        expires_at = created_at + int(duration_hours * 3600)
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO reservations
+                (guild_id, channel_id, user_id, title, description, color,
+                 footer_text, image_url, thumbnail_url, created_at, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (str(guild_id), str(channel_id), str(user_id), title, description, color,
+                  footer_text, image_url, thumbnail_url, created_at, expires_at))
+            conn.commit()
+            return cursor.lastrowid, expires_at
+        finally:
+            conn.close()
+
+    @_serialize_writes
+    def set_reservation_message(self, reservation_id, message_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE reservations SET message_id = ? WHERE id = ?",
+                            (str(message_id), reservation_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_reservation(self, reservation_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM reservations WHERE id = ?", (reservation_id,))
+            return cursor.fetchone()
+        finally:
+            conn.close()
+
+    def get_active_reservations(self):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM reservations WHERE active = 1 ORDER BY expires_at ASC")
+            return cursor.fetchall()
+        finally:
+            conn.close()
+
+    def get_due_reservations(self):
+        import time
+        now = int(time.time())
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM reservations WHERE active = 1 AND notified = 0 AND expires_at <= ?",
+                (now,)
+            )
+            return cursor.fetchall()
+        finally:
+            conn.close()
+
+    @_serialize_writes
+    def mark_reservation_notified(self, reservation_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE reservations SET notified = 1, active = 0 WHERE id = ?",
+                            (reservation_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+    @_serialize_writes
+    def delete_reservation(self, reservation_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM reservations WHERE id = ?", (reservation_id,))
+            if not cursor.fetchone():
+                return False, "Reservation not found!"
+            cursor.execute("DELETE FROM reservations WHERE id = ?", (reservation_id,))
+            conn.commit()
+            return True, "Reservation removed!"
+        finally:
+            conn.close()
