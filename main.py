@@ -1949,11 +1949,10 @@ async def check_reservations():
 
             if channel:
                 embed = discord.Embed(
-                    title="⏰ ┃ Reservation Expired",
-                    description=f"Your reservation **{title or ''}** has run out.",
+                    title="<a:error:1467157734817398946> ┃ Reservation Expired",
+                    description=f"Your reservation for **{title or ''}** has run out.",
                     color=discord.Color.from_rgb(116, 7, 14)
                 )
-                embed.set_footer(text=f"Reservation #{res_id}")
                 await channel.send(content=f"<@{user_id}>", embed=embed)
         except Exception as e:
             print(f"Failed to send reservation expiry notice for #{res_id}: {e}")
