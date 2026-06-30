@@ -511,6 +511,87 @@ def edit_scavenging_item(item_id):
 
 # ==================== PROFILES ROUTES ====================
 
+# ==================== RESERVATIONS ROUTES ====================
+
+@app.route('/reservations')
+@login_required
+def reservations():
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM reservations WHERE active = 1 ORDER BY expires_at ASC")
+    reservations_list = cursor.fetchall()
+    conn.close()
+    return render_template('reservations.html', reservations=reservations_list)
+
+@app.route('/reservations/create', methods=['POST'])
+@login_required
+def create_reservation_dashboard():
+    guild_id = request.form.get('guild_id')
+    channel_id = request.form.get('channel_id')
+    user_id = request.form.get('user_id')
+    hours = request.form.get('hours')
+    title = request.form.get('title') or "📅 Reservation Active"
+    description = request.form.get('description') or None
+    color = request.form.get('color', '#000000').lstrip('#')
+    image_url = request.form.get('image_url') or None
+    thumbnail_url = request.form.get('thumbnail_url') or None
+
+    if not (guild_id and channel_id and user_id and hours):
+        flash('Channel ID, User ID and duration are required!', 'danger')
+        return redirect(url_for('reservations'))
+
+    try:
+        hours = float(hours)
+        if hours <= 0 or hours > 336:
+            flash('Duration must be between 0 and 336 hours (14 days)!', 'danger')
+            return redirect(url_for('reservations'))
+    except ValueError:
+        flash('Duration must be a number!', 'danger')
+        return redirect(url_for('reservations'))
+
+    reservation_id, expires_at = db.create_reservation(
+        guild_id, channel_id, user_id, title, description, color,
+        None, image_url, thumbnail_url, hours
+    )
+
+    try:
+        import requests
+        bot_url = "http://localhost:5002/send_reservation"
+        payload = {
+            'channel_id': channel_id,
+            'user_id': user_id,
+            'reservation_id': reservation_id,
+            'title': title,
+            'description': description,
+            'color': color,
+            'expires_at': expires_at,
+            'image_url': image_url,
+            'thumbnail_url': thumbnail_url
+        }
+        response = requests.post(bot_url, json=payload, timeout=15)
+        if response.status_code == 200:
+            result = response.json()
+            message_id = result.get('message_id')
+            conn = db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE reservations SET message_id = ? WHERE id = ?", (message_id, reservation_id))
+            conn.commit()
+            conn.close()
+            flash('Reservation created and posted!', 'success')
+        else:
+            flash(f'Reservation saved, but failed to post embed: {response.text}', 'danger')
+    except Exception as e:
+        flash(f'Reservation saved, but failed to post embed: {str(e)}', 'danger')
+
+    return redirect(url_for('reservations'))
+
+@app.route('/reservations/delete/<int:reservation_id>', methods=['POST'])
+@login_required
+def delete_reservation_dashboard(reservation_id):
+    success, message = db.delete_reservation(reservation_id)
+    flash(message, 'success' if success else 'danger')
+    return redirect(url_for('reservations'))
+
 @app.route('/profiles')
 @login_required
 def profiles():
