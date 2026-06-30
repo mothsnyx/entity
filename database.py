@@ -287,6 +287,10 @@ class Database:
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
+            cursor.execute("SELECT name FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
+            existing = cursor.fetchone()
+            if existing:
+                return False, f"Profile {existing[0]} already exists!"
             cursor.execute("INSERT INTO profiles (name, role, user_id) VALUES (?, ?, ?)", 
                      (name, role, str(user_id)))
             conn.commit()
