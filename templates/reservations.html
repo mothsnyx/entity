@@ -6,7 +6,7 @@
 <div class="text-center mb-5">
     <i class="bi bi-calendar-check dashboard-icon"></i>
     <h1 class="display-4 mt-3">Reservations</h1>
-    <p class="lead">Manage Member's Character Reservations</p>
+    <p class="lead">Reserve channels for roleplay sessions</p>
 </div>
 
 <div class="card">
@@ -14,7 +14,7 @@
         <i class="bi bi-plus-circle"></i> Create Reservation
     </div>
     <div class="card-body">
-        <form method="POST" action="{{ url_for('create_reservation_dashboard') }}">
+        <form method="POST" action="{{ url_for('create_reservation_dashboard') }}" onsubmit="return calculateHours(event)">
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Channel ID</label>
@@ -25,9 +25,11 @@
                     <input type="text" name="user_id" class="form-control" placeholder="User ID" required>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Hours</label>
-                    <input type="number" step="0.1" max="336" min="0.1" name="hours" class="form-control" placeholder="Max 336" required>
+                    <label class="form-label">Reservation Start</label>
+                    <input type="datetime-local" id="reserved_at" class="form-control" required>
+                    <div class="form-text text-muted">When the player originally made the reservation (14 days will be added)</div>
                 </div>
+                <input type="hidden" name="hours" id="hours_calculated">
 
                 <div class="col-md-4">
                     <label class="form-label">Title</label>
@@ -103,7 +105,25 @@
 
 {% block scripts %}
 <script>
-function formatRemaining(seconds) {
+function calculateHours(e) {
+    const reservedAt = document.getElementById('reserved_at').value;
+    if (!reservedAt) return true;
+
+    const startTime = new Date(reservedAt);
+    const expiryTime = new Date(startTime.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const hoursRemaining = (expiryTime - Date.now()) / (1000 * 60 * 60);
+
+    if (hoursRemaining <= 0) {
+        alert('That reservation started more than 14 days ago — it would already be expired.');
+        e.preventDefault();
+        return false;
+    }
+
+    document.getElementById('hours_calculated').value = hoursRemaining.toFixed(4);
+    return true;
+}
+
+
     if (seconds <= 0) return "Expired";
     const d = Math.floor(seconds / 86400);
     const h = Math.floor((seconds % 86400) / 3600);
