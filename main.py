@@ -2230,7 +2230,6 @@ def api_send_reservation():
         thumbnail_url = data.get('thumbnail_url')
 
         embed = discord.Embed(
-            title=title,
             description=description,
             color=int(color, 16) if color else 0
         )
