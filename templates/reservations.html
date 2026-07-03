@@ -15,6 +15,7 @@
     </div>
     <div class="card-body">
         <form method="POST" action="{{ url_for('create_reservation_dashboard') }}" onsubmit="return calculateHours(event)">
+            <input type="hidden" name="hours" id="hours_calculated">
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Channel ID</label>
@@ -27,15 +28,14 @@
                 <div class="col-md-4">
                     <label class="form-label">Reservation Start</label>
                     <input type="datetime-local" id="reserved_at" class="form-control" required>
-                    <div class="form-text text-muted">When the player originally made the reservation (14 days will be added)</div>
+                    <div class="form-text" style="color: var(--text-muted);">14 days will be added from this time</div>
                 </div>
-                <input type="hidden" name="hours" id="hours_calculated">
 
-                <div class="col-md-4">
-                    <label class="form-label">Title</label>
-                    <input type="text" name="title" class="form-control" placeholder="Title (optional)">
+                <div class="col-md-5">
+                    <label class="form-label">Title <span style="color: var(--text-muted); font-size: 0.85em;">(dashboard only)</span></label>
+                    <input type="text" name="title" class="form-control" placeholder="e.g. PlayerName's reservation">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-5">
                     <label class="form-label">Description</label>
                     <input type="text" name="description" class="form-control" value=" is reserved for you!">
                 </div>
@@ -123,13 +123,14 @@ function calculateHours(e) {
     return true;
 }
 
-
+function formatRemaining(seconds) {
     if (seconds <= 0) return "Expired";
     const d = Math.floor(seconds / 86400);
     const h = Math.floor((seconds % 86400) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return `${d}d ${h}h ${m}m`;
 }
+
 function updateCountdowns() {
     document.querySelectorAll('.countdown').forEach(el => {
         const expires = parseInt(el.dataset.expires, 10);
@@ -137,6 +138,7 @@ function updateCountdowns() {
         el.textContent = formatRemaining(expires - now);
     });
 }
+
 updateCountdowns();
 setInterval(updateCountdowns, 60000);
 </script>
