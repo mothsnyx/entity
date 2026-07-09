@@ -1,0 +1,14 @@
+[Unit]
+Description=DBD Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=jay
+WorkingDirectory=/home/jay/entity/entity
+ExecStart=/home/jay/entity/entity/venv/bin/python dashboard_secure.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
