@@ -2334,6 +2334,28 @@ async def claim_character(interaction: discord.Interaction, name: str):
         )
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command(name="restart", description="[ADMIN] Restart the bot process")
+async def restart_bot(interaction: discord.Interaction):
+    if interaction.user.id not in ADMIN_IDS:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description="❌ Only admins can use this command!",
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🔄 ┃ Restarting...",
+        description="Restarting the bot now. It should be back in a few seconds.",
+        color=discord.Color.from_rgb(0, 0, 0)
+    )
+    await interaction.response.send_message(embed=embed)
+    print(f"[RESTART] Triggered by {interaction.user} ({interaction.user.id})")
+
+    await bot.close()
+    os._exit(0)
+
 @bot.tree.command(name="assignowner", description="[ADMIN] Manually assign character ownership")
 @app_commands.describe(
     character="Character name",
