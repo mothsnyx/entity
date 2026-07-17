@@ -512,6 +512,52 @@ async def give_currency(interaction: discord.Interaction, sender_name: str, curr
     )
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command(name="exchange", description="Exchange Bloodpoints for Auric Cells or vice versa")
+@app_commands.describe(
+    name="Character name",
+    from_currency="Currency you want to spend",
+    amount="Amount to spend"
+)
+@app_commands.choices(from_currency=[
+    app_commands.Choice(name="Bloodpoints", value="bloodpoints"),
+    app_commands.Choice(name="Auric Cells", value="auric_cells")
+])
+async def exchange_currency(interaction: discord.Interaction, name: str, from_currency: app_commands.Choice[str], amount: int):
+    is_owner, msg = db.check_ownership(name, interaction.user.id)
+    if not is_owner:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Access Denied!",
+            description=msg,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    success, message, received, to_currency = db.exchange_currency(name, from_currency.value, amount)
+    if not success:
+        embed = discord.Embed(
+            title="<a:error:1467157734817398946> ┃ Error!",
+            description=message,
+            color=discord.Color.from_rgb(116, 7, 14)
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+
+    to_emoji = "<:ac:1467159725870154021>" if to_currency == "auric_cells" else "<:bp:1467159740797681716>"
+    to_name = "Auric Cells" if to_currency == "auric_cells" else "Bloodpoints"
+
+    embed = discord.Embed(
+        title="<a:check:1467157700831088773> ┃ Exchange Complete!",
+        description=f"**{name}** exchanged currency!",
+        color=discord.Color.from_rgb(0, 0, 0)
+    )
+    embed.add_field(
+        name="Received",
+        value=f"{to_emoji} **{received:,}** {to_name}",
+        inline=False
+    )
+    await interaction.response.send_message(embed=embed)
+
 @bot.tree.command(name="giveitem", description="Give item(s) from your character to another character")
 @app_commands.describe(
     sender_name="Your character's name",
@@ -2677,7 +2723,7 @@ def run_api():
     api.run(host='0.0.0.0', port=5002, debug=False)
 
 # Run the bot
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 if not TOKEN:
