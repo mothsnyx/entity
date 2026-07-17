@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from database import Database
 import os
+import subprocess
 import secrets
 from dotenv import load_dotenv
 load_dotenv()
@@ -1119,6 +1120,19 @@ def limit_remote_addr():
         client_ip = request.remote_addr
         if client_ip not in ALLOWED_IPS:
             return "Access Denied", 403
+
+@app.route('/admin/update', methods=['POST'])
+@login_required
+def admin_update():
+    try:
+        subprocess.run(['git', '-C', '/home/jay/entity', 'pull'], check=True)
+        subprocess.run(['sudo', '/usr/bin/systemctl', 'restart', 'dbdbot'], check=True)
+        flash('Update pulled and bot restarted.', 'success')
+    except subprocess.CalledProcessError as e:
+        flash(f'Error: {e}', 'danger')
+    # Restart dashboard last — this kills the process so the redirect won't land
+    subprocess.run(['sudo', '/usr/bin/systemctl', 'restart', 'dbddashboard'])
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     if not os.path.exists('templates'):
