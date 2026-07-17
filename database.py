@@ -541,6 +541,61 @@ class Database:
             return False, f"Error: {str(e)}"
         finally:
             conn.close()
+
+    # Bloodpoints <-> Auric Cells exchange rates.
+    # Deliberately asymmetric: converting BP into AC is expensive so grinding
+    # BP purely for AC is never as efficient as earning AC directly (e.g. via
+    # trial rewards). Converting AC back into BP is cheaper since AC is the
+    # scarcer currency and dumping it isn't exploitable.
+    BP_TO_AC_RATE = 20000  # 20,000 BP -> 1 AC
+    AC_TO_BP_RATE = 5000   # 1 AC -> 5,000 BP
+
+    @_serialize_writes
+    def exchange_currency(self, name, from_currency, amount):
+        """Exchange between bloodpoints and auric_cells for a character.
+
+        `amount` is how much of `from_currency` the player wants to spend.
+        Returns (success, message, received_amount, to_currency).
+        """
+        if from_currency not in ('bloodpoints', 'auric_cells'):
+            return False, "Invalid currency type!", 0, None
+        if amount <= 0:
+            return False, "Amount must be greater than 0!", 0, None
+
+        to_currency = 'auric_cells' if from_currency == 'bloodpoints' else 'bloodpoints'
+        rate = self.BP_TO_AC_RATE if from_currency == 'bloodpoints' else self.AC_TO_BP_RATE
+
+        if from_currency == 'bloodpoints':
+            received = amount // rate
+            cost = received * rate
+        else:
+            received = amount * rate
+            cost = amount
+
+        if received <= 0:
+            return False, f"You need at least {rate:,} {from_currency.replace('_', ' ')} to exchange for 1 {to_currency.replace('_', ' ')}!", 0, None
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(f"SELECT {from_currency} FROM profiles WHERE LOWER(name) = LOWER(?)", (name,))
+            result = cursor.fetchone()
+
+            if not result:
+                return False, f"Profile {name} not found!", 0, None
+
+            current_amount = result[0]
+            if current_amount < cost:
+                return False, f"Insufficient {from_currency.replace('_', ' ')}! You need {cost:,}, you have {current_amount:,}.", 0, None
+
+            cursor.execute(f"UPDATE profiles SET {from_currency} = {from_currency} - ? WHERE LOWER(name) = LOWER(?)", (cost, name))
+            cursor.execute(f"UPDATE profiles SET {to_currency} = {to_currency} + ? WHERE LOWER(name) = LOWER(?)", (received, name))
+            conn.commit()
+            return True, f"Exchanged {cost:,} {from_currency.replace('_', ' ')} for {received:,} {to_currency.replace('_', ' ')}", received, to_currency
+        except Exception as e:
+            return False, f"Error: {str(e)}", 0, None
+        finally:
+            conn.close()
     
     # Inventory Methods
     @_serialize_writes
