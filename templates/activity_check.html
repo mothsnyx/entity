@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Check{% endblock %}
+
+{% block content %}
+<style>
+    .status-btn {
+        border: none;
+        width: 42px;
+        height: 42px;
+        border-radius: 6px;
+        margin-right: 6px;
+        font-size: 1.1rem;
+        color: #ecf0f1;
+        background-color: #2c2c2c;
+        opacity: 0.5;
+        transition: all 0.2s;
+    }
+    .status-btn:hover {
+        opacity: 0.85;
+    }
+    .status-btn.active-selected {
+        opacity: 1;
+        box-shadow: 0 0 10px rgba(0,0,0,0.6);
+    }
+    .status-btn.btn-active.active-selected { background-color: #1e7e34; }
+    .status-btn.btn-inactive.active-selected { background-color: #b71c1c; }
+    .status-btn.btn-hiatus.active-selected { background-color: #d39e00; color: #000; }
+    .month-form select {
+        min-width: 180px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h2 class="mb-0"><i class="bi bi-clipboard-check"></i> Activity Check</h2>
+    <div class="d-flex gap-2 flex-wrap">
+        <form method="GET" action="{{ url_for('activity_check') }}" class="month-form d-flex gap-2">
+            <select name="month" class="form-select" onchange="this.form.submit()">
+                {% for m in all_months %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        {{ m }}{% if m == current_month %} (current){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCharacterModal">
+            <i class="bi bi-plus-circle"></i> Add Character
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        Characters — {{ selected_month }}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-striped mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Character</th>
+                        <th>Role</th>
+                        <th>Played By</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for char in characters %}
+                    {% set current_status = statuses.get(char.id) %}
+                    <tr>
+                        <td><strong>{{ char.character_name }}</strong></td>
+                        <td>{{ char.role or '—' }}</td>
+                        <td>
+                            {% if char.discord_username %}
+                                {{ char.discord_username }}
+                                {% if char.discord_user_id %}
+                                    <br><small class="text-muted">{{ char.discord_user_id }}</small>
+                                {% endif %}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('set_activity_status') }}" style="display:inline;">
+                                <input type="hidden" name="character_id" value="{{ char.id }}">
+                                <input type="hidden" name="month" value="{{ selected_month }}">
+                                <input type="hidden" name="status" value="active">
+                                <button type="submit" class="status-btn btn-active {% if current_status == 'active' %}active-selected{% endif %}" title="Active">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('set_activity_status') }}" style="display:inline;">
+                                <input type="hidden" name="character_id" value="{{ char.id }}">
+                                <input type="hidden" name="month" value="{{ selected_month }}">
+                                <input type="hidden" name="status" value="inactive">
+                                <button type="submit" class="status-btn btn-inactive {% if current_status == 'inactive' %}active-selected{% endif %}" title="Inactive">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('set_activity_status') }}" style="display:inline;">
+                                <input type="hidden" name="character_id" value="{{ char.id }}">
+                                <input type="hidden" name="month" value="{{ selected_month }}">
+                                <input type="hidden" name="status" value="hiatus">
+                                <button type="submit" class="status-btn btn-hiatus {% if current_status == 'hiatus' %}active-selected{% endif %}" title="Hiatus">
+                                    <i class="bi bi-pause-fill"></i>
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('remove_activity_character', character_id=char.id) }}"
+                                  onsubmit="return confirm('Remove {{ char.character_name }} from Activity Check entirely?');">
+                                <input type="hidden" name="month" value="{{ selected_month }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No characters added yet. Click "Add Character" to get started.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-danger">
+        <i class="bi bi-exclamation-triangle-fill"></i> Inactive This Month — {{ selected_month }}
+    </div>
+    <div class="card-body">
+        {% if inactive_list %}
+            <p class="text-muted">The following characters were marked inactive and may need review for removal:</p>
+            <ul class="mb-0">
+                {% for char in inactive_list %}
+                    <li>
+                        <strong>{{ char.character_name }}</strong>
+                        {% if char.role %} — {{ char.role }}{% endif %}
+                        {% if char.discord_username %} (played by {{ char.discord_username }}
+                            {%- if char.discord_user_id %}, {{ char.discord_user_id }}{% endif -%}
+                        ){% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted mb-0">No characters marked inactive for this month yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Character Modal -->
+<div class="modal fade" id="addCharacterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('add_activity_character') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Character</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="month" value="{{ selected_month }}">
+                    <div class="mb-3">
+                        <label class="form-label">Character Name</label>
+                        <input type="text" name="character_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <input type="text" name="role" class="form-control" placeholder="e.g. Killer, Survivor">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discord Username</label>
+                        <input type="text" name="discord_username" class="form-control" placeholder="e.g. jay">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discord User ID</label>
+                        <input type="text" name="discord_user_id" class="form-control" placeholder="e.g. 123456789012345678">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Character</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
