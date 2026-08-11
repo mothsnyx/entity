@@ -194,6 +194,30 @@ class Database:
             )
             ''')
 
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS activity_characters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                character_name TEXT NOT NULL,
+                role TEXT,
+                discord_username TEXT,
+                discord_user_id TEXT,
+                added_at INTEGER NOT NULL,
+                removed INTEGER DEFAULT 0
+            )
+            ''')
+
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS activity_checks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                character_id INTEGER NOT NULL,
+                month TEXT NOT NULL,
+                status TEXT NOT NULL,
+                checked_at INTEGER NOT NULL,
+                FOREIGN KEY (character_id) REFERENCES activity_characters(id) ON DELETE CASCADE,
+                UNIQUE(character_id, month)
+            )
+            ''')
+
             conn.commit()
         finally:
             conn.close()
@@ -1663,5 +1687,112 @@ class Database:
             cursor.execute("DELETE FROM reservations WHERE id = ?", (reservation_id,))
             conn.commit()
             return True, "Reservation removed!"
+        finally:
+            conn.close()
+
+    # ==================== ACTIVITY CHECK ====================
+
+    @_serialize_writes
+    def add_activity_character(self, character_name, role, discord_username, discord_user_id):
+        import time
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO activity_characters (character_name, role, discord_username, discord_user_id, added_at)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (character_name, role, discord_username, discord_user_id, int(time.time())))
+            conn.commit()
+            return True, "Character added to Activity Check!"
+        finally:
+            conn.close()
+
+    @_serialize_writes
+    def remove_activity_character(self, character_id):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM activity_characters WHERE id = ?", (character_id,))
+            if not cursor.fetchone():
+                return False, "Character not found!"
+            cursor.execute("UPDATE activity_characters SET removed = 1 WHERE id = ?", (character_id,))
+            conn.commit()
+            return True, "Character removed from Activity Check!"
+        finally:
+            conn.close()
+
+    def get_all_activity_characters(self, include_removed=False):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            if include_removed:
+                cursor.execute("SELECT id, character_name, role, discord_username, discord_user_id, added_at, removed FROM activity_characters ORDER BY character_name COLLATE NOCASE")
+            else:
+                cursor.execute("SELECT id, character_name, role, discord_username, discord_user_id, added_at, removed FROM activity_characters WHERE removed = 0 ORDER BY character_name COLLATE NOCASE")
+            rows = cursor.fetchall()
+            return [
+                {
+                    'id': r[0], 'character_name': r[1], 'role': r[2],
+                    'discord_username': r[3], 'discord_user_id': r[4],
+                    'added_at': r[5], 'removed': r[6]
+                } for r in rows
+            ]
+        finally:
+            conn.close()
+
+    @_serialize_writes
+    def set_activity_status(self, character_id, month, status):
+        import time
+        if status not in ('active', 'inactive', 'hiatus'):
+            return False, "Invalid status!"
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO activity_checks (character_id, month, status, checked_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(character_id, month) DO UPDATE SET
+                    status = excluded.status,
+                    checked_at = excluded.checked_at
+            ''', (character_id, month, status, int(time.time())))
+            conn.commit()
+            return True, "Status saved!"
+        finally:
+            conn.close()
+
+    def get_activity_statuses_for_month(self, month):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT character_id, status FROM activity_checks WHERE month = ?", (month,))
+            return {row[0]: row[1] for row in cursor.fetchall()}
+        finally:
+            conn.close()
+
+    def get_all_checked_months(self):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT month FROM activity_checks ORDER BY month DESC")
+            return [row[0] for row in cursor.fetchall()]
+        finally:
+            conn.close()
+
+    def get_inactive_characters_for_month(self, month):
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT ac.id, ac.character_name, ac.role, ac.discord_username, ac.discord_user_id
+                FROM activity_checks chk
+                JOIN activity_characters ac ON ac.id = chk.character_id
+                WHERE chk.month = ? AND chk.status = 'inactive'
+                ORDER BY ac.character_name COLLATE NOCASE
+            ''', (month,))
+            rows = cursor.fetchall()
+            return [
+                {'id': r[0], 'character_name': r[1], 'role': r[2], 'discord_username': r[3], 'discord_user_id': r[4]}
+                for r in rows
+            ]
         finally:
             conn.close()
