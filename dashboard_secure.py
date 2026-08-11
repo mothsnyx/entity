@@ -4,8 +4,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from database import Database
 import os
-import subprocess
 import secrets
+import subprocess
+import threading
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -74,6 +75,49 @@ db = Database()
 @login_required
 def index():
     return render_template('index.html')
+
+# ==================== UPDATE / DEPLOY ROUTE ====================
+
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+BOT_SERVICE = "dbdbot"
+DASHBOARD_SERVICE = "dbddashboard"
+
+def _restart_services(restart_dashboard):
+    subprocess.run(["sudo", "systemctl", "restart", BOT_SERVICE])
+    if restart_dashboard:
+        subprocess.run(["sudo", "systemctl", "restart", DASHBOARD_SERVICE])
+
+@app.route('/admin/update', methods=['POST'])
+@login_required
+def admin_update():
+    try:
+        result = subprocess.run(
+            ["git", "pull", "--ff-only"],
+            cwd=REPO_DIR,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        output = (result.stdout + result.stderr).strip()
+
+        if result.returncode != 0:
+            flash(f"git pull failed: {output}", "danger")
+            return redirect(url_for('index'))
+
+        if "Already up to date" in output:
+            flash("Already up to date — nothing to restart.", "info")
+            return redirect(url_for('index'))
+
+        dashboard_changed = "dashboard_secure.py" in output
+        flash(f"Pulled latest changes, restarting service(s)...\n{output}", "success")
+        threading.Timer(1.5, _restart_services, args=(dashboard_changed,)).start()
+        return redirect(url_for('index'))
+    except subprocess.TimeoutExpired:
+        flash("git pull timed out after 30 seconds.", "danger")
+        return redirect(url_for('index'))
+    except Exception as e:
+        flash(f"Error: {str(e)}", "danger")
+        return redirect(url_for('index'))
 
 # ==================== REALMS ROUTES ====================
 
@@ -592,6 +636,73 @@ def delete_reservation_dashboard(reservation_id):
     success, message = db.delete_reservation(reservation_id)
     flash(message, 'success' if success else 'danger')
     return redirect(url_for('reservations'))
+
+# ==================== ACTIVITY CHECK ROUTES ====================
+
+@app.route('/activity-check')
+@login_required
+def activity_check():
+    import datetime
+    current_month = datetime.datetime.now().strftime('%Y-%m')
+    month = request.args.get('month', current_month)
+
+    characters = db.get_all_activity_characters()
+    statuses = db.get_activity_statuses_for_month(month)
+    all_months = db.get_all_checked_months()
+    if current_month not in all_months:
+        all_months = [current_month] + all_months
+    inactive_list = db.get_inactive_characters_for_month(month)
+
+    return render_template(
+        'activity_check.html',
+        characters=characters,
+        statuses=statuses,
+        all_months=all_months,
+        selected_month=month,
+        current_month=current_month,
+        inactive_list=inactive_list
+    )
+
+@app.route('/activity-check/add-character', methods=['POST'])
+@login_required
+def add_activity_character():
+    character_name = request.form.get('character_name')
+    role = request.form.get('role')
+    discord_username = request.form.get('discord_username')
+    discord_user_id = request.form.get('discord_user_id')
+    month = request.form.get('month')
+
+    if not character_name:
+        flash('Character name is required!', 'danger')
+        return redirect(url_for('activity_check', month=month))
+
+    success, message = db.add_activity_character(character_name, role, discord_username, discord_user_id)
+    flash(message, 'success' if success else 'danger')
+    return redirect(url_for('activity_check', month=month))
+
+@app.route('/activity-check/remove-character/<int:character_id>', methods=['POST'])
+@login_required
+def remove_activity_character(character_id):
+    month = request.form.get('month')
+    success, message = db.remove_activity_character(character_id)
+    flash(message, 'success' if success else 'danger')
+    return redirect(url_for('activity_check', month=month))
+
+@app.route('/activity-check/set-status', methods=['POST'])
+@login_required
+def set_activity_status():
+    character_id = request.form.get('character_id')
+    month = request.form.get('month')
+    status = request.form.get('status')
+
+    if not (character_id and month and status):
+        flash('Missing data for status update!', 'danger')
+        return redirect(url_for('activity_check', month=month))
+
+    success, message = db.set_activity_status(int(character_id), month, status)
+    if not success:
+        flash(message, 'danger')
+    return redirect(url_for('activity_check', month=month))
 
 @app.route('/profiles')
 @login_required
@@ -1120,19 +1231,6 @@ def limit_remote_addr():
         client_ip = request.remote_addr
         if client_ip not in ALLOWED_IPS:
             return "Access Denied", 403
-
-@app.route('/admin/update', methods=['POST'])
-@login_required
-def admin_update():
-    try:
-        subprocess.run(['git', '-C', '/home/jay/entity', 'pull'], check=True)
-        subprocess.run(['sudo', '/usr/bin/systemctl', 'restart', 'dbdbot'], check=True)
-        flash('Update pulled and bot restarted.', 'success')
-    except subprocess.CalledProcessError as e:
-        flash(f'Error: {e}', 'danger')
-    # Restart dashboard last — this kills the process so the redirect won't land
-    subprocess.run(['sudo', '/usr/bin/systemctl', 'restart', 'dbddashboard'])
-    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     if not os.path.exists('templates'):
