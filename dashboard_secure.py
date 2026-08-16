@@ -702,20 +702,42 @@ def remove_activity_character(character_id):
     flash(message, 'success' if success else 'danger')
     return redirect(url_for('activity_check', month=month))
 
-@app.route('/activity-check/set-status', methods=['POST'])
+@app.route('/activity-check/save-month', methods=['POST'])
 @login_required
-def set_activity_status():
-    character_id = request.form.get('character_id')
-    month = request.form.get('month')
-    status = request.form.get('status')
+def save_activity_month():
+    import json
 
-    if not (character_id and month and status):
-        flash('Missing data for status update!', 'danger')
+    month = request.form.get('month')
+    statuses_json = request.form.get('statuses_json', '{}')
+
+    try:
+        statuses = json.loads(statuses_json)
+    except (ValueError, TypeError):
+        flash('Could not read the changes — nothing was saved.', 'danger')
         return redirect(url_for('activity_check', month=month))
 
-    success, message = db.set_activity_status(int(character_id), month, status)
-    if not success:
-        flash(message, 'danger')
+    if not month:
+        flash('Missing month — nothing was saved.', 'danger')
+        return redirect(url_for('activity_check', month=month))
+
+    saved = 0
+    errors = []
+    for character_id, status in statuses.items():
+        if status not in ('active', 'inactive', 'hiatus'):
+            continue
+        success, message = db.set_activity_status(int(character_id), month, status)
+        if success:
+            saved += 1
+        else:
+            errors.append(message)
+
+    if saved:
+        flash(f'Saved {saved} status update(s) for {month}!', 'success')
+    else:
+        flash('No changes to save.', 'info')
+    for err in errors:
+        flash(err, 'danger')
+
     return redirect(url_for('activity_check', month=month))
 
 @app.route('/profiles')
