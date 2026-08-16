@@ -156,36 +156,60 @@
 <div class="modal fade" id="addCharacterModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ url_for('add_activity_character') }}">
+            <form method="POST" action="{{ url_for('add_activity_character') }}" id="addCharacterForm">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add Character</h5>
+                    <h5 class="modal-title">Add Character(s)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="month" value="{{ selected_month }}">
                     <div class="mb-3">
-                        <label class="form-label">Character Name</label>
-                        <input type="text" name="character_name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Role</label>
-                        <input type="text" name="role" class="form-control" placeholder="e.g. Killer, Survivor">
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">Discord Username</label>
-                        <input type="text" name="discord_username" class="form-control" placeholder="e.g. b.loodbath">
+                        <input type="text" name="discord_username" class="form-control" placeholder="e.g. jay">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Discord User ID</label>
                         <input type="text" name="discord_user_id" class="form-control" placeholder="e.g. 123456789012345678">
                     </div>
+                    <hr>
+                    <label class="form-label">Character(s)</label>
+                    <div id="characterRows">
+                        <div class="row g-2 mb-2 character-row">
+                            <div class="col-6">
+                                <input type="text" name="character_name[]" class="form-control" placeholder="Character name" required>
+                            </div>
+                            <div class="col-5">
+                                <input type="text" name="role[]" class="form-control" placeholder="Role (e.g. Killer)">
+                            </div>
+                            <div class="col-1 d-flex align-items-center">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" style="visibility:hidden;">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-light mt-2" id="addRowBtn">
+                        <i class="bi bi-plus-lg"></i> Add another character
+                    </button>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Character</button>
+                    <button type="submit" class="btn btn-primary">Add Character(s)</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('addRowBtn').addEventListener('click', function() {
+    const rows = document.getElementById('characterRows');
+    const newRow = rows.querySelector('.character-row').cloneNode(true);
+    newRow.querySelectorAll('input').forEach(input => input.value = '');
+    const removeBtn = newRow.querySelector('.remove-row-btn');
+    removeBtn.style.visibility = 'visible';
+    removeBtn.addEventListener('click', function() { newRow.remove(); });
+    rows.appendChild(newRow);
+});
+</script>
 {% endblock %}
