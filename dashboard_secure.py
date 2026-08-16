@@ -666,18 +666,32 @@ def activity_check():
 @app.route('/activity-check/add-character', methods=['POST'])
 @login_required
 def add_activity_character():
-    character_name = request.form.get('character_name')
-    role = request.form.get('role')
+    character_names = request.form.getlist('character_name[]')
+    roles = request.form.getlist('role[]')
     discord_username = request.form.get('discord_username')
     discord_user_id = request.form.get('discord_user_id')
     month = request.form.get('month')
 
-    if not character_name:
-        flash('Character name is required!', 'danger')
-        return redirect(url_for('activity_check', month=month))
+    added = 0
+    errors = []
+    for i, character_name in enumerate(character_names):
+        character_name = character_name.strip()
+        if not character_name:
+            continue
+        role = roles[i].strip() if i < len(roles) else ''
+        success, message = db.add_activity_character(character_name, role, discord_username, discord_user_id)
+        if success:
+            added += 1
+        else:
+            errors.append(f"{character_name}: {message}")
 
-    success, message = db.add_activity_character(character_name, role, discord_username, discord_user_id)
-    flash(message, 'success' if success else 'danger')
+    if added == 0:
+        flash('No characters were added — at least one character name is required!', 'danger')
+    else:
+        flash(f'Added {added} character(s)!' + (f' ({len(errors)} failed)' if errors else ''), 'success')
+    for err in errors:
+        flash(err, 'danger')
+
     return redirect(url_for('activity_check', month=month))
 
 @app.route('/activity-check/remove-character/<int:character_id>', methods=['POST'])
