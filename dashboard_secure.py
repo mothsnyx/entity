@@ -201,6 +201,7 @@ def add_shop_item():
     if item_name and price:
         try:
             item_name = db.normalise(item_name)
+            category = db.normalise_category(category)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO shop_items (item_name, price, description, category, currency_type) VALUES (?, ?, ?, ?, ?)",
@@ -237,6 +238,8 @@ def edit_shop_item(item_id):
     
     if item_name and price:
         try:
+            item_name = db.normalise(item_name)
+            category = db.normalise_category(category)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("UPDATE shop_items SET item_name = ?, price = ?, description = ?, category = ?, currency_type = ? WHERE id = ?",
@@ -343,6 +346,7 @@ def add_hunting_item():
         try:
             if item_name:
                 item_name = db.normalise(item_name)
+                category = db.normalise_category(category)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO hunting_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -383,6 +387,9 @@ def edit_hunting_item(item_id):
     
     if message:
         try:
+            if item_name:
+                item_name = db.normalise(item_name)
+                category = db.normalise_category(category)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("UPDATE hunting_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ?, difficulty = ?, flee_message = ?, fail_message = ? WHERE id = ?",
@@ -423,6 +430,7 @@ def add_fishing_item():
         try:
             if item_name:
                 item_name = db.normalise(item_name)
+                category = db.normalise_category(category)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO fishing_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -463,6 +471,9 @@ def edit_fishing_item(item_id):
     
     if message:
         try:
+            if item_name:
+                item_name = db.normalise(item_name)
+                category = db.normalise_category(category)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("UPDATE fishing_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ?, difficulty = ?, flee_message = ?, fail_message = ? WHERE id = ?",
@@ -503,6 +514,7 @@ def add_scavenging_item():
         try:
             if item_name:
                 item_name = db.normalise(item_name)
+                category = db.normalise_category(category)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("INSERT INTO scavenging_items (item_name, message, category, description, sell_value, weight, difficulty, flee_message, fail_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -543,6 +555,9 @@ def edit_scavenging_item(item_id):
     
     if message:
         try:
+            if item_name:
+                item_name = db.normalise(item_name)
+                category = db.normalise_category(category)
             conn = db.get_connection()
             cursor = conn.cursor()
             cursor.execute("UPDATE scavenging_items SET item_name = ?, message = ?, category = ?, description = ?, sell_value = ?, weight = ?, difficulty = ?, flee_message = ?, fail_message = ? WHERE id = ?",
