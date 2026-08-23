@@ -46,6 +46,28 @@ class Database:
     def normalise(self, text):
         """Normalise user-typed text to Title Case before inserting."""
         return text.strip().title() if text else text
+
+    # Canonical category buckets used by get_inventory(). Any category value
+    # saved to the DB is folded onto one of these (case/whitespace-insensitive)
+    # so admin typos like "consumables" or "Consumables " don't silently land
+    # items in Miscellaneous.
+    KNOWN_CATEGORIES = ['Consumables', 'Tools', 'Collectibles', 'Miscellaneous',
+                        'Cosmetics', 'Pets', 'Shelter', 'NSFW']
+
+    def normalise_category(self, category):
+        """Normalise a user-typed category to one of KNOWN_CATEGORIES.
+
+        Strips whitespace and matches case-insensitively against the known
+        categories. Falls back to Title Case (preserving unrecognised custom
+        categories) rather than silently dropping them into Miscellaneous.
+        """
+        if not category:
+            return 'Miscellaneous'
+        cleaned = category.strip()
+        for known in self.KNOWN_CATEGORIES:
+            if cleaned.lower() == known.lower():
+                return known
+        return cleaned.title()
     
     def init_database(self):
         conn = self.get_connection()
@@ -647,14 +669,14 @@ class Database:
         try:
             cursor = conn.cursor()
             
-            cursor.execute("SELECT * FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)", (name, item_name))
+            cursor.execute("SELECT * FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (name, item_name))
             if not cursor.fetchone():
                 return False, f"{item_name} not found in {name}'s inventory!"
             
             cursor.execute(
                 "DELETE FROM inventory WHERE id IN ("
                 "SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) "
-                "AND LOWER(item_name) = LOWER(?) LIMIT 1)",
+                "AND LOWER(TRIM(item_name)) = LOWER(TRIM(?)) LIMIT 1)",
                 (name, item_name),
             )
             conn.commit()
@@ -668,29 +690,46 @@ class Database:
         conn = self.get_connection()
         try:
             cursor = conn.cursor()
-            
-            # First, get inventory counts (accurate count from inventory table only)
+
+            # First, get inventory counts (accurate count from inventory table only).
+            # Group by a whitespace/case-normalised key so that legacy rows with
+            # stray whitespace or inconsistent casing (e.g. from an old edit that
+            # bypassed normalise()) still get counted together as one item instead
+            # of splintering into separate entries.
             cursor.execute("""
-                SELECT item_name, COUNT(*) as quantity
+                SELECT LOWER(TRIM(item_name)) as item_key, COUNT(*) as quantity
                 FROM inventory
                 WHERE LOWER(character_name) = LOWER(?)
-                GROUP BY item_name
+                GROUP BY item_key
             """, (name,))
             inventory_counts = {row[0]: row[1] for row in cursor.fetchall()}
-            
-            # Then get categories for each item (using DISTINCT to avoid duplicates from multiple scenarios)
+
+            # Then get a clean display name + category for each item (using DISTINCT
+            # to avoid duplicates from multiple scenarios). Matching against the
+            # definition tables is done case/whitespace-insensitively, and the
+            # canonical (properly normalised) item_name from whichever definition
+            # table matches is preferred as the display name, so a stray space in
+            # the inventory row doesn't leak into what's shown to the user.
             cursor.execute("""
-                SELECT DISTINCT i.item_name,
+                SELECT DISTINCT
+                       LOWER(TRIM(i.item_name)) as item_key,
                        COALESCE(
-                           (SELECT category FROM shop_items WHERE item_name = i.item_name LIMIT 1),
-                           (SELECT category FROM hunting_items WHERE item_name = i.item_name LIMIT 1),
-                           (SELECT category FROM fishing_items WHERE item_name = i.item_name LIMIT 1),
-                           (SELECT category FROM scavenging_items WHERE item_name = i.item_name LIMIT 1),
+                           (SELECT item_name FROM shop_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(i.item_name)) LIMIT 1),
+                           (SELECT item_name FROM hunting_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(i.item_name)) LIMIT 1),
+                           (SELECT item_name FROM fishing_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(i.item_name)) LIMIT 1),
+                           (SELECT item_name FROM scavenging_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(i.item_name)) LIMIT 1),
+                           TRIM(i.item_name)
+                       ) as display_name,
+                       COALESCE(
+                           (SELECT category FROM shop_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(i.item_name)) LIMIT 1),
+                           (SELECT category FROM hunting_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(i.item_name)) LIMIT 1),
+                           (SELECT category FROM fishing_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(i.item_name)) LIMIT 1),
+                           (SELECT category FROM scavenging_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(i.item_name)) LIMIT 1),
                            'Miscellaneous'
                        ) as category
                 FROM inventory i
                 WHERE LOWER(i.character_name) = LOWER(?)
-                ORDER BY category, i.item_name
+                ORDER BY category, display_name
             """, (name,))
             results = cursor.fetchall()
 
@@ -706,11 +745,16 @@ class Database:
                 'NSFW': [],
             }
 
-            for item_name, category in results:
+            for item_key, display_name, category in results:
                 item_data = {
-                    'item_name': item_name,
-                    'quantity': inventory_counts.get(item_name, 0)
+                    'item_name': display_name,
+                    'quantity': inventory_counts.get(item_key, 0)
                 }
+                # Normalise on read too, so items whose category was saved with
+                # stray casing/whitespace (e.g. "consumables" instead of
+                # "Consumables") still land in the right bucket instead of
+                # silently falling through to Miscellaneous.
+                category = self.normalise_category(category)
                 if category in categorized:
                     categorized[category].append(item_data)
                 else:
@@ -736,7 +780,7 @@ class Database:
                 bloodpoints, auric_cells, name = result[0], result[1], result[2]
 
                 # Check if item exists in shop and get its currency type
-                cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (item_name,))
                 result = cursor.fetchone()
                 if not result:
                     return False, f"Item {item_name} not found in shop!", 0, None
@@ -792,7 +836,7 @@ class Database:
                 ac_total = 0
 
                 for item_name in item_names:
-                    cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                    cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (item_name,))
                     result = cursor.fetchone()
 
                     if not result:
@@ -868,7 +912,7 @@ class Database:
 
                 for item_name in item_names:
                     # Check if item exists in inventory
-                    cursor.execute("SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT 1",
+                    cursor.execute("SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?)) LIMIT 1",
                                  (name, item_name))
                     result = cursor.fetchone()
 
@@ -913,7 +957,7 @@ class Database:
 
             for item_name in item_names:
                 # Check if item exists in inventory
-                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)",
+                cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?))",
                              (name, item_name))
                 quantity = cursor.fetchone()[0]
 
@@ -925,21 +969,21 @@ class Database:
                 sell_value = 0
 
                 # Check hunting_items
-                cursor.execute("SELECT sell_value FROM hunting_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                cursor.execute("SELECT sell_value FROM hunting_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (item_name,))
                 result = cursor.fetchone()
                 if result:
                     sell_value = result[0] or 0
 
                 # Check fishing_items if not found
                 if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM fishing_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                    cursor.execute("SELECT sell_value FROM fishing_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (item_name,))
                     result = cursor.fetchone()
                     if result:
                         sell_value = result[0] or 0
 
                 # Check scavenging_items if not found
                 if sell_value == 0:
-                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                    cursor.execute("SELECT sell_value FROM scavenging_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (item_name,))
                     result = cursor.fetchone()
                     if result:
                         sell_value = result[0] or 0
@@ -994,7 +1038,7 @@ class Database:
                 for item_name, quantity in item_quantities.items():
                     # Check how many the character has
                     cursor.execute(
-                        "SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)",
+                        "SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?))",
                         (name, item_name)
                     )
                     count = cursor.fetchone()[0]
@@ -1011,7 +1055,7 @@ class Database:
                     sell_value = 0
 
                     for table in ("hunting_items", "fishing_items", "scavenging_items"):
-                        cursor.execute(f"SELECT sell_value FROM {table} WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                        cursor.execute(f"SELECT sell_value FROM {table} WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (item_name,))
                         result = cursor.fetchone()
                         if result and result[0]:
                             sell_value = result[0]
@@ -1024,7 +1068,7 @@ class Database:
                     # Remove exactly `quantity` copies from inventory
                     cursor.execute(
                         "DELETE FROM inventory WHERE id IN "
-                        "(SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT ?)",
+                        "(SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?)) LIMIT ?)",
                         (name, item_name, quantity)
                     )
 
@@ -1302,7 +1346,13 @@ class Database:
         """Add item to inventory after successful minigame roll"""
         if not item_name or not item_name.strip() or item_name.lower() in ['none', 'nothing', 'null']:
             return False
-        
+
+        # Strip stray whitespace before it gets copied into inventory. The
+        # source definition row (hunting/fishing/scavenging_items) may still
+        # contain a stray space from a dashboard edit that skipped normalise();
+        # this keeps that from propagating into every future catch.
+        item_name = item_name.strip()
+
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO inventory (character_name, item_name) VALUES (?, ?)", (name, item_name))
@@ -1417,7 +1467,7 @@ class Database:
 
                 actual_quantities = {}  # Remapped with exact shop names
                 for item_name, quantity in item_quantities.items():
-                    cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(item_name) = LOWER(?)", (item_name,))
+                    cursor.execute("SELECT item_name, price, currency_type FROM shop_items WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (item_name,))
                     result = cursor.fetchone()
                     if not result:
                         return False, f"Item **{item_name}** not found in shop!", 0, None, {}
@@ -1528,7 +1578,7 @@ class Database:
 
                 # First pass: check if user has enough of each item
                 for item_name, quantity in item_quantities.items():
-                    cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)", (name, item_name))
+                    cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (name, item_name))
                     count = cursor.fetchone()[0]
 
                     if count < quantity:
@@ -1539,7 +1589,7 @@ class Database:
                 for item_name, quantity in item_quantities.items():
                     # Delete exact number of items
                     cursor.execute(
-                        f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT ?)",
+                        f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?)) LIMIT ?)",
                         (name, item_name, quantity)
                     )
                     items_removed[item_name] = quantity
@@ -1575,7 +1625,7 @@ class Database:
 
                 # First pass: check if user has enough of each item
                 for item_name, quantity in item_quantities.items():
-                    cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?)", (name, item_name))
+                    cursor.execute("SELECT COUNT(*) FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?))", (name, item_name))
                     count = cursor.fetchone()[0]
 
                     if count < quantity:
@@ -1586,7 +1636,7 @@ class Database:
                 for item_name, quantity in item_quantities.items():
                     # Delete exact number of items
                     cursor.execute(
-                        f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(item_name) = LOWER(?) LIMIT ?)",
+                        f"DELETE FROM inventory WHERE id IN (SELECT id FROM inventory WHERE LOWER(character_name) = LOWER(?) AND LOWER(TRIM(item_name)) = LOWER(TRIM(?)) LIMIT ?)",
                         (name, item_name, quantity)
                     )
                     items_used[item_name] = quantity
